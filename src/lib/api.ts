@@ -1,0 +1,325 @@
+export type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
+
+export type AccountApiOptions = {
+  baseUrl: string
+  fetcher?: Fetcher
+  getAccessToken?: () => string | null
+  setAccessToken?: (token: string | null) => void
+}
+
+export type LoginRequest = {
+  email: string
+  password: string
+  authRequestId?: string
+}
+
+export type LoginResponse = {
+  access_token?: string
+  mfa_type?: 'setup_required' | 'verification_required'
+  mfa_token?: string
+  redirect_type?: 'oauth'
+  redirect_uri?: string
+  code?: string
+  state?: string
+  success?: boolean
+}
+
+export type Profile = {
+  id: string
+  email: string
+  first_name?: string
+  last_name?: string
+  avatar_url?: string
+  is_active?: boolean
+  is_email_verified?: boolean
+  has_password?: boolean
+  roles?: string[]
+  permissions?: string[]
+  mfa?: {
+    enabled: boolean
+    methods?: Array<{ type: string; created_at?: string }>
+  }
+}
+
+export type Device = {
+  session_id: string
+  user_agent?: string
+  ip_address?: string
+  created_at?: string
+  last_used_at?: string
+}
+
+export type LinkedAccount = {
+  provider: string
+  provider_id?: string
+  linked_at?: string
+}
+
+export type MfaSetup = {
+  otpauth_url?: string
+  qr_code_url?: string
+  secret?: string
+  backup_codes?: string[]
+}
+
+type RequestOptions = {
+  method?: string
+  body?: unknown
+  auth?: boolean
+  retry?: boolean
+}
+
+export class ApiError extends Error {
+  status: number
+  code?: string
+  data: unknown
+
+  constructor(status: number, message: string, code?: string, data?: unknown) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.code = code
+    this.data = data
+  }
+}
+
+export class AccountApi {
+  private readonly baseUrl: string
+  private readonly fetcher: Fetcher
+  private readonly getAccessToken?: () => string | null
+  private readonly setAccessToken?: (token: string | null) => void
+  private csrfToken: string | null = null
+
+  constructor(options: AccountApiOptions) {
+    this.baseUrl = options.baseUrl.replace(/\/$/, '')
+    this.fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis)
+    this.getAccessToken = options.getAccessToken
+    this.setAccessToken = options.setAccessToken
+  }
+
+  async login(request: LoginRequest) {
+    const path = request.authRequestId
+      ? `/login?auth_request_id=${encodeURIComponent(request.authRequestId)}`
+      : '/login'
+
+    return this.request<LoginResponse>(path, {
+      method: 'POST',
+      auth: false,
+      body: {
+        email: request.email,
+        password: request.password,
+      },
+    })
+  }
+
+  async refreshAccessToken() {
+    try {
+      const response = await this.request<{ access_token?: string }>('/refresh', {
+        method: 'POST',
+        auth: false,
+        retry: false,
+        body: {},
+      })
+      const token = response.access_token ?? null
+      this.setAccessToken?.(token)
+      return token
+    } catch {
+      this.setAccessToken?.(null)
+      return null
+    }
+  }
+
+  me() {
+    return this.request<Profile>('/me')
+  }
+
+  updateProfile(body: { first_name: string; last_name: string; avatar_url: string }) {
+    return this.request<{ message?: string }>('/profile', { method: 'PUT', body })
+  }
+
+  changePassword(body: { old_password: string; new_password: string }) {
+    return this.request<{ message?: string }>('/change-password', { method: 'POST', body })
+  }
+
+  forgotPassword(email: string) {
+    return this.request<{ message?: string }>('/forgot-password', {
+      method: 'POST',
+      auth: false,
+      body: { email },
+    })
+  }
+
+  verifyEmail(token: string) {
+    return this.request<{ message?: string }>(`/verify-email?token=${encodeURIComponent(token)}`, {
+      auth: false,
+    })
+  }
+
+  resetPassword(body: { email: string; token: string; new_password: string }) {
+    return this.request<{ message?: string }>('/reset-password', {
+      method: 'POST',
+      auth: false,
+      body,
+    })
+  }
+
+  setupMfa() {
+    return this.request<MfaSetup>('/mfa/setup', { method: 'POST', body: {} })
+  }
+
+  verifyMfaSetup(code: string) {
+    return this.request<{ message?: string }>('/mfa/verify-setup', { method: 'POST', body: { code } })
+  }
+
+  setupMfaWithToken(mfaToken: string) {
+    return this.request<MfaSetup>('/mfa/setup-with-token', {
+      method: 'POST',
+      auth: false,
+      body: { mfa_token: mfaToken },
+    })
+  }
+
+  verifyMfaSetupWithToken(mfaToken: string, code: string) {
+    return this.request<LoginResponse>('/mfa/verify-setup-with-token', {
+      method: 'POST',
+      auth: false,
+      body: { mfa_token: mfaToken, code },
+    })
+  }
+
+  verifyMfa(mfaToken: string, code: string) {
+    return this.request<LoginResponse>('/mfa/verify', {
+      method: 'POST',
+      auth: false,
+      body: { mfa_token: mfaToken, code },
+    })
+  }
+
+  disableMfa() {
+    return this.request<{ message?: string }>('/mfa/disable', { method: 'POST', body: {} })
+  }
+
+  regenerateBackupCodes() {
+    return this.request<{ backup_codes?: string[] }>('/mfa/regenerate-backup-codes', {
+      method: 'POST',
+      body: {},
+    })
+  }
+
+  listDevices() {
+    return this.request<Device[]>('/devices')
+  }
+
+  logoutDevice(sessionId: string) {
+    return this.request<void>(`/devices/${encodeURIComponent(sessionId)}`, { method: 'DELETE' })
+  }
+
+  listLinkedAccounts() {
+    return this.request<LinkedAccount[]>('/linked-accounts')
+  }
+
+  unlinkAccount(provider: string) {
+    return this.request<void>(`/linked-accounts/${encodeURIComponent(provider)}`, { method: 'DELETE' })
+  }
+
+  logout() {
+    return this.request<{ message?: string }>('/logout', { method: 'POST', body: {} })
+  }
+
+  getSocialLoginUrl(provider: string, authRequestId: string) {
+    const url = `${this.baseUrl}/oauth2/${encodeURIComponent(provider)}/login`
+    return `${url}?auth_request_id=${encodeURIComponent(authRequestId)}`
+  }
+
+  private async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+    const method = options.method ?? 'GET'
+    const headers: Record<string, string> = { accept: 'application/json' }
+
+    if (options.body !== undefined) {
+      headers['content-type'] = 'application/json'
+    }
+
+    if (this.needsCsrf(method)) {
+      headers['x-csrf-token'] = await this.getCsrfToken()
+    }
+
+    if (options.auth !== false) {
+      const token = this.getAccessToken?.()
+      if (token) {
+        headers.authorization = `Bearer ${token}`
+      }
+    }
+
+    const response = await this.fetcher(`${this.baseUrl}${path}`, {
+      method,
+      credentials: 'include',
+      headers,
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    })
+
+    if (
+      response.status === 401 &&
+      options.auth !== false &&
+      options.retry !== false &&
+      path !== '/refresh'
+    ) {
+      const token = await this.refreshAccessToken()
+      if (token) {
+        return this.request<T>(path, { ...options, retry: false })
+      }
+    }
+
+    return this.readResponse<T>(response)
+  }
+
+  private async getCsrfToken() {
+    if (this.csrfToken) return this.csrfToken
+
+    const response = await this.fetcher(`${this.baseUrl}/csrf-token`, {
+      credentials: 'include',
+      headers: { accept: 'application/json' },
+    })
+    const data = await this.readResponse<{ csrf_token?: string }>(response)
+
+    if (!data.csrf_token) {
+      throw new ApiError(response.status, 'CSRF token missing')
+    }
+
+    this.csrfToken = data.csrf_token
+    return data.csrf_token
+  }
+
+  private needsCsrf(method: string) {
+    return !['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase())
+  }
+
+  private async readResponse<T>(response: Response): Promise<T> {
+    if (response.status === 204) {
+      return undefined as T
+    }
+
+    const text = await response.text()
+    const data = text ? JSON.parse(text) : undefined
+
+    if (!response.ok) {
+      const message =
+        typeof data === 'object' &&
+        data !== null &&
+        'message' in data &&
+        typeof data.message === 'string'
+          ? data.message
+          : `Request failed with status ${response.status}`
+      const code =
+        typeof data === 'object' &&
+        data !== null &&
+        'error_code' in data &&
+        typeof data.error_code === 'string'
+          ? data.error_code
+          : undefined
+
+      throw new ApiError(response.status, message, code, data)
+    }
+
+    return data as T
+  }
+}
