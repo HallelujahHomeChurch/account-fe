@@ -18,7 +18,7 @@ export const messages = {
     login: {
       brandTitle: '哈利路亞家教會',
       next: '下一步',
-      accountLabel: 'Email 或使用者名稱',
+      accountLabel: 'Email',
       passwordLabel: '密碼',
       forgotPassword: '忘記密碼',
       verify: '驗證',
@@ -73,7 +73,7 @@ export const messages = {
     login: {
       brandTitle: '哈利路亚家教会',
       next: '下一步',
-      accountLabel: 'Email 或用户名',
+      accountLabel: 'Email',
       passwordLabel: '密码',
       forgotPassword: '忘记密码',
       verify: '验证',
@@ -128,7 +128,7 @@ export const messages = {
     login: {
       brandTitle: 'Hallelujah Home Church',
       next: 'Next',
-      accountLabel: 'Email or username',
+      accountLabel: 'Email',
       passwordLabel: 'Password',
       forgotPassword: 'Forgot password',
       verify: 'Verify',

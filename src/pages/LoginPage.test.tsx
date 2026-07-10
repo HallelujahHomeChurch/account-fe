@@ -31,6 +31,8 @@ describe('LoginPage', () => {
     expect(card).toBeInTheDocument()
     expect(card?.querySelector('.login-brand-mark')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: '哈利路亞家教會' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Email')).toBeInTheDocument()
+    expect(screen.queryByText('Email 或使用者名稱')).not.toBeInTheDocument()
     expect(document.querySelector('.login-actions svg')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: '下一步' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: '登入' })).not.toBeInTheDocument()
@@ -87,7 +89,7 @@ describe('LoginPage', () => {
       </MemoryRouter>,
     )
 
-    await userEvent.type(screen.getByLabelText('Email or username'), 'admin')
+    await userEvent.type(screen.getByLabelText('Email'), 'admin')
     await userEvent.type(screen.getByLabelText('Password'), 'admin123')
     await userEvent.click(screen.getByRole('button', { name: /next/i }))
 
@@ -138,7 +140,7 @@ describe('LoginPage', () => {
       </MemoryRouter>,
     )
 
-    const accountInput = screen.getByLabelText('Email or username')
+    const accountInput = screen.getByLabelText('Email')
     expect(accountInput).toHaveAttribute('type', 'text')
 
     await userEvent.type(accountInput, 'admin')
@@ -169,7 +171,7 @@ describe('LoginPage', () => {
       </MemoryRouter>,
     )
 
-    await userEvent.type(screen.getByLabelText('Email or username'), 'admin@example.com')
+    await userEvent.type(screen.getByLabelText('Email'), 'admin@example.com')
     await userEvent.type(screen.getByLabelText('Password'), 'secret123')
     await userEvent.click(screen.getByRole('button', { name: /next/i }))
 
@@ -194,7 +196,7 @@ describe('LoginPage', () => {
       </MemoryRouter>,
     )
 
-    await userEvent.type(screen.getByLabelText('Email or username'), 'admin@example.com')
+    await userEvent.type(screen.getByLabelText('Email'), 'admin@example.com')
     await userEvent.type(screen.getByLabelText('Password'), 'secret123')
     await userEvent.click(screen.getByRole('button', { name: /next/i }))
 
@@ -226,7 +228,7 @@ describe('LoginPage', () => {
       </MemoryRouter>,
     )
 
-    await userEvent.type(screen.getByLabelText('Email or username'), 'admin@example.com')
+    await userEvent.type(screen.getByLabelText('Email'), 'admin@example.com')
     await userEvent.type(screen.getByLabelText('Password'), 'secret123')
     await userEvent.click(screen.getByRole('button', { name: /next/i }))
 
