@@ -160,10 +160,10 @@ export function LoginPage() {
                 <Input autoComplete="current-password" placeholder="Password" />
                 <FieldError />
               </TextField>
+              <Link className="muted-link forgot-password-link" to="/forgot-password">
+                {t.login.forgotPassword}
+              </Link>
               <div className="login-actions">
-                <Link className="muted-link" to="/forgot-password">
-                  {t.login.forgotPassword}
-                </Link>
                 <Button isPending={isSubmitting} type="submit">
                   <LogIn size={17} />
                   {t.login.signIn}

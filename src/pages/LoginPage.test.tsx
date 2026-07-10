@@ -91,6 +91,30 @@ describe('LoginPage', () => {
     expect(await screen.findByRole('heading', { name: /profile reached/i })).toBeInTheDocument()
   })
 
+  it('keeps forgot password with the password field instead of the action row', () => {
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }),
+      me: async () => ({ id: 'u1', email: 'admin' }),
+      refreshAccessToken: async () => null,
+      logout: async () => ({}),
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <AuthProvider api={api}>
+          <LoginPage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    const forgotPassword = screen.getByRole('link', { name: /forgot password/i })
+    const actions = document.querySelector('.login-actions')
+
+    expect(forgotPassword.closest('.login-actions')).toBeNull()
+    expect(actions).toContainElement(screen.getByRole('button', { name: /sign in/i }))
+    expect(forgotPassword.compareDocumentPosition(actions as Element)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+  })
+
   it('allows the seeded admin username to be submitted', async () => {
     let submittedEmail = ''
     const api: AuthApi = {

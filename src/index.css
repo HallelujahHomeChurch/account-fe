@@ -337,8 +337,13 @@ textarea::selection {
 .login-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 16px;
+}
+
+.forgot-password-link {
+  width: fit-content;
+  margin-top: -6px;
 }
 
 .login-footer {
@@ -649,7 +654,22 @@ textarea::selection {
   }
 
   .login-actions {
-    align-items: stretch;
-    flex-direction: column-reverse;
+    align-items: center;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 600px) {
+  .auth-main-panel {
+    align-items: start;
+    padding-top: 28px;
+  }
+
+  .login-card {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 28px 0;
   }
 }
