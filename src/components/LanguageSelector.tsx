@@ -1,3 +1,5 @@
+import { useRef } from 'react'
+
 import { localeLabels, locales, type Locale } from '../i18n/locales'
 import { useLocale } from '../i18n/locale-context'
 
@@ -7,21 +9,32 @@ type LanguageSelectorProps = {
 
 export function LanguageSelector({ className = '' }: LanguageSelectorProps) {
   const { locale, messages: t, setLocale } = useLocale()
+  const detailsRef = useRef<HTMLDetailsElement>(null)
+
+  function chooseLocale(nextLocale: Locale) {
+    setLocale(nextLocale)
+    if (detailsRef.current) detailsRef.current.open = false
+  }
 
   return (
-    <label className={`language-selector ${className}`.trim()}>
-      <span className="sr-only">{t.site.language}</span>
-      <select
-        aria-label={t.site.language}
-        value={locale}
-        onChange={(event) => setLocale(event.currentTarget.value as Locale)}
-      >
+    <details ref={detailsRef} className={`language-selector ${className}`.trim()}>
+      <summary aria-label={t.site.language} className="language-selector-trigger">
+        <span>{localeLabels[locale]}</span>
+      </summary>
+      <div className="language-selector-menu" role="listbox">
         {locales.map((targetLocale) => (
-          <option key={targetLocale} value={targetLocale}>
+          <button
+            key={targetLocale}
+            aria-selected={targetLocale === locale}
+            className="language-selector-option"
+            onClick={() => chooseLocale(targetLocale)}
+            role="option"
+            type="button"
+          >
             {localeLabels[targetLocale]}
-          </option>
+          </button>
         ))}
-      </select>
-    </label>
+      </div>
+    </details>
   )
 }

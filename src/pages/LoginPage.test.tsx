@@ -61,7 +61,8 @@ describe('LoginPage', () => {
     const selector = screen.getByLabelText('Language')
     expect(selector.closest('.login-card')).toBeNull()
 
-    await userEvent.selectOptions(selector, 'zh-Hant')
+    await userEvent.click(selector)
+    await userEvent.click(screen.getByRole('option', { name: '繁中' }))
     expect(document.cookie).toContain('hhc_locale=zh-Hant')
   })
 
