@@ -31,6 +31,8 @@ describe('LoginPage', () => {
     expect(card).toBeInTheDocument()
     expect(card?.querySelector('.login-brand-mark')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: '哈利路亞家教會' })).toBeInTheDocument()
+    expect(document.querySelector('.login-actions svg')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '下一步' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: '登入' })).not.toBeInTheDocument()
     expect(screen.queryByText('使用你的 HHC 帳戶')).not.toBeInTheDocument()
     expect(screen.queryByText('account.alive.org.tw')).not.toBeInTheDocument()
@@ -87,7 +89,7 @@ describe('LoginPage', () => {
 
     await userEvent.type(screen.getByLabelText('Email or username'), 'admin')
     await userEvent.type(screen.getByLabelText('Password'), 'admin123')
-    await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
+    await userEvent.click(screen.getByRole('button', { name: /next/i }))
 
     expect(await screen.findByRole('heading', { name: /profile reached/i })).toBeInTheDocument()
   })
@@ -112,7 +114,7 @@ describe('LoginPage', () => {
     const actions = document.querySelector('.login-actions')
 
     expect(forgotPassword.closest('.login-actions')).toBeNull()
-    expect(actions).toContainElement(screen.getByRole('button', { name: /sign in/i }))
+    expect(actions).toContainElement(screen.getByRole('button', { name: /next/i }))
     expect(forgotPassword.compareDocumentPosition(actions as Element)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
   })
 
@@ -141,7 +143,7 @@ describe('LoginPage', () => {
 
     await userEvent.type(accountInput, 'admin')
     await userEvent.type(screen.getByLabelText('Password'), 'admin123')
-    await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
+    await userEvent.click(screen.getByRole('button', { name: /next/i }))
 
     expect(submittedEmail).toBe('admin')
   })
@@ -169,7 +171,7 @@ describe('LoginPage', () => {
 
     await userEvent.type(screen.getByLabelText('Email or username'), 'admin@example.com')
     await userEvent.type(screen.getByLabelText('Password'), 'secret123')
-    await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
+    await userEvent.click(screen.getByRole('button', { name: /next/i }))
 
     expect(requestAuthId).toBe('req-123')
     expect(await screen.findByText(/MFA setup required/i)).toBeInTheDocument()

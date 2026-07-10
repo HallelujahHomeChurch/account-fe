@@ -6,7 +6,7 @@ import {
   Label,
   TextField,
 } from '@heroui/react'
-import { KeyRound, LogIn } from 'lucide-react'
+import { KeyRound } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -165,8 +165,7 @@ export function LoginPage() {
               </Link>
               <div className="login-actions">
                 <Button isPending={isSubmitting} type="submit">
-                  <LogIn size={17} />
-                  {t.login.signIn}
+                  {t.login.next}
                 </Button>
               </div>
             </Form>
