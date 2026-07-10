@@ -6,7 +6,6 @@ import {
   Label,
   TextField,
 } from '@heroui/react'
-import { KeyRound } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -68,7 +67,7 @@ export function LoginPage() {
       })
       if (response.access_token) {
         navigate('/profile', { replace: true })
-      } else {
+      } else if (!response.mfa_type) {
         setNotice(t.login.signedIn)
       }
     } catch (caught) {
@@ -123,12 +122,11 @@ export function LoginPage() {
 
           {challenge ? (
             <Form className="form-stack" onSubmit={submitMfa}>
-              <p className="inline-status">
-                {challenge.type === 'setup_required'
-                  ? t.login.mfaSetupRequired
-                  : t.login.mfaVerificationRequired}
-              </p>
-              {mfaSetup?.otpauth_url ? <code className="setup-code">{mfaSetup.otpauth_url}</code> : null}
+              {mfaSetup?.qr_code_url ? (
+                <img className="mfa-qr-code" src={mfaSetup.qr_code_url} alt={t.login.mfaQrCodeAlt} />
+              ) : mfaSetup?.otpauth_url ? (
+                <code className="setup-code">{mfaSetup.otpauth_url}</code>
+              ) : null}
               {mfaSetup?.backup_codes?.length ? (
                 <ul className="backup-codes">
                   {mfaSetup.backup_codes.map((code) => (
@@ -143,8 +141,7 @@ export function LoginPage() {
               </TextField>
               <div className="login-actions">
                 <Button isPending={isSubmitting} type="submit">
-                  <KeyRound size={17} />
-                  {t.login.verify}
+                  {t.login.next}
                 </Button>
               </div>
             </Form>
