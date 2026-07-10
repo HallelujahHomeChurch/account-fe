@@ -29,6 +29,8 @@ export const messages = {
       signedIn: '已登入。',
       socialPrefix: '使用',
       socialSuffix: '繼續',
+      socialDivider: '或使用社群帳戶',
+      socialLogin: '社群登入',
     },
     profile: {
       eyebrow: '個人資料',
@@ -78,6 +80,8 @@ export const messages = {
       signedIn: '已登录。',
       socialPrefix: '使用',
       socialSuffix: '继续',
+      socialDivider: '或使用社群帐号',
+      socialLogin: '社群登录',
     },
     profile: {
       eyebrow: '个人资料',
@@ -127,6 +131,8 @@ export const messages = {
       signedIn: 'Signed in.',
       socialPrefix: 'Continue with',
       socialSuffix: '',
+      socialDivider: 'Or use a social account',
+      socialLogin: 'Social sign in',
     },
     profile: {
       eyebrow: 'Profile',

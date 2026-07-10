@@ -228,7 +228,9 @@ export class AccountApi {
     return this.request<{ message?: string }>('/logout', { method: 'POST', body: {} })
   }
 
-  getSocialLoginUrl(provider: string, authRequestId: string) {
+  getSocialLoginUrl(provider: string, authRequestId?: string) {
+    if (!authRequestId) return ''
+
     const url = `${this.baseUrl}/oauth2/${encodeURIComponent(provider)}/login`
     return `${url}?auth_request_id=${encodeURIComponent(authRequestId)}`
   }

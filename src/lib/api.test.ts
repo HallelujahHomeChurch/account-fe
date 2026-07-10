@@ -153,6 +153,15 @@ describe('AccountApi', () => {
     ])
   })
 
+  it('only builds social login URLs when an auth request is available', () => {
+    const api = new AccountApi({ baseUrl: '/api/account/v1' })
+
+    expect(api.getSocialLoginUrl('google')).toBe('')
+    expect(api.getSocialLoginUrl('google', 'req-123')).toBe(
+      '/api/account/v1/oauth2/google/login?auth_request_id=req-123',
+    )
+  })
+
   it('coalesces concurrent csrf token requests across clients with the same base URL', async () => {
     const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
     let csrfCalls = 0

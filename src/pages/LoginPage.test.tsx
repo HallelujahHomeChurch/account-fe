@@ -146,4 +146,47 @@ describe('LoginPage', () => {
     expect(requestAuthId).toBe('req-123')
     expect(await screen.findByText(/MFA setup required/i)).toBeInTheDocument()
   })
+
+  it('renders OAuth provider links as circular icon buttons below the email login flow', () => {
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken: async () => null,
+      logout: async () => ({}),
+      getSocialLoginUrl: (provider, authRequestId) =>
+        `/api/account/v1/oauth2/${provider}/login?auth_request_id=${authRequestId}`,
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/login?auth_request_id=req-123']}>
+        <LocaleProvider>
+          <AuthProvider api={api}>
+            <LoginPage />
+          </AuthProvider>
+        </LocaleProvider>
+      </MemoryRouter>,
+    )
+
+    const form = document.querySelector('.form-stack')
+    const socialPanel = document.querySelector('.social-login-panel')
+    const socialButtons = Array.from(document.querySelectorAll('.social-icon-button'))
+
+    expect(form).toBeInTheDocument()
+    expect(socialPanel).toBeInTheDocument()
+    expect(form?.compareDocumentPosition(socialPanel as Element)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(socialButtons).toHaveLength(3)
+
+    expect(screen.getByLabelText('Continue with Google')).toHaveAttribute(
+      'href',
+      '/api/account/v1/oauth2/google/login?auth_request_id=req-123',
+    )
+    expect(screen.getByLabelText('Continue with LINE')).toHaveAttribute(
+      'href',
+      '/api/account/v1/oauth2/line/login?auth_request_id=req-123',
+    )
+    expect(screen.getByLabelText('Continue with Microsoft')).toHaveAttribute(
+      'href',
+      '/api/account/v1/oauth2/microsoft/login?auth_request_id=req-123',
+    )
+  })
 })
