@@ -344,12 +344,13 @@ textarea::selection {
 .login-footer {
   display: flex;
   justify-content: flex-start;
-  padding: 16px 42px 0;
+  padding: 16px 0 0;
 }
 
 .language-selector {
   display: inline-flex;
   align-items: center;
+  text-decoration: none;
 }
 
 .language-selector select {
@@ -362,6 +363,7 @@ textarea::selection {
   padding: 0 34px 0 14px;
   font-size: 14px;
   font-weight: 700;
+  text-decoration: none;
 }
 
 .language-selector select:hover {
@@ -634,7 +636,7 @@ textarea::selection {
   }
 
   .login-footer {
-    padding: 14px 28px 0;
+    padding: 14px 0 0;
   }
 
   .login-copy {
