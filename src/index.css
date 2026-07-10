@@ -49,11 +49,26 @@ select {
 }
 
 a:focus-visible,
-button:focus-visible,
-input:focus-visible,
-select:focus-visible {
+button:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 4px;
+}
+
+input:focus,
+input:focus-visible,
+select:focus,
+select:focus-visible,
+textarea:focus,
+textarea:focus-visible {
+  outline: none !important;
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px var(--color-primary-soft) !important;
+}
+
+input::selection,
+textarea::selection {
+  background: var(--color-primary-soft-hover);
+  color: var(--color-ink);
 }
 
 .sr-only {
