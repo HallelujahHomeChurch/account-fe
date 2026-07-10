@@ -3,16 +3,17 @@ import type { Locale } from './locales'
 export const messages = {
   'zh-Hant': {
     site: {
-      accountName: 'Account',
+      accountName: 'HHC Account',
       language: '語言',
     },
     nav: {
       accountSections: '帳號區段',
       accountNavigation: '帳號導覽',
-      profile: '個人資料',
+      personalInfo: '個人化',
       security: '安全性',
       signIn: '登入',
       signOut: '登出',
+      accountMenu: '帳號選單',
     },
     login: {
       brandTitle: '哈利路亞家教會',
@@ -32,11 +33,14 @@ export const messages = {
       socialLogin: '社群登入',
     },
     profile: {
-      eyebrow: '個人資料',
+      loading: '載入帳號中...',
+      eyebrow: '個人化',
       fallbackName: '帳號資料',
       signInPrompt: '登入以管理您的帳號資料。',
       personalDetails: '個人資訊',
       personalDetailsDescription: '帳號相關工具會使用的姓名與頭像。',
+      preferences: '偏好設定',
+      preferencesDescription: '調整語言等個人化設定。',
       firstName: '名字',
       lastName: '姓氏',
       avatarUrl: '頭像 URL',
@@ -53,16 +57,17 @@ export const messages = {
   },
   'zh-Hans': {
     site: {
-      accountName: 'Account',
+      accountName: 'HHC Account',
       language: '语言',
     },
     nav: {
       accountSections: '帐号区段',
       accountNavigation: '帐号导航',
-      profile: '个人资料',
+      personalInfo: '个性化',
       security: '安全性',
       signIn: '登录',
       signOut: '退出登录',
+      accountMenu: '帐号菜单',
     },
     login: {
       brandTitle: '哈利路亚家教会',
@@ -82,11 +87,14 @@ export const messages = {
       socialLogin: '社群登录',
     },
     profile: {
-      eyebrow: '个人资料',
+      loading: '正在加载帐号...',
+      eyebrow: '个性化',
       fallbackName: '帐号资料',
       signInPrompt: '登录以管理您的帐号资料。',
       personalDetails: '个人信息',
       personalDetailsDescription: '帐号相关工具会使用的姓名与头像。',
+      preferences: '偏好设置',
+      preferencesDescription: '调整语言等个性化设置。',
       firstName: '名字',
       lastName: '姓氏',
       avatarUrl: '头像 URL',
@@ -103,16 +111,17 @@ export const messages = {
   },
   en: {
     site: {
-      accountName: 'Account',
+      accountName: 'HHC Account',
       language: 'Language',
     },
     nav: {
       accountSections: 'Account sections',
       accountNavigation: 'Account navigation',
-      profile: 'Profile',
+      personalInfo: 'Personal info',
       security: 'Security',
       signIn: 'Sign in',
       signOut: 'Sign out',
+      accountMenu: 'Account menu',
     },
     login: {
       brandTitle: 'Hallelujah Home Church',
@@ -132,11 +141,14 @@ export const messages = {
       socialLogin: 'Social sign in',
     },
     profile: {
-      eyebrow: 'Profile',
+      loading: 'Loading account...',
+      eyebrow: 'Personal info',
       fallbackName: 'Account profile',
       signInPrompt: 'Sign in to manage your account profile.',
       personalDetails: 'Personal details',
       personalDetailsDescription: 'Names and avatar used by account-aware tools.',
+      preferences: 'Preferences',
+      preferencesDescription: 'Adjust language and other personalization settings.',
       firstName: 'First name',
       lastName: 'Last name',
       avatarUrl: 'Avatar URL',

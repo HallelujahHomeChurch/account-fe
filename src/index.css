@@ -107,6 +107,12 @@ select:focus-visible {
   min-height: 100vh;
 }
 
+.account-content {
+  display: grid;
+  min-width: 0;
+  grid-template-rows: auto 1fr;
+}
+
 .account-sidebar {
   position: sticky;
   top: 0;
@@ -165,6 +171,65 @@ select:focus-visible {
   color: var(--color-primary);
 }
 
+.account-header {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 16px 24px 0;
+}
+
+.account-menu {
+  position: relative;
+}
+
+.account-menu summary {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid var(--color-line);
+  border-radius: 50%;
+  background: var(--color-paper);
+  color: var(--color-primary);
+  cursor: pointer;
+  list-style: none;
+  box-shadow: 0 10px 22px rgb(76 50 28 / 8%);
+}
+
+.account-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.account-menu summary:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.account-menu-panel {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 10px);
+  right: 0;
+  display: grid;
+  width: min(260px, calc(100vw - 32px));
+  gap: 10px;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  background: var(--color-paper);
+  box-shadow: var(--shadow-warm);
+  padding: 12px;
+}
+
+.account-menu-panel p {
+  overflow: hidden;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .main-panel,
 .auth-main-panel {
   width: min(100% - 48px, 960px);
@@ -172,7 +237,7 @@ select:focus-visible {
 }
 
 .main-panel {
-  padding: 64px 0 72px;
+  padding: 32px 0 72px;
 }
 
 .auth-main-panel {
@@ -286,11 +351,6 @@ select:focus-visible {
 
 .language-selector select:hover {
   border-color: var(--color-primary);
-}
-
-.sidebar-language {
-  margin-top: auto;
-  padding: 0 12px;
 }
 
 .account-document,
@@ -528,6 +588,11 @@ select:focus-visible {
     border-right: 0;
     border-bottom: 1px solid rgb(238 227 215 / 78%);
     padding: 14px;
+  }
+
+  .account-header {
+    min-height: 60px;
+    padding: 10px 14px 0;
   }
 
   .nav-links {

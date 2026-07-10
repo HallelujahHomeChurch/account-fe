@@ -1,8 +1,7 @@
 import { Button } from '@heroui/react'
-import { LogOut, ShieldCheck, UserRound } from 'lucide-react'
+import { LogOut, ShieldCheck, UserCircle, UserRound } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
-import { LanguageSelector } from './components/LanguageSelector'
 import { useAuth } from './auth/auth-context'
 import { useLocale } from './i18n/locale-context'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
@@ -36,6 +35,20 @@ function Layout() {
     )
   }
 
+  if (auth.isBootstrapping) {
+    return (
+      <div className="app-shell">
+        <main className="auth-main-panel">
+          <p className="inline-status">{t.profile.loading}</p>
+        </main>
+      </div>
+    )
+  }
+
+  if (!auth.profile) {
+    return <Navigate replace state={{ from: location.pathname }} to="/login" />
+  }
+
   return (
     <div className="app-shell">
       <div className="account-layout">
@@ -47,32 +60,37 @@ function Layout() {
           <nav className="nav-links" aria-label={t.nav.accountNavigation}>
             <Link aria-current={location.pathname === '/profile' ? 'page' : undefined} to="/profile">
               <UserRound size={17} />
-              {t.nav.profile}
+              {t.nav.personalInfo}
             </Link>
             <Link aria-current={location.pathname === '/security' ? 'page' : undefined} to="/security">
               <ShieldCheck size={17} />
               {t.nav.security}
             </Link>
-            {auth.accessToken ? (
-              <Button size="sm" variant="ghost" onPress={() => void auth.logout()}>
-                <LogOut size={16} />
-                {t.nav.signOut}
-              </Button>
-            ) : (
-              <Link aria-current={location.pathname === '/login' ? 'page' : undefined} to="/login">
-                {t.nav.signIn}
-              </Link>
-            )}
           </nav>
-          <LanguageSelector className="sidebar-language" />
         </aside>
-        <main className="main-panel">
-          <Routes>
-            <Route element={<ProfilePage />} path="/profile" />
-            <Route element={<SecurityPage />} path="/security" />
-            <Route element={<Navigate replace to="/profile" />} path="*" />
-          </Routes>
-        </main>
+        <div className="account-content">
+          <header className="account-header">
+            <details className="account-menu">
+              <summary aria-label={t.nav.accountMenu}>
+                <UserCircle size={22} />
+              </summary>
+              <div className="account-menu-panel">
+                <p>{auth.profile.email}</p>
+                <Button size="sm" variant="ghost" onPress={() => void auth.logout()}>
+                  <LogOut size={16} />
+                  {t.nav.signOut}
+                </Button>
+              </div>
+            </details>
+          </header>
+          <main className="main-panel">
+            <Routes>
+              <Route element={<ProfilePage />} path="/profile" />
+              <Route element={<SecurityPage />} path="/security" />
+              <Route element={<Navigate replace to="/profile" />} path="*" />
+            </Routes>
+          </main>
+        </div>
       </div>
     </div>
   )

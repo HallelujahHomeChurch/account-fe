@@ -1,7 +1,6 @@
 import { Button, Card, Form, Input, Label, TextField } from '@heroui/react'
 import { KeyRound, ShieldCheck, Trash2 } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
 
 import { useAuth } from '../auth/auth-context'
 import { ApiError, type Device, type LinkedAccount, type MfaSetup } from '../lib/api'
@@ -106,21 +105,7 @@ export function SecurityPage() {
     setLinkedAccounts((current) => current.filter((account) => account.provider !== provider))
   }
 
-  if (auth.isBootstrapping) return <p className="inline-status">Loading security...</p>
-
-  if (!auth.profile) {
-    return (
-      <section className="document-shell">
-        <div className="page-heading">
-          <h1>Security</h1>
-          <p>Sign in to manage password, MFA, devices, and linked accounts.</p>
-          <Link className="button-link" to="/login">
-            Sign in
-          </Link>
-        </div>
-      </section>
-    )
-  }
+  if (auth.isBootstrapping || !auth.profile) return <p className="inline-status">Loading security...</p>
 
   return (
     <section className="account-document">

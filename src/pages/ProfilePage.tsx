@@ -1,9 +1,9 @@
 import { Button, Card, Form, Input, Label, TextField } from '@heroui/react'
 import { Save } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
 
 import { useAuth } from '../auth/auth-context'
+import { LanguageSelector } from '../components/LanguageSelector'
 import { useLocale } from '../i18n/locale-context'
 import { ApiError } from '../lib/api'
 
@@ -41,21 +41,7 @@ export function ProfilePage() {
     }
   }
 
-  if (auth.isBootstrapping) return <p className="inline-status">Loading account...</p>
-
-  if (!profile) {
-    return (
-    <section className="document-shell">
-      <div className="page-heading">
-        <h1>Profile</h1>
-        <p>{t.profile.signInPrompt}</p>
-        <Link className="button-link" to="/login">
-          {t.nav.signIn}
-        </Link>
-      </div>
-    </section>
-    )
-  }
+  if (auth.isBootstrapping || !profile) return <p className="inline-status">{t.profile.loading}</p>
 
   return (
     <section className="account-document">
@@ -91,6 +77,16 @@ export function ProfilePage() {
               {t.profile.saveChanges}
             </Button>
           </Form>
+        </Card.Content>
+      </Card>
+
+      <Card className="panel-card document-card">
+        <Card.Header>
+          <Card.Title>{t.profile.preferences}</Card.Title>
+          <Card.Description>{t.profile.preferencesDescription}</Card.Description>
+        </Card.Header>
+        <Card.Content>
+          <LanguageSelector />
         </Card.Content>
       </Card>
 

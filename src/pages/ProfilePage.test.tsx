@@ -33,7 +33,7 @@ describe('ProfilePage', () => {
       </MemoryRouter>,
     )
 
-    expect(await screen.findByText('個人資料')).toBeInTheDocument()
+    expect(await screen.findByText('個人化')).toBeInTheDocument()
     expect(screen.getByLabelText('名字')).toBeInTheDocument()
   })
 
