@@ -96,6 +96,54 @@ describe('AccountApi', () => {
     expect(accessToken).toBe('new-token')
   })
 
+  it('coalesces concurrent refresh token requests across clients with the same base URL', async () => {
+    let csrfCalls = 0
+    let refreshCalls = 0
+    const tokens: Array<string | null> = []
+    let releaseCsrf!: (response: Response) => void
+    let releaseRefresh!: (response: Response) => void
+    const csrfResponse = new Promise<Response>((resolve) => {
+      releaseCsrf = resolve
+    })
+    const refreshResponse = new Promise<Response>((resolve) => {
+      releaseRefresh = resolve
+    })
+    const fetcher = async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.endsWith('/csrf-token')) {
+        csrfCalls += 1
+        return csrfResponse
+      }
+      if (url.endsWith('/refresh')) {
+        refreshCalls += 1
+        return refreshResponse
+      }
+      return jsonResponse({ message: 'ok' })
+    }
+    const first = new AccountApi({
+      baseUrl: '/api/account/v1',
+      fetcher,
+      setAccessToken: (token) => tokens.push(token),
+    })
+    const second = new AccountApi({
+      baseUrl: '/api/account/v1',
+      fetcher,
+      setAccessToken: (token) => tokens.push(token),
+    })
+
+    const firstRequest = first.refreshAccessToken()
+    const secondRequest = second.refreshAccessToken()
+
+    expect(csrfCalls).toBe(1)
+    releaseCsrf(jsonResponse({ csrf_token: 'csrf-shared' }))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(refreshCalls).toBe(1)
+    releaseRefresh(jsonResponse({ access_token: 'new-token' }))
+    await expect(Promise.all([firstRequest, secondRequest])).resolves.toEqual(['new-token', 'new-token'])
+    expect(tokens).toEqual(['new-token', 'new-token'])
+  })
+
   it('maps profile and security helpers to account-api endpoints', async () => {
     const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
     const api = new AccountApi({

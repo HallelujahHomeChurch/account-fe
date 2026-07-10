@@ -70,6 +70,7 @@ type RequestOptions = {
 }
 
 const csrfTokenRequests = new Map<string, Promise<string>>()
+const refreshTokenRequests = new Map<string, Promise<string | null>>()
 
 export class ApiError extends Error {
   status: number
@@ -115,20 +116,25 @@ export class AccountApi {
   }
 
   async refreshAccessToken() {
-    try {
-      const response = await this.request<{ access_token?: string }>('/refresh', {
+    let request = refreshTokenRequests.get(this.baseUrl)
+    if (!request) {
+      request = this.request<{ access_token?: string }>('/refresh', {
         method: 'POST',
         auth: false,
         retry: false,
         body: {},
       })
-      const token = response.access_token ?? null
-      this.setAccessToken?.(token)
-      return token
-    } catch {
-      this.setAccessToken?.(null)
-      return null
+        .then((response) => response.access_token ?? null)
+        .catch(() => null)
+        .finally(() => {
+          refreshTokenRequests.delete(this.baseUrl)
+        })
+      refreshTokenRequests.set(this.baseUrl, request)
     }
+
+    const token = await request
+    this.setAccessToken?.(token)
+    return token
   }
 
   me() {
