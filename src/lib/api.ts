@@ -69,6 +69,8 @@ type RequestOptions = {
   retry?: boolean
 }
 
+const csrfTokenRequests = new Map<string, Promise<string>>()
+
 export class ApiError extends Error {
   status: number
   code?: string
@@ -275,18 +277,25 @@ export class AccountApi {
   private async getCsrfToken() {
     if (this.csrfToken) return this.csrfToken
 
-    const response = await this.fetcher(`${this.baseUrl}/csrf-token`, {
-      credentials: 'include',
-      headers: { accept: 'application/json' },
-    })
-    const data = await this.readResponse<{ csrf_token?: string }>(response)
-
-    if (!data.csrf_token) {
-      throw new ApiError(response.status, 'CSRF token missing')
+    let request = csrfTokenRequests.get(this.baseUrl)
+    if (!request) {
+      request = this.fetcher(`${this.baseUrl}/csrf-token`, {
+        credentials: 'include',
+        headers: { accept: 'application/json' },
+      }).then(async (response) => {
+        const data = await this.readResponse<{ csrf_token?: string }>(response)
+        if (!data.csrf_token) {
+          throw new ApiError(response.status, 'CSRF token missing')
+        }
+        return data.csrf_token
+      }).finally(() => {
+        csrfTokenRequests.delete(this.baseUrl)
+      })
+      csrfTokenRequests.set(this.baseUrl, request)
     }
 
-    this.csrfToken = data.csrf_token
-    return data.csrf_token
+    this.csrfToken = await request
+    return this.csrfToken
   }
 
   private needsCsrf(method: string) {

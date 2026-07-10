@@ -152,4 +152,34 @@ describe('AccountApi', () => {
       'POST /api/account/v1/reset-password',
     ])
   })
+
+  it('coalesces concurrent csrf token requests across clients with the same base URL', async () => {
+    const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
+    let csrfCalls = 0
+    let releaseCsrf!: (response: Response) => void
+    const csrfResponse = new Promise<Response>((resolve) => {
+      releaseCsrf = resolve
+    })
+    const fetcher = async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ input, init })
+      if (String(input).endsWith('/csrf-token')) {
+        csrfCalls += 1
+        return csrfResponse
+      }
+      return jsonResponse({ message: 'ok' })
+    }
+    const first = new AccountApi({ baseUrl: '/api/account/v1', fetcher })
+    const second = new AccountApi({ baseUrl: '/api/account/v1', fetcher })
+
+    const firstRequest = first.forgotPassword('first@example.com')
+    const secondRequest = second.forgotPassword('second@example.com')
+
+    expect(csrfCalls).toBe(1)
+    releaseCsrf(jsonResponse({ csrf_token: 'csrf-shared' }))
+    await Promise.all([firstRequest, secondRequest])
+
+    expect(calls.filter((call) => String(call.input).endsWith('/csrf-token'))).toHaveLength(1)
+    expect(calls.filter((call) => String(call.input).endsWith('/forgot-password'))).toHaveLength(2)
+    expect(calls.slice(-2).every((call) => new Headers(call.init?.headers).get('x-csrf-token') === 'csrf-shared')).toBe(true)
+  })
 })
