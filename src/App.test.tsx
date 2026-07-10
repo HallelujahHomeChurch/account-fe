@@ -23,7 +23,7 @@ describe('App layout', () => {
     )
 
     expect(screen.queryByRole('navigation', { name: /account navigation/i })).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /hallelujah home church/i })).toBeInTheDocument()
   })
 
   it('does not show account navigation on email recovery routes', async () => {

@@ -30,8 +30,9 @@ describe('LoginPage', () => {
     const card = document.querySelector('.login-card')
     expect(card).toBeInTheDocument()
     expect(card?.querySelector('.login-brand-mark')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: '登入' })).toBeInTheDocument()
-    expect(screen.getByText('使用你的 HHC 帳戶')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '哈利路亞家教會' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: '登入' })).not.toBeInTheDocument()
+    expect(screen.queryByText('使用你的 HHC 帳戶')).not.toBeInTheDocument()
     expect(screen.queryByText('account.alive.org.tw')).not.toBeInTheDocument()
     expect(screen.queryByText(/Access token/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/使用同一個 HHC 帳號/i)).not.toBeInTheDocument()
@@ -54,6 +55,8 @@ describe('LoginPage', () => {
         </LocaleProvider>
       </MemoryRouter>,
     )
+
+    expect(screen.getByRole('heading', { name: 'Hallelujah Home Church' })).toBeInTheDocument()
 
     const selector = screen.getByLabelText('Language')
     expect(selector.closest('.login-card')).toBeNull()

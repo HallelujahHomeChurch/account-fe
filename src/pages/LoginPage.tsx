@@ -32,7 +32,7 @@ export function LoginPage() {
   const [mfaSetup, setMfaSetup] = useState<MfaSetup | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const title = authRequestId ? t.login.continueSignIn : t.login.signIn
+  const title = t.login.brandTitle
   const challenge = auth.mfaChallenge
 
   const socialLinks = useMemo(() => {
@@ -108,7 +108,6 @@ export function LoginPage() {
         <div className="login-copy">
           <img className="login-brand-mark" src="/assets/brand/logo.png" alt="" />
           <h1 id="login-title">{title}</h1>
-          <p>{t.login.intro}</p>
         </div>
 
         <div className="login-form-panel">
