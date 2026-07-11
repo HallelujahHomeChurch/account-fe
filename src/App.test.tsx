@@ -1,5 +1,6 @@
 import { MemoryRouter } from 'react-router-dom'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 
 import App from './App'
@@ -8,7 +9,7 @@ import { AuthProvider, type AuthApi } from './auth/auth-context'
 const api: AuthApi = {
   login: async () => ({ access_token: 'token' }),
   refreshAccessToken: async () => null,
-  me: async () => ({ id: 'u1', email: 'ray@example.com' }),
+  me: async () => ({ id: 'u1', email: 'ray@example.com', first_name: 'Ray', last_name: 'Self' }),
   logout: async () => ({}),
 }
 
@@ -70,5 +71,24 @@ describe('App layout', () => {
     expect(await screen.findByRole('complementary', { name: /account sections/i })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: /account navigation/i })).toBeInTheDocument()
     expect(screen.getByLabelText(/account menu/i)).toBeInTheDocument()
+    expect(document.querySelector('.account-header')).toHaveClass('account-header')
+  })
+
+  it('shows a dismissible avatar account dropdown', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter initialEntries={['/profile']}>
+        <AuthProvider api={signedInApi}>
+          <App />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    await user.click(await screen.findByLabelText(/account menu/i))
+    expect(await screen.findByText('Hi Ray Self')).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+    expect(screen.queryByText('Hi Ray Self')).not.toBeInTheDocument()
   })
 })

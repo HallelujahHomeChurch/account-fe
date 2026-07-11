@@ -7,7 +7,7 @@ import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { SecurityPage } from './SecurityPage'
 
 describe('SecurityPage', () => {
-  it('submits password changes to account-api', async () => {
+  it('opens password fields only after the user chooses to change password', async () => {
     let passwordBody: unknown
     const api: AuthApi = {
       login: async () => ({ access_token: 'token' }),
@@ -35,6 +35,10 @@ describe('SecurityPage', () => {
     )
 
     await screen.findByText('Chrome on macOS')
+    expect(screen.queryByLabelText('Current password')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('New password')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /^change$/i }))
     await userEvent.type(screen.getByLabelText('Current password'), 'oldSecret1')
     await userEvent.type(screen.getByLabelText('New password'), 'newSecret1')
     await userEvent.click(screen.getByRole('button', { name: /change password/i }))
@@ -45,7 +49,7 @@ describe('SecurityPage', () => {
     })
   })
 
-  it('completes protected MFA setup and can disable MFA', async () => {
+  it('keeps MFA setup fields in a dialog flow', async () => {
     const calls: string[] = []
     const api: AuthApi = {
       login: async () => ({ access_token: 'token' }),
@@ -80,17 +84,60 @@ describe('SecurityPage', () => {
       </MemoryRouter>,
     )
 
-    await userEvent.click(await screen.findByRole('button', { name: /set up MFA/i }))
+    expect(await screen.findByRole('heading', { name: 'Multi-factor authentication' })).toBeInTheDocument()
+    expect(screen.queryByText('otpauth://totp/HHC:ray@example.com')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Verification code')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /^set up$/i }))
     expect(await screen.findByText('otpauth://totp/HHC:ray@example.com')).toBeInTheDocument()
-    expect(screen.getByText('11111111')).toBeInTheDocument()
+    expect(screen.queryByText('11111111')).not.toBeInTheDocument()
 
     await userEvent.type(screen.getByLabelText('Verification code'), '123456')
     await userEvent.click(screen.getByRole('button', { name: /enable MFA/i }))
 
     expect(calls).toContain('setup')
     expect(calls).toContain('verify:123456')
+    expect(await screen.findByText('11111111')).toBeInTheDocument()
+  })
 
-    await userEvent.click(screen.getByRole('button', { name: /disable MFA/i }))
-    expect(calls).toContain('disable')
+  it('manages linked sign-in methods and devices from settings rows', async () => {
+    const calls: string[] = []
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }),
+      refreshAccessToken: async () => 'token',
+      me: async () => ({
+        id: 'u1',
+        email: 'ray@example.com',
+        has_password: true,
+        mfa: { enabled: true },
+      }),
+      logout: async () => ({}),
+      listDevices: async () => [{ session_id: 'session-1', user_agent: 'Chrome on macOS' }],
+      listLinkedAccounts: async () => [{ provider: 'google' }],
+      unlinkAccount: async (provider) => {
+        calls.push(`unlink:${provider}`)
+      },
+      logoutDevice: async (sessionId) => {
+        calls.push(`device:${sessionId}`)
+      },
+    }
+
+    render(
+      <MemoryRouter>
+        <AuthProvider api={api}>
+          <SecurityPage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { name: /security/i })).toBeInTheDocument()
+    expect(screen.getByText('Sign-in methods')).toBeInTheDocument()
+    expect(screen.queryByText('Linked accounts')).not.toBeInTheDocument()
+
+    await userEvent.click(await screen.findByRole('button', { name: /remove google/i }))
+    expect(calls).toContain('unlink:google')
+
+    await userEvent.click(await screen.findByRole('button', { name: /sign out chrome on macos/i }))
+    expect(calls).toContain('device:session-1')
   })
 })

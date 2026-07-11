@@ -19,6 +19,7 @@ describe('ProfilePage', () => {
         first_name: 'Ray',
         last_name: 'Self',
         avatar_url: '',
+        is_email_verified: true,
       }),
       logout: async () => ({}),
     }
@@ -33,12 +34,12 @@ describe('ProfilePage', () => {
       </MemoryRouter>,
     )
 
-    expect(await screen.findByText('個人化')).toBeInTheDocument()
-    expect(screen.getByLabelText('名字')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '個人化' })).toBeInTheDocument()
+    expect(screen.getByText('Email 已驗證')).toBeInTheDocument()
+    expect(screen.queryByLabelText('名字')).not.toBeInTheDocument()
   })
 
-  it('submits profile updates to account-api', async () => {
-    let updateBody: unknown
+  it('keeps system-only account state out of the profile page', async () => {
     const api: AuthApi = {
       login: async () => ({ access_token: 'token' }),
       refreshAccessToken: async () => 'token',
@@ -48,6 +49,39 @@ describe('ProfilePage', () => {
         first_name: 'Ray',
         last_name: 'Self',
         avatar_url: '',
+        roles: ['account.admin'],
+        permissions: ['*'],
+        is_email_verified: true,
+        is_active: true,
+      }),
+      logout: async () => ({}),
+    }
+
+    render(
+      <MemoryRouter>
+        <AuthProvider api={api}>
+          <ProfilePage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { name: /personal info/i })).toBeInTheDocument()
+    expect(screen.queryByText(/account state/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/roles/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/active/i)).not.toBeInTheDocument()
+  })
+
+  it('updates names from a dialog while preserving the current avatar URL', async () => {
+    let updateBody: unknown
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }),
+      refreshAccessToken: async () => 'token',
+      me: async () => ({
+        id: 'u1',
+        email: 'ray@example.com',
+        first_name: 'Ray',
+        last_name: 'Self',
+        avatar_url: 'https://cdn.example.com/ray.png',
         roles: ['account.admin'],
         is_email_verified: true,
         is_active: true,
@@ -67,11 +101,20 @@ describe('ProfilePage', () => {
       </MemoryRouter>,
     )
 
+    expect(await screen.findByText('Ray Self')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Avatar URL')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /edit name/i }))
+
     const firstName = await screen.findByLabelText('First name')
     await userEvent.clear(firstName)
     await userEvent.type(firstName, 'Raymond')
     await userEvent.click(screen.getByRole('button', { name: /save changes/i }))
 
-    expect(updateBody).toMatchObject({ first_name: 'Raymond', last_name: 'Self', avatar_url: '' })
+    expect(updateBody).toMatchObject({
+      first_name: 'Raymond',
+      last_name: 'Self',
+      avatar_url: 'https://cdn.example.com/ray.png',
+    })
   })
 })

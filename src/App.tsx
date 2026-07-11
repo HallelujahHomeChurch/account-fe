@@ -1,10 +1,12 @@
-import { Button } from '@heroui/react'
-import { LogOut, ShieldCheck, UserCircle, UserRound } from 'lucide-react'
+import { Dropdown } from '@heroui/react'
+import { LogOut, ShieldCheck, UserRound } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
 import { useAuth } from './auth/auth-context'
 import { isAuthRoutePath } from './auth/auth-routes'
+import { AccountAvatar } from './components/AccountAvatar'
 import { useLocale } from './i18n/locale-context'
+import { accountGreetingName } from './lib/account-display'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
 import { OAuthCallbackPage } from './pages/OAuthCallbackPage'
@@ -71,18 +73,26 @@ function Layout() {
         </aside>
         <div className="account-content">
           <header className="account-header">
-            <details className="account-menu">
-              <summary aria-label={t.nav.accountMenu}>
-                <UserCircle size={22} />
-              </summary>
-              <div className="account-menu-panel">
-                <p>{auth.profile.email}</p>
-                <Button size="sm" variant="ghost" onPress={() => void auth.logout()}>
-                  <LogOut size={16} />
-                  {t.nav.signOut}
-                </Button>
-              </div>
-            </details>
+            <Dropdown>
+              <Dropdown.Trigger aria-label={t.nav.accountMenu} className="account-menu-trigger">
+                <AccountAvatar profile={auth.profile} size="sm" />
+              </Dropdown.Trigger>
+              <Dropdown.Popover className="account-menu-popover" placement="bottom end">
+                <div className="account-menu-greeting">Hi {accountGreetingName(auth.profile)}</div>
+                <Dropdown.Menu
+                  aria-label={t.nav.accountMenu}
+                  className="account-menu-list"
+                  onAction={(key) => {
+                    if (key === 'sign-out') void auth.logout()
+                  }}
+                >
+                  <Dropdown.Item id="sign-out" className="account-menu-item" textValue={t.nav.signOut}>
+                    <LogOut size={16} aria-hidden="true" />
+                    {t.nav.signOut}
+                  </Dropdown.Item>
+                </Dropdown.Menu>
+              </Dropdown.Popover>
+            </Dropdown>
           </header>
           <main className="main-panel">
             <Routes>

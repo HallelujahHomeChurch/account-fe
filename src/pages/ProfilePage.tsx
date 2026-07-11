@@ -1,15 +1,17 @@
-import { Button, Card, Form, Input, Label, TextField } from '@heroui/react'
-import { Save } from 'lucide-react'
+import { Button, Card, Form, Input, Label, Modal, TextField } from '@heroui/react'
 import { useEffect, useState, type FormEvent } from 'react'
 
 import { useAuth } from '../auth/auth-context'
+import { AccountAvatar } from '../components/AccountAvatar'
 import { LanguageSelector } from '../components/LanguageSelector'
 import { useLocale } from '../i18n/locale-context'
+import { displayAccountName } from '../lib/account-display'
 import { ApiError } from '../lib/api'
 
 export function ProfilePage() {
   const auth = useAuth()
   const { messages: t } = useLocale()
+  const [isNameDialogOpen, setNameDialogOpen] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const profile = auth.profile
@@ -20,9 +22,9 @@ export function ProfilePage() {
     }
   }, [auth, profile])
 
-  async function submitProfile(event: FormEvent<HTMLFormElement>) {
+  async function submitName(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!auth.api.updateProfile) return
+    if (!auth.api.updateProfile || !profile) return
 
     const form = new FormData(event.currentTarget)
     setError('')
@@ -32,10 +34,11 @@ export function ProfilePage() {
       await auth.api.updateProfile({
         first_name: String(form.get('first_name') ?? ''),
         last_name: String(form.get('last_name') ?? ''),
-        avatar_url: String(form.get('avatar_url') ?? ''),
+        avatar_url: profile.avatar_url ?? '',
       })
       await auth.refreshProfile()
       setMessage(t.profile.updated)
+      setNameDialogOpen(false)
     } catch (caught) {
       setError(errorMessage(caught))
     }
@@ -43,78 +46,86 @@ export function ProfilePage() {
 
   if (auth.isBootstrapping || !profile) return <p className="inline-status">{t.profile.loading}</p>
 
+  const name = displayAccountName(profile, t.profile.fallbackName)
+
   return (
     <section className="account-document">
       <div className="page-heading">
-        <p className="eyebrow">{t.profile.eyebrow}</p>
-        <h1>{displayName(profile.first_name, profile.last_name, t.profile.fallbackName)}</h1>
-        <p>{profile.email}</p>
+        <h1>{t.nav.personalInfo}</h1>
       </div>
 
-      <Card className="panel-card document-card">
+      {message ? <p className="form-notice">{message}</p> : null}
+      {error ? <p className="form-error">{error}</p> : null}
+
+      <Card className="panel-card settings-card">
         <Card.Header>
           <Card.Title>{t.profile.personalDetails}</Card.Title>
-          <Card.Description>{t.profile.personalDetailsDescription}</Card.Description>
         </Card.Header>
-        <Card.Content>
-          {message ? <p className="form-notice">{message}</p> : null}
-          {error ? <p className="form-error">{error}</p> : null}
-          <Form key={profile.id} className="form-grid" onSubmit={submitProfile}>
-            <TextField defaultValue={profile.first_name ?? ''} name="first_name">
-              <Label>{t.profile.firstName}</Label>
-              <Input />
-            </TextField>
-            <TextField defaultValue={profile.last_name ?? ''} name="last_name">
-              <Label>{t.profile.lastName}</Label>
-              <Input />
-            </TextField>
-            <TextField className="span-2" defaultValue={profile.avatar_url ?? ''} name="avatar_url" type="url">
-              <Label>{t.profile.avatarUrl}</Label>
-              <Input />
-            </TextField>
-            <Button className="span-2" type="submit">
-              <Save size={17} />
-              {t.profile.saveChanges}
+        <Card.Content className="settings-list">
+          <div className="settings-row profile-avatar-row">
+            <div className="settings-row-copy">
+              <span className="settings-row-label">{t.profile.avatar}</span>
+              <AccountAvatar className="profile-avatar" profile={profile} size="lg" />
+            </div>
+          </div>
+          <div className="settings-row">
+            <div className="settings-row-copy">
+              <span className="settings-row-label">{t.profile.name}</span>
+              <strong>{name}</strong>
+            </div>
+            <Button variant="secondary" onPress={() => setNameDialogOpen(true)}>
+              {t.profile.editName}
             </Button>
-          </Form>
+          </div>
+          <div className="settings-row">
+            <div className="settings-row-copy">
+              <span className="settings-row-label">{t.profile.email}</span>
+              <strong>{profile.email}</strong>
+            </div>
+            <span className="status-pill">
+              {profile.is_email_verified ? t.profile.emailVerified : t.profile.emailNotVerified}
+            </span>
+          </div>
+          <div className="settings-row">
+            <div className="settings-row-copy">
+              <span className="settings-row-label">{t.profile.language}</span>
+            </div>
+            <LanguageSelector />
+          </div>
         </Card.Content>
       </Card>
 
-      <Card className="panel-card document-card">
-        <Card.Header>
-          <Card.Title>{t.profile.preferences}</Card.Title>
-          <Card.Description>{t.profile.preferencesDescription}</Card.Description>
-        </Card.Header>
-        <Card.Content>
-          <LanguageSelector />
-        </Card.Content>
-      </Card>
-
-      <Card className="panel-card document-card">
-        <Card.Header>
-          <Card.Title>{t.profile.accountState}</Card.Title>
-        </Card.Header>
-        <Card.Content className="fact-list">
-          <p>
-            <span>{t.profile.emailVerified}</span>
-            <strong>{profile.is_email_verified ? t.profile.yes : t.profile.no}</strong>
-          </p>
-          <p>
-            <span>{t.profile.active}</span>
-            <strong>{profile.is_active === false ? t.profile.no : t.profile.yes}</strong>
-          </p>
-          <p>
-            <span>{t.profile.roles}</span>
-            <strong>{profile.roles?.join(', ') || t.profile.none}</strong>
-          </p>
-        </Card.Content>
-      </Card>
+      <Modal isOpen={isNameDialogOpen} onOpenChange={setNameDialogOpen}>
+        <Modal.Backdrop className="modal-backdrop">
+          <Modal.Container className="modal-container" placement="center">
+            <Modal.Dialog className="modal-dialog">
+              <Modal.Header>
+                <Modal.Heading>{t.profile.editName}</Modal.Heading>
+              </Modal.Header>
+              <Form key={profile.id} onSubmit={submitName}>
+                <Modal.Body className="modal-form-grid">
+                  <TextField defaultValue={profile.first_name ?? ''} name="first_name">
+                    <Label>{t.profile.firstName}</Label>
+                    <Input autoComplete="given-name" />
+                  </TextField>
+                  <TextField defaultValue={profile.last_name ?? ''} name="last_name">
+                    <Label>{t.profile.lastName}</Label>
+                    <Input autoComplete="family-name" />
+                  </TextField>
+                </Modal.Body>
+                <Modal.Footer className="modal-actions">
+                  <Button variant="ghost" onPress={() => setNameDialogOpen(false)}>
+                    {t.profile.cancel}
+                  </Button>
+                  <Button type="submit">{t.profile.saveChanges}</Button>
+                </Modal.Footer>
+              </Form>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
     </section>
   )
-}
-
-function displayName(firstName: string | undefined, lastName: string | undefined, fallback: string) {
-  return [firstName, lastName].filter(Boolean).join(' ') || fallback
 }
 
 function errorMessage(caught: unknown) {
