@@ -615,6 +615,38 @@ textarea::selection {
   white-space: nowrap;
 }
 
+.device-row {
+  min-height: 108px;
+}
+
+.device-row-copy {
+  gap: 5px;
+}
+
+.device-heading,
+.device-metadata {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.device-platform,
+.device-metadata {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.device-status {
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.device-status.is-signed-out {
+  color: var(--color-muted);
+}
+
 .profile-avatar-row {
   justify-content: center;
   text-align: center;

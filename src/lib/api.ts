@@ -42,11 +42,17 @@ export type Profile = {
 }
 
 export type Device = {
-  session_id: string
-  user_agent?: string
-  ip_address?: string
-  created_at?: string
-  last_used_at?: string
+  id: string
+  display_name: string
+  device_type: 'desktop' | 'mobile' | 'tablet' | string
+  browser: string
+  os: string
+  ip_address: string
+  first_seen_at: string
+  last_login_at: string
+  last_active_at: string
+  is_current: boolean
+  is_signed_in: boolean
 }
 
 export type LinkedAccount = {
@@ -228,8 +234,8 @@ export class AccountApi {
     return this.request<Device[]>('/devices')
   }
 
-  logoutDevice(sessionId: string) {
-    return this.request<void>(`/devices/${encodeURIComponent(sessionId)}`, { method: 'DELETE' })
+  logoutDevice(deviceId: string) {
+    return this.request<void>(`/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE' })
   }
 
   listLinkedAccounts() {

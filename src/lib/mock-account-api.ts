@@ -1,6 +1,7 @@
 import { ApiError, type Device, type LinkedAccount, type MfaSetup, type Profile } from './api'
 
 const token = 'mock-access-token'
+const mockTimestamp = (millisecondsAgo: number) => new Date(Date.now() - millisecondsAgo).toISOString()
 
 export class MockAccountApi {
   private profile: Profile = {
@@ -19,9 +20,17 @@ export class MockAccountApi {
 
   private devices: Device[] = [
     {
-      session_id: 'mock-device-1',
-      user_agent: 'Mock browser session',
+      id: 'mock-device-1',
+      display_name: 'Chrome on macOS',
+      device_type: 'desktop',
+      browser: 'Chrome',
+      os: 'macOS',
       ip_address: '127.0.0.1',
+    first_seen_at: mockTimestamp(30 * 24 * 60 * 60 * 1000),
+    last_login_at: mockTimestamp(2 * 60 * 60 * 1000),
+    last_active_at: mockTimestamp(10 * 60 * 1000),
+      is_current: true,
+      is_signed_in: true,
     },
   ]
 
@@ -87,8 +96,10 @@ export class MockAccountApi {
     return this.devices
   }
 
-  async logoutDevice(sessionId: string) {
-    this.devices = this.devices.filter((device) => device.session_id !== sessionId)
+  async logoutDevice(deviceId: string) {
+    this.devices = this.devices.map((device) =>
+      device.id === deviceId ? { ...device, is_signed_in: false } : device,
+    )
   }
 
   async listLinkedAccounts() {

@@ -21,7 +21,7 @@ const supportedProviders = ['google', 'line', 'microsoft']
 
 export function SecurityPage() {
   const auth = useAuth()
-  const { messages: t } = useLocale()
+  const { locale, messages: t } = useLocale()
   const [devices, setDevices] = useState<Device[]>([])
   const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[]>([])
   const [mfaSetup, setMfaSetup] = useState<MfaSetup | null>(null)
@@ -127,9 +127,20 @@ export function SecurityPage() {
     }
   }
 
-  async function removeDevice(sessionId: string) {
-    await auth.api.logoutDevice?.(sessionId)
-    setDevices((current) => current.filter((device) => device.session_id !== sessionId))
+  async function removeDevice(device: Device) {
+    setError('')
+    try {
+      await auth.api.logoutDevice?.(device.id)
+      if (device.is_current) {
+        await auth.logout()
+        return
+      }
+      setDevices((current) =>
+        current.map((item) => (item.id === device.id ? { ...item, is_signed_in: false } : item)),
+      )
+    } catch (caught) {
+      setError(errorMessage(caught))
+    }
   }
 
   async function unlink(provider: string) {
@@ -218,23 +229,34 @@ export function SecurityPage() {
         </Card.Header>
         <Card.Content className="settings-list">
           {devices.length ? (
-            devices.map((device) => {
-              const deviceName = device.user_agent || device.session_id
+      devices.map((device) => {
+        const deviceName = device.display_name || `${device.browser} on ${device.os}`
 
-              return (
-                <div key={device.session_id} className="settings-row">
-                  <div className="settings-row-copy">
-                    <span className="settings-row-label">{deviceName}</span>
-                    {device.ip_address ? <strong>{device.ip_address}</strong> : null}
-                  </div>
-                  <Button
-                    aria-label={formatMessage(t.security.signOutDeviceLabel, { device: deviceName })}
-                    variant="ghost"
-                    onPress={() => void removeDevice(device.session_id)}
-                  >
-                    {t.security.signOutDevice}
-                  </Button>
-                </div>
+        return (
+          <div key={device.id} className="settings-row device-row">
+            <div className="settings-row-copy device-row-copy">
+              <div className="device-heading">
+                <strong>{deviceName}</strong>
+                {device.is_current ? <span className="device-status">{t.security.currentDevice}</span> : null}
+                {!device.is_signed_in ? <span className="device-status is-signed-out">{t.security.signedOut}</span> : null}
+              </div>
+              <span className="device-platform">{device.browser} · {device.os}</span>
+              <div className="device-metadata">
+                <span>{t.security.lastActive}: <time dateTime={device.last_active_at}>{relativeTime(device.last_active_at, locale)}</time></span>
+                <span>{t.security.lastSignIn}: <time dateTime={device.last_login_at}>{relativeTime(device.last_login_at, locale)}</time></span>
+                {device.ip_address ? <span>{t.security.ipAddress}: {device.ip_address}</span> : null}
+              </div>
+            </div>
+            {device.is_signed_in ? (
+              <Button
+                aria-label={formatMessage(t.security.signOutDeviceLabel, { device: deviceName })}
+                variant="ghost"
+                onPress={() => void removeDevice(device)}
+              >
+                {t.security.signOutDevice}
+              </Button>
+            ) : null}
+          </div>
               )
             })
           ) : (
@@ -261,6 +283,25 @@ export function SecurityPage() {
       />
     </section>
   )
+}
+
+function relativeTime(value: string, locale: string) {
+  const timestamp = Date.parse(value)
+  if (!Number.isFinite(timestamp)) return value
+  const seconds = Math.round((timestamp - Date.now()) / 1000)
+  const units: Array<[Intl.RelativeTimeFormatUnit, number]> = [
+    ['year', 365 * 24 * 60 * 60],
+    ['month', 30 * 24 * 60 * 60],
+    ['day', 24 * 60 * 60],
+    ['hour', 60 * 60],
+    ['minute', 60],
+  ]
+  for (const [unit, size] of units) {
+    if (Math.abs(seconds) >= size) {
+      return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(Math.round(seconds / size), unit)
+    }
+  }
+  return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(seconds, 'second')
 }
 
 function PasswordDialog({

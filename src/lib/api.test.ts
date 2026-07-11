@@ -164,7 +164,7 @@ describe('AccountApi', () => {
     await api.changePassword({ old_password: 'oldSecret1', new_password: 'newSecret1' })
     await api.setupMfa()
     await api.disableMfa()
-    await api.logoutDevice('session-1')
+    await api.logoutDevice('device-1')
     await api.unlinkAccount('google')
 
     expect(calls.map((call) => `${call.init?.method ?? 'GET'} ${String(call.input)}`)).toEqual([
@@ -175,7 +175,7 @@ describe('AccountApi', () => {
       'POST /api/account/v1/change-password',
       'POST /api/account/v1/mfa/setup',
       'POST /api/account/v1/mfa/disable',
-      'DELETE /api/account/v1/devices/session-1',
+      'DELETE /api/account/v1/devices/device-1',
       'DELETE /api/account/v1/linked-accounts/google',
     ])
   })
