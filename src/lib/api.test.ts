@@ -158,7 +158,9 @@ describe('AccountApi', () => {
       },
     })
 
-    await api.updateProfile({ first_name: 'Ray', last_name: 'Self', avatar_url: '' })
+    await api.updateProfile({ first_name: 'Ray', last_name: 'Self' })
+    await api.uploadAvatar(new Blob(['jpeg'], { type: 'image/jpeg' }))
+    await api.deleteAvatar()
     await api.changePassword({ old_password: 'oldSecret1', new_password: 'newSecret1' })
     await api.setupMfa()
     await api.disableMfa()
@@ -168,6 +170,8 @@ describe('AccountApi', () => {
     expect(calls.map((call) => `${call.init?.method ?? 'GET'} ${String(call.input)}`)).toEqual([
       'GET /api/account/v1/csrf-token',
       'PUT /api/account/v1/profile',
+      'POST /api/account/v1/profile/avatar',
+      'DELETE /api/account/v1/profile/avatar',
       'POST /api/account/v1/change-password',
       'POST /api/account/v1/mfa/setup',
       'POST /api/account/v1/mfa/disable',

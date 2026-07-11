@@ -43,9 +43,19 @@ export class MockAccountApi {
     return this.profile
   }
 
-  async updateProfile(body: { first_name: string; last_name: string; avatar_url: string }) {
+  async updateProfile(body: { first_name: string; last_name: string }) {
     this.profile = { ...this.profile, ...body }
     return { message: 'Profile updated.' }
+  }
+
+  async uploadAvatar() {
+    const avatarUrl = 'data:image/jpeg;base64,/9j/4AAQSkZJRg=='
+    this.profile = { ...this.profile, avatar_url: avatarUrl }
+    return { avatar_url: avatarUrl }
+  }
+
+  async deleteAvatar() {
+    this.profile = { ...this.profile, avatar_url: '' }
   }
 
   async changePassword() {

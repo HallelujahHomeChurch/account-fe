@@ -1,12 +1,16 @@
 import { MemoryRouter } from 'react-router-dom'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
 import { ThemeProvider } from '../theme/theme-context'
 import { ProfilePage } from './ProfilePage'
+
+vi.mock('react-easy-crop', () => ({
+  default: () => <div data-testid="avatar-cropper" />,
+}))
 
 describe('ProfilePage', () => {
   it('uses the shared hhc_locale cookie for localized profile labels', async () => {
@@ -107,7 +111,7 @@ describe('ProfilePage', () => {
     expect(screen.getByRole('button', { name: 'Dark' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('updates names from a dialog while preserving the current avatar URL', async () => {
+  it('updates names without sending the legacy avatar URL', async () => {
     let updateBody: unknown
     const api: AuthApi = {
       login: async () => ({ access_token: 'token' }),
@@ -147,10 +151,69 @@ describe('ProfilePage', () => {
     await userEvent.type(firstName, 'Raymond')
     await userEvent.click(screen.getByRole('button', { name: /save changes/i }))
 
-    expect(updateBody).toMatchObject({
+    expect(updateBody).toEqual({
       first_name: 'Raymond',
       last_name: 'Self',
-      avatar_url: 'https://cdn.example.com/ray.png',
     })
+  })
+
+  it('opens avatar management and removes the current custom avatar', async () => {
+    let removed = false
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }),
+      refreshAccessToken: async () => 'token',
+      me: async () => ({
+        id: 'u1',
+        email: 'ray@example.com',
+        first_name: 'Ray',
+        last_name: 'Self',
+        avatar_url: 'https://account.alive.org.tw/api/account/v1/avatars/avatar.jpg',
+      }),
+      logout: async () => ({}),
+      deleteAvatar: async () => {
+        removed = true
+      },
+    }
+
+    render(
+      <MemoryRouter>
+        <AuthProvider api={api}>
+          <ProfilePage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    await userEvent.click(await screen.findByRole('button', { name: /change profile picture/i }))
+    expect(await screen.findByRole('heading', { name: /profile picture/i })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /remove photo/i }))
+
+    expect(removed).toBe(true)
+  })
+
+  it('validates selected avatar files before opening the cropper', async () => {
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }),
+      refreshAccessToken: async () => 'token',
+      me: async () => ({ id: 'u1', email: 'ray@example.com', first_name: 'Ray' }),
+      logout: async () => ({}),
+    }
+
+    render(
+      <MemoryRouter>
+        <AuthProvider api={api}>
+          <ProfilePage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    await userEvent.click(await screen.findByRole('button', { name: /change profile picture/i }))
+    const input = screen.getByLabelText(/choose photo/i)
+    await userEvent.upload(
+      input,
+      new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'avatar.jpg', { type: 'image/jpeg' }),
+    )
+
+    expect(await screen.findByText(/jpeg, png, or webp/i)).toBeInTheDocument()
+    expect(screen.queryByTestId('avatar-cropper')).not.toBeInTheDocument()
   })
 })

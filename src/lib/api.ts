@@ -141,8 +141,18 @@ export class AccountApi {
     return this.request<Profile>('/me')
   }
 
-  updateProfile(body: { first_name: string; last_name: string; avatar_url: string }) {
+  updateProfile(body: { first_name: string; last_name: string }) {
     return this.request<{ message?: string }>('/profile', { method: 'PUT', body })
+  }
+
+  uploadAvatar(avatar: Blob) {
+    const form = new FormData()
+    form.append('avatar', avatar, 'avatar.jpg')
+    return this.request<{ avatar_url: string }>('/profile/avatar', { method: 'POST', body: form })
+  }
+
+  deleteAvatar() {
+    return this.request<void>('/profile/avatar', { method: 'DELETE' })
   }
 
   changePassword(body: { old_password: string; new_password: string }) {
@@ -245,7 +255,13 @@ export class AccountApi {
     const method = options.method ?? 'GET'
     const headers: Record<string, string> = { accept: 'application/json' }
 
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
+    let requestBody: BodyInit | undefined
     if (options.body !== undefined) {
+      requestBody = isFormData ? (options.body as FormData) : JSON.stringify(options.body)
+    }
+
+    if (options.body !== undefined && !isFormData) {
       headers['content-type'] = 'application/json'
     }
 
@@ -264,7 +280,7 @@ export class AccountApi {
       method,
       credentials: 'include',
       headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body: requestBody,
     })
 
     if (

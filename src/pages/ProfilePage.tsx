@@ -2,7 +2,7 @@ import { Button, Card, Form, Input, Label, Modal, TextField } from '@heroui/reac
 import { useEffect, useState, type FormEvent } from 'react'
 
 import { useAuth } from '../auth/auth-context'
-import { AccountAvatar } from '../components/AccountAvatar'
+import { ProfileAvatarEditor } from '../components/ProfileAvatarEditor'
 import { LanguageSelector } from '../components/LanguageSelector'
 import { ThemeSelector } from '../components/ThemeSelector'
 import { useLocale } from '../i18n/locale-context'
@@ -35,7 +35,6 @@ export function ProfilePage() {
       await auth.api.updateProfile({
         first_name: String(form.get('first_name') ?? ''),
         last_name: String(form.get('last_name') ?? ''),
-        avatar_url: profile.avatar_url ?? '',
       })
       await auth.refreshProfile()
       setMessage(t.profile.updated)
@@ -66,7 +65,7 @@ export function ProfilePage() {
           <div className="settings-row profile-avatar-row">
             <div className="settings-row-copy">
               <span className="settings-row-label">{t.profile.avatar}</span>
-              <AccountAvatar className="profile-avatar" profile={profile} size="lg" />
+              <ProfileAvatarEditor profile={profile} />
             </div>
           </div>
           <div className="settings-row">
