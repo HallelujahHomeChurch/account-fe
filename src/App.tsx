@@ -3,6 +3,7 @@ import { LogOut, ShieldCheck, UserCircle, UserRound } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
 import { useAuth } from './auth/auth-context'
+import { isAuthRoutePath } from './auth/auth-routes'
 import { useLocale } from './i18n/locale-context'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
@@ -16,7 +17,7 @@ function Layout() {
   const auth = useAuth()
   const { messages: t } = useLocale()
   const location = useLocation()
-  const isAuthRoute = ['/login', '/forgot-password', '/reset-password', '/verify-email', '/oauth/callback'].includes(location.pathname)
+  const isAuthRoute = isAuthRoutePath(location.pathname)
 
   if (isAuthRoute) {
     return (

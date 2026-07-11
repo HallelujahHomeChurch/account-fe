@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
-import { AuthProvider, useAuth, type AuthApi } from './auth-context'
+import { AuthProvider, RoutedAuthProvider, useAuth, type AuthApi } from './auth-context'
 import type { RuntimeConfig } from '../lib/redirects'
 
 function LoginProbe() {
@@ -35,6 +36,12 @@ function MockLoginProbe() {
       <div data-testid="email">{auth.profile?.email}</div>
     </div>
   )
+}
+
+function BootstrapProbe() {
+  const auth = useAuth()
+
+  return <div>{auth.isBootstrapping ? 'bootstrapping' : 'ready'}</div>
 }
 
 describe('AuthProvider', () => {
@@ -96,5 +103,47 @@ describe('AuthProvider', () => {
 
     expect(await screen.findByTestId('mfa')).toHaveTextContent('setup_required')
     expect(screen.getByTestId('token')).toBeEmptyDOMElement()
+  })
+
+  it('does not refresh the session on public auth routes', async () => {
+    const refreshAccessToken = vi.fn(async () => null)
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'access-123' }),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken,
+      logout: async () => ({}),
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <RoutedAuthProvider api={api}>
+          <BootstrapProbe />
+        </RoutedAuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('ready')).toBeInTheDocument()
+    expect(refreshAccessToken).not.toHaveBeenCalled()
+  })
+
+  it('refreshes the session on protected account routes', async () => {
+    const refreshAccessToken = vi.fn(async () => null)
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'access-123' }),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken,
+      logout: async () => ({}),
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/profile']}>
+        <RoutedAuthProvider api={api}>
+          <BootstrapProbe />
+        </RoutedAuthProvider>
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => expect(refreshAccessToken).toHaveBeenCalledTimes(1))
+    expect(await screen.findByText('ready')).toBeInTheDocument()
   })
 })

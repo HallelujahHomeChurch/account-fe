@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { useLocation } from 'react-router-dom'
 
 import { AccountApi, type LoginRequest, type LoginResponse, type Profile } from '../lib/api'
 import { MockAccountApi } from '../lib/mock-account-api'
@@ -17,6 +18,7 @@ import {
   readRuntimeConfig,
   type RuntimeConfig,
 } from '../lib/redirects'
+import { isAuthRoutePath } from './auth-routes'
 
 export type MfaChallenge = {
   type: 'setup_required' | 'verification_required'
@@ -48,9 +50,15 @@ type AuthProviderProps = {
   children: ReactNode
   api?: AuthApi
   config?: RuntimeConfig
+  restoreSession?: boolean
 }
 
-export function AuthProvider({ children, api: injectedApi, config = readRuntimeConfig() }: AuthProviderProps) {
+export function AuthProvider({
+  children,
+  api: injectedApi,
+  config = readRuntimeConfig(),
+  restoreSession = true,
+}: AuthProviderProps) {
   const tokenRef = useRef<string | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -124,6 +132,11 @@ export function AuthProvider({ children, api: injectedApi, config = readRuntimeC
     let alive = true
 
     async function bootstrap() {
+      if (!restoreSession) {
+        setIsBootstrapping(false)
+        return
+      }
+
       const token = await api.refreshAccessToken()
       if (!alive) return
 
@@ -148,7 +161,7 @@ export function AuthProvider({ children, api: injectedApi, config = readRuntimeC
     return () => {
       alive = false
     }
-  }, [api, refreshProfile, writeAccessToken])
+  }, [api, refreshProfile, restoreSession, writeAccessToken])
 
   const value = useMemo(
     () => ({
@@ -166,6 +179,16 @@ export function AuthProvider({ children, api: injectedApi, config = readRuntimeC
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+export function RoutedAuthProvider({ children, api, config }: AuthProviderProps) {
+  const location = useLocation()
+
+  return (
+    <AuthProvider api={api} config={config} restoreSession={!isAuthRoutePath(location.pathname)}>
+      {children}
+    </AuthProvider>
+  )
 }
 
 export function useAuth() {
