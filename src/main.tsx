@@ -5,15 +5,18 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { RoutedAuthProvider } from './auth/auth-context'
 import { LocaleProvider } from './i18n/locale-context'
+import { ThemeProvider } from './theme/theme-context'
 import './index.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <LocaleProvider>
-        <RoutedAuthProvider>
-          <App />
-        </RoutedAuthProvider>
+        <ThemeProvider>
+          <RoutedAuthProvider>
+            <App />
+          </RoutedAuthProvider>
+        </ThemeProvider>
       </LocaleProvider>
     </BrowserRouter>
   </StrictMode>,

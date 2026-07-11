@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from '../auth/auth-context'
 import { AccountAvatar } from '../components/AccountAvatar'
 import { LanguageSelector } from '../components/LanguageSelector'
+import { ThemeSelector } from '../components/ThemeSelector'
 import { useLocale } from '../i18n/locale-context'
 import { displayAccountName } from '../lib/account-display'
 import { ApiError } from '../lib/api'
@@ -91,6 +92,12 @@ export function ProfilePage() {
               <span className="settings-row-label">{t.profile.language}</span>
             </div>
             <LanguageSelector />
+          </div>
+          <div className="settings-row">
+            <div className="settings-row-copy">
+              <span className="settings-row-label">{t.profile.appearance}</span>
+            </div>
+            <ThemeSelector />
           </div>
         </Card.Content>
       </Card>

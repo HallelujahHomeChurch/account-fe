@@ -7,6 +7,7 @@ import { isAuthRoutePath } from './auth/auth-routes'
 import { AccountAvatar } from './components/AccountAvatar'
 import { useLocale } from './i18n/locale-context'
 import { accountGreetingName } from './lib/account-display'
+import { readRuntimeConfig } from './lib/redirects'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
 import { OAuthCallbackPage } from './pages/OAuthCallbackPage'
@@ -17,9 +18,10 @@ import { VerifyEmailPage } from './pages/VerifyEmailPage'
 
 function Layout() {
   const auth = useAuth()
-  const { messages: t } = useLocale()
+  const { locale, messages: t } = useLocale()
   const location = useLocation()
   const isAuthRoute = isAuthRoutePath(location.pathname)
+  const publicSiteUrl = readRuntimeConfig().publicSiteUrl
 
   if (isAuthRoute) {
     return (
@@ -70,12 +72,29 @@ function Layout() {
               {t.nav.security}
             </Link>
           </nav>
+          <div className="sidebar-legal-links">
+            <a
+              href={`${publicSiteUrl}/${locale}/privacy-policy`}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              {t.nav.privacy}
+            </a>
+            <span aria-hidden="true">/</span>
+            <a
+              href={`${publicSiteUrl}/${locale}/terms-of-use`}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              {t.nav.terms}
+            </a>
+          </div>
         </aside>
         <div className="account-content">
           <header className="account-header">
             <Dropdown>
               <Dropdown.Trigger aria-label={t.nav.accountMenu} className="account-menu-trigger">
-                <AccountAvatar profile={auth.profile} size="sm" />
+                <AccountAvatar profile={auth.profile} size="md" />
               </Dropdown.Trigger>
               <Dropdown.Popover className="account-menu-popover" placement="bottom end">
                 <div className="account-menu-greeting">Hi {accountGreetingName(auth.profile)}</div>

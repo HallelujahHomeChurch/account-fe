@@ -3,7 +3,7 @@ import type { Locale } from './locales'
 export const messages = {
   'zh-Hant': {
     site: {
-      accountName: 'HHC Account',
+      accountName: 'HHC 帳戶',
       language: '語言',
     },
     nav: {
@@ -14,6 +14,8 @@ export const messages = {
       signIn: '登入',
       signOut: '登出',
       accountMenu: '帳號選單',
+      privacy: '隱私權',
+      terms: '條款',
     },
     login: {
       brandTitle: '哈利路亞家教會',
@@ -43,6 +45,9 @@ export const messages = {
       name: '姓名',
       email: 'Email',
       language: '語言',
+      appearance: '外觀',
+      lightTheme: '淺色',
+      darkTheme: '深色',
       editName: '編輯姓名',
       firstName: '名字',
       lastName: '姓氏',
@@ -93,7 +98,7 @@ export const messages = {
   },
   'zh-Hans': {
     site: {
-      accountName: 'HHC Account',
+      accountName: 'HHC 帐户',
       language: '语言',
     },
     nav: {
@@ -104,6 +109,8 @@ export const messages = {
       signIn: '登录',
       signOut: '退出登录',
       accountMenu: '帐号菜单',
+      privacy: '隐私权',
+      terms: '条款',
     },
     login: {
       brandTitle: '哈利路亚家教会',
@@ -133,6 +140,9 @@ export const messages = {
       name: '姓名',
       email: 'Email',
       language: '语言',
+      appearance: '外观',
+      lightTheme: '浅色',
+      darkTheme: '深色',
       editName: '编辑姓名',
       firstName: '名字',
       lastName: '姓氏',
@@ -194,6 +204,8 @@ export const messages = {
       signIn: 'Sign in',
       signOut: 'Sign out',
       accountMenu: 'Account menu',
+      privacy: 'Privacy',
+      terms: 'Terms',
     },
     login: {
       brandTitle: 'Hallelujah Home Church',
@@ -223,6 +235,9 @@ export const messages = {
       name: 'Name',
       email: 'Email',
       language: 'Language',
+      appearance: 'Appearance',
+      lightTheme: 'Light',
+      darkTheme: 'Dark',
       editName: 'Edit name',
       firstName: 'First name',
       lastName: 'Last name',

@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 import App from './App'
 import { AuthProvider, type AuthApi } from './auth/auth-context'
+import { LocaleProvider } from './i18n/locale-context'
 
 const api: AuthApi = {
   login: async () => ({ access_token: 'token' }),
@@ -90,5 +91,30 @@ describe('App layout', () => {
 
     await user.keyboard('{Escape}')
     expect(screen.queryByText('Hi Ray Self')).not.toBeInTheDocument()
+  })
+
+  it('localizes the account brand and legal links using canonical public routes', async () => {
+    document.cookie = 'hhc_locale=zh-Hant; Path=/'
+
+    render(
+      <MemoryRouter initialEntries={['/profile']}>
+        <LocaleProvider>
+          <AuthProvider api={signedInApi}>
+            <App />
+          </AuthProvider>
+        </LocaleProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('HHC 帳戶')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '隱私權' })).toHaveAttribute(
+      'href',
+      'https://www.alive.org.tw/zh-Hant/privacy-policy',
+    )
+    expect(screen.getByRole('link', { name: '隱私權' })).toHaveAttribute('target', '_blank')
+    expect(screen.getByRole('link', { name: '條款' })).toHaveAttribute(
+      'href',
+      'https://www.alive.org.tw/zh-Hant/terms-of-use',
+    )
   })
 })

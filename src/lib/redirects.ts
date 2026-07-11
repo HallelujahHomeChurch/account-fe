@@ -3,6 +3,7 @@ export type RuntimeConfig = {
   mockApi: boolean
   allowedRedirectOrigins: string[]
   allowedRedirectSchemes: string[]
+  publicSiteUrl: string
 }
 
 type EnvLike = Record<string, string | boolean | undefined>
@@ -33,6 +34,10 @@ export function readRuntimeConfig(env: EnvLike = import.meta.env): RuntimeConfig
     mockApi: env.VITE_ACCOUNT_API_MOCK === 'true' || env.VITE_ACCOUNT_API_MOCK === true,
     allowedRedirectOrigins: splitCsv(env.VITE_ALLOWED_REDIRECT_ORIGINS, defaultAllowedOrigins),
     allowedRedirectSchemes: splitCsv(env.VITE_ALLOWED_REDIRECT_SCHEMES, ['hhc']),
+    publicSiteUrl:
+      typeof env.VITE_PUBLIC_SITE_URL === 'string' && env.VITE_PUBLIC_SITE_URL
+        ? env.VITE_PUBLIC_SITE_URL.replace(/\/$/, '')
+        : 'https://www.alive.org.tw',
   }
 }
 

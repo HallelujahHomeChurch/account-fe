@@ -7,6 +7,7 @@ const config: RuntimeConfig = {
   mockApi: false,
   allowedRedirectOrigins: ['https://admin.alive.org.tw', 'http://localhost:5173'],
   allowedRedirectSchemes: ['hhc'],
+  publicSiteUrl: 'https://www.alive.org.tw',
 }
 
 describe('isAllowedRedirect', () => {

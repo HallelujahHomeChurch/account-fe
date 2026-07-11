@@ -20,4 +20,8 @@ if (!document.elementFromPoint) {
 afterEach(() => {
   cleanup()
   document.cookie = 'hhc_locale=; Max-Age=0; Path=/'
+  document.cookie = 'hhc_theme=; Max-Age=0; Path=/'
+  document.documentElement.removeAttribute('data-theme')
+  document.documentElement.classList.remove('dark')
+  document.documentElement.style.colorScheme = ''
 })

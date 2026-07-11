@@ -2,8 +2,10 @@
 @import "@heroui/styles";
 
 :root {
+  --color-canvas: #fbf5eb;
   --color-cream: #fbf5eb;
   --color-paper: #fffdf9;
+  --color-paper-raised: rgb(255 253 249 / 96%);
   --color-gold: #e4a43a;
   --color-primary: #cf685f;
   --color-primary-hover: #b64e45;
@@ -27,6 +29,25 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+[data-theme="dark"] {
+  --color-canvas: #1d1a19;
+  --color-cream: #1d1a19;
+  --color-paper: #282321;
+  --color-paper-raised: rgb(40 35 33 / 98%);
+  --color-gold: #e7aa49;
+  --color-primary: #df7a70;
+  --color-primary-hover: #f08c82;
+  --color-primary-soft: rgb(223 122 112 / 16%);
+  --color-primary-soft-hover: rgb(223 122 112 / 24%);
+  --color-teal: #65aaa4;
+  --color-ink: #f3ece7;
+  --color-muted: #bcb1aa;
+  --color-line: #443b37;
+  --color-panel: #312a27;
+  --color-panel-border: rgb(79 67 61 / 88%);
+  --shadow-warm: 0 20px 50px rgb(0 0 0 / 24%);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -35,6 +56,8 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-ink);
 }
 
 a {
@@ -111,9 +134,7 @@ textarea::selection {
 
 .app-shell {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgb(228 164 58 / 18%), transparent 34rem),
-    linear-gradient(180deg, var(--color-cream), #fffaf4);
+  background: var(--color-canvas);
 }
 
 .account-layout {
@@ -135,10 +156,8 @@ textarea::selection {
   height: 100vh;
   flex-direction: column;
   gap: 28px;
-  border-right: 1px solid rgb(238 227 215 / 78%);
-  background: rgb(255 253 249 / 82%);
-  padding: 24px 16px;
-  backdrop-filter: blur(16px);
+  background: var(--color-canvas);
+  padding: 24px;
 }
 
 .brand {
@@ -146,10 +165,9 @@ textarea::selection {
   align-items: center;
   gap: 10px;
   min-height: 48px;
-  padding: 0 12px;
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 650;
-  color: #403832;
+  color: var(--color-ink);
 }
 
 .brand-mark,
@@ -186,6 +204,19 @@ textarea::selection {
   color: var(--color-primary);
 }
 
+.sidebar-legal-links {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: auto;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.sidebar-legal-links a:hover {
+  color: var(--color-primary);
+}
+
 .account-header {
   position: sticky;
   z-index: 30;
@@ -194,35 +225,58 @@ textarea::selection {
   min-height: 72px;
   align-items: center;
   justify-content: flex-end;
-  border-bottom: 1px solid rgb(238 227 215 / 54%);
-  background: rgb(251 245 235 / 78%);
+  background: var(--color-canvas);
   padding: 14px 24px;
-  backdrop-filter: blur(16px);
 }
 
 .account-menu-trigger {
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   place-items: center;
-  border: 1px solid var(--color-line);
+  border: 0;
   border-radius: 50%;
-  background: var(--color-paper);
+  background: transparent;
   color: var(--color-primary);
   cursor: pointer;
   list-style: none;
-  box-shadow: 0 10px 22px rgb(76 50 28 / 8%);
+  padding: 0;
+  box-shadow: none;
 }
 
 .account-menu-trigger:hover,
 .account-menu-trigger[data-hovered] {
-  border-color: var(--color-primary);
-  background: var(--color-primary-soft);
+  background: transparent;
 }
 
-.account-menu-trigger:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 4px;
+.account-menu-trigger:hover .account-avatar,
+.account-menu-trigger[data-hovered] .account-avatar {
+  filter: brightness(0.94);
+}
+
+.account-menu-trigger:focus,
+.account-menu-trigger:focus-visible,
+.account-menu-trigger[data-focus-visible] {
+  outline: none;
+  box-shadow: none;
+}
+
+.account-menu-trigger:focus-visible .account-avatar,
+.account-menu-trigger[data-focus-visible] .account-avatar {
+  box-shadow: inset 0 0 0 2px var(--color-primary);
+}
+
+.account-avatar,
+.account-avatar .avatar__image,
+.account-avatar .avatar__fallback {
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.account-avatar .avatar__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .account-menu-popover {
@@ -231,7 +285,7 @@ textarea::selection {
   gap: 6px;
   border: 1px solid var(--color-panel-border);
   border-radius: 14px;
-  background: rgb(255 253 249 / 96%);
+  background: var(--color-paper-raised);
   box-shadow: var(--shadow-warm);
   padding: 8px;
 }
@@ -505,7 +559,7 @@ textarea::selection {
   width: 100%;
   border: 1px solid var(--color-line);
   border-radius: 16px;
-  background: rgb(255 253 249 / 92%);
+  background: var(--color-paper-raised);
   box-shadow: var(--shadow-warm);
 }
 
@@ -578,6 +632,39 @@ textarea::selection {
   color: var(--color-primary);
   font-size: 24px;
   font-weight: 800;
+  border-radius: 50%;
+}
+
+.theme-selector {
+  display: inline-flex;
+  gap: 2px;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  background: var(--color-panel);
+  padding: 3px;
+}
+
+.theme-selector-option {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-muted);
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.theme-selector-option:hover {
+  color: var(--color-ink);
+}
+
+.theme-selector-option[aria-pressed="true"] {
+  background: var(--color-paper);
+  color: var(--color-primary);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 10%);
 }
 
 .status-pill {
@@ -606,7 +693,7 @@ textarea::selection {
   width: min(100%, 520px);
   border: 1px solid var(--color-panel-border);
   border-radius: 18px;
-  background: rgb(255 253 249 / 98%);
+  background: var(--color-paper-raised);
   box-shadow: var(--shadow-warm);
   padding: 22px;
 }
@@ -902,9 +989,21 @@ textarea::selection {
     position: static;
     height: auto;
     gap: 12px;
-    border-right: 0;
-    border-bottom: 1px solid rgb(238 227 215 / 78%);
-    padding: 14px;
+    padding: 16px;
+  }
+
+  .brand {
+    min-height: 40px;
+    font-size: 17px;
+  }
+
+  .brand-mark {
+    width: 36px;
+    height: 36px;
+  }
+
+  .sidebar-legal-links {
+    display: none;
   }
 
   .account-header {

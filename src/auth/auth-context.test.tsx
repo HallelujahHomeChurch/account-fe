@@ -51,6 +51,7 @@ describe('AuthProvider', () => {
       mockApi: true,
       allowedRedirectOrigins: ['http://localhost:5173'],
       allowedRedirectSchemes: ['hhc'],
+      publicSiteUrl: 'https://www.alive.org.tw',
     }
 
     render(
