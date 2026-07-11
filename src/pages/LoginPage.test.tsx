@@ -201,6 +201,8 @@ describe('LoginPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /next/i }))
 
     expect(await screen.findByRole('heading', { name: /multi-factor authentication/i })).toBeInTheDocument()
+    expect(screen.getByText('Open your authenticator app and enter the 6-digit code.')).toBeInTheDocument()
+    expect(screen.queryByText('Complete the required verification step.')).not.toBeInTheDocument()
     expect(screen.queryByText(/signed in/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/MFA verification required/i)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /next/i })).toBeInTheDocument()
@@ -232,6 +234,9 @@ describe('LoginPage', () => {
     await userEvent.type(screen.getByLabelText('Password'), 'secret123')
     await userEvent.click(screen.getByRole('button', { name: /next/i }))
 
+    expect(
+      await screen.findByText('Scan the QR code with your authenticator app, then enter the 6-digit code.'),
+    ).toBeInTheDocument()
     expect(await screen.findByRole('img', { name: /MFA setup QR code/i })).toHaveAttribute(
       'src',
       'data:image/png;base64,abc123',

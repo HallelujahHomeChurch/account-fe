@@ -33,6 +33,8 @@ export function LoginPage() {
 
   const title = t.login.brandTitle
   const challenge = auth.mfaChallenge
+  const mfaSubtitle =
+    challenge?.type === 'setup_required' ? t.login.mfaSetupSubtitle : t.login.mfaVerificationSubtitle
 
   const socialLinks = useMemo(() => {
     if (!auth.api.getSocialLoginUrl) return []
@@ -113,7 +115,7 @@ export function LoginPage() {
           {challenge ? (
             <>
               <h2>{t.login.mfaTitle}</h2>
-              <p className="auth-subtitle">{t.login.mfaSubtitle}</p>
+              <p className="auth-subtitle">{mfaSubtitle}</p>
             </>
           ) : null}
 
