@@ -97,6 +97,9 @@ export function LoginPage() {
 
       if (response) {
         await auth.completeLogin(response)
+        if (response.access_token) {
+          navigate('/profile', { replace: true })
+        }
       }
     } catch (caught) {
       setError(errorMessage(caught))

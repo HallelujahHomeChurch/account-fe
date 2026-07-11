@@ -245,6 +245,35 @@ describe('LoginPage', () => {
     expect(submittedCode).toBe('123456')
   })
 
+  it('navigates to profile after MFA verification succeeds', async () => {
+    const api: AuthApi = {
+      login: async () => ({ mfa_type: 'verification_required', mfa_token: 'mfa-123' }),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken: async () => null,
+      logout: async () => ({}),
+      verifyMfa: async () => ({ access_token: 'access-123' }),
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <AuthProvider api={api}>
+          <Routes>
+            <Route element={<LoginPage />} path="/login" />
+            <Route element={<h1>Profile reached</h1>} path="/profile" />
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    await userEvent.type(screen.getByLabelText('Email'), 'admin@example.com')
+    await userEvent.type(screen.getByLabelText('Password'), 'secret123')
+    await userEvent.click(screen.getByRole('button', { name: /next/i }))
+    await userEvent.type(await screen.findByLabelText('Verification code'), '123456')
+    await userEvent.click(screen.getByRole('button', { name: /next/i }))
+
+    expect(await screen.findByRole('heading', { name: /profile reached/i })).toBeInTheDocument()
+  })
+
   it('renders the MFA setup QR code when setup is required', async () => {
     const api: AuthApi = {
       login: async () => ({ mfa_type: 'setup_required', mfa_token: 'mfa-123' }),
