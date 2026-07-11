@@ -806,7 +806,7 @@ textarea::selection {
     border-radius: 0;
     background: transparent;
     box-shadow: none;
-    padding: 28px 0;
+    padding: 28px 8px;
   }
 
   .login-footer {
