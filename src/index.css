@@ -549,6 +549,60 @@ textarea::selection {
   padding: 10px;
 }
 
+.mfa-code-field {
+  display: grid;
+  gap: 10px;
+}
+
+.mfa-code-label {
+  color: var(--color-ink);
+  font-weight: 700;
+}
+
+.login-form-panel .input-otp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.login-form-panel .input-otp__group {
+  display: flex;
+  gap: 8px;
+}
+
+.login-form-panel .input-otp__slot {
+  display: grid;
+  width: 48px;
+  height: 56px;
+  place-items: center;
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--color-ink);
+  box-shadow: 0 8px 18px rgb(76 50 28 / 8%);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.login-form-panel .input-otp__slot[data-active="true"] {
+  border-color: var(--color-primary);
+  box-shadow:
+    0 0 0 3px var(--color-primary-soft),
+    0 8px 18px rgb(76 50 28 / 8%);
+}
+
+.login-form-panel .input-otp__slot[data-invalid="true"] {
+  border-color: #9d3328;
+}
+
+.login-form-panel .input-otp__separator {
+  width: 8px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--color-muted);
+  opacity: 0.45;
+}
+
 .backup-codes {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -761,5 +815,20 @@ textarea::selection {
     bottom: max(22px, env(safe-area-inset-bottom));
     left: 22px;
     padding: 0;
+  }
+
+  .login-form-panel .input-otp {
+    gap: 8px;
+  }
+
+  .login-form-panel .input-otp__group {
+    gap: 6px;
+  }
+
+  .login-form-panel .input-otp__slot {
+    width: min(13vw, 46px);
+    min-width: 38px;
+    height: 52px;
+    font-size: 20px;
   }
 }

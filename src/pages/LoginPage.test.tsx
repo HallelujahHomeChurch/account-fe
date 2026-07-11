@@ -180,7 +180,7 @@ describe('LoginPage', () => {
     expect(screen.queryByText(/MFA setup required/i)).not.toBeInTheDocument()
   })
 
-  it('renders MFA verification without redundant notices or button icon', async () => {
+  it('renders MFA verification with an OTP code field and minimal copy', async () => {
     const api: AuthApi = {
       login: async () => ({ mfa_type: 'verification_required', mfa_token: 'mfa-123' }),
       me: async () => ({ id: 'u1', email: 'admin@example.com' }),
@@ -201,12 +201,48 @@ describe('LoginPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /next/i }))
 
     expect(await screen.findByRole('heading', { name: /multi-factor authentication/i })).toBeInTheDocument()
-    expect(screen.getByText('Open your authenticator app and enter the 6-digit code.')).toBeInTheDocument()
+    expect(screen.getByText('Enter your verification code.')).toBeInTheDocument()
+    expect(screen.queryByText('Open your authenticator app and enter the 6-digit code.')).not.toBeInTheDocument()
     expect(screen.queryByText('Complete the required verification step.')).not.toBeInTheDocument()
+    expect(screen.getByText('Verification code')).toBeInTheDocument()
+    expect(document.querySelectorAll('[data-slot="input-otp-slot"]')).toHaveLength(6)
     expect(screen.queryByText(/signed in/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/MFA verification required/i)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /next/i })).toBeInTheDocument()
     expect(document.querySelector('.login-actions svg')).not.toBeInTheDocument()
+  })
+
+  it('submits the MFA code from the OTP field', async () => {
+    let submittedToken = ''
+    let submittedCode = ''
+    const api: AuthApi = {
+      login: async () => ({ mfa_type: 'verification_required', mfa_token: 'mfa-123' }),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken: async () => null,
+      logout: async () => ({}),
+      verifyMfa: async (token, code) => {
+        submittedToken = token
+        submittedCode = code
+        return { access_token: 'access-123' }
+      },
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <AuthProvider api={api}>
+          <LoginPage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    await userEvent.type(screen.getByLabelText('Email'), 'admin@example.com')
+    await userEvent.type(screen.getByLabelText('Password'), 'secret123')
+    await userEvent.click(screen.getByRole('button', { name: /next/i }))
+    await userEvent.type(await screen.findByLabelText('Verification code'), '123456')
+    await userEvent.click(screen.getByRole('button', { name: /next/i }))
+
+    expect(submittedToken).toBe('mfa-123')
+    expect(submittedCode).toBe('123456')
   })
 
   it('renders the MFA setup QR code when setup is required', async () => {
@@ -234,9 +270,10 @@ describe('LoginPage', () => {
     await userEvent.type(screen.getByLabelText('Password'), 'secret123')
     await userEvent.click(screen.getByRole('button', { name: /next/i }))
 
+    expect(await screen.findByText('Set up your authenticator.')).toBeInTheDocument()
     expect(
-      await screen.findByText('Scan the QR code with your authenticator app, then enter the 6-digit code.'),
-    ).toBeInTheDocument()
+      screen.queryByText('Scan the QR code with your authenticator app, then enter the 6-digit code.'),
+    ).not.toBeInTheDocument()
     expect(await screen.findByRole('img', { name: /MFA setup QR code/i })).toHaveAttribute(
       'src',
       'data:image/png;base64,abc123',
