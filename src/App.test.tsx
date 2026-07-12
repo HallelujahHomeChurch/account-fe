@@ -93,6 +93,24 @@ describe('App layout', () => {
     expect(screen.queryByText('Hi Ray Self')).not.toBeInTheDocument()
   })
 
+  it('opens and dismisses the mobile account navigation drawer', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter initialEntries={['/profile']}>
+        <AuthProvider api={signedInApi}>
+          <App />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    await user.click(await screen.findByRole('button', { name: /open navigation/i }))
+    expect(await screen.findByRole('dialog', { name: /account navigation/i })).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog', { name: /account navigation/i })).not.toBeInTheDocument()
+  })
+
   it('localizes the account brand and legal links using canonical public routes', async () => {
     document.cookie = 'hhc_locale=zh-Hant; Path=/'
 
@@ -106,7 +124,7 @@ describe('App layout', () => {
       </MemoryRouter>,
     )
 
-    expect(await screen.findByText('HHC 帳戶')).toBeInTheDocument()
+    expect((await screen.findAllByText('HHC 帳戶')).length).toBeGreaterThan(0)
     expect(screen.getByRole('link', { name: '隱私權' })).toHaveAttribute(
       'href',
       'https://www.alive.org.tw/zh-Hant/privacy-policy',
