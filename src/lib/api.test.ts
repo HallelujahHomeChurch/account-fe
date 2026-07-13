@@ -62,6 +62,25 @@ describe('AccountApi', () => {
     })
   })
 
+	it('uses the current-device global logout endpoint', async () => {
+		const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
+		const api = new AccountApi({
+			baseUrl: '/api/account/v1',
+			fetcher: async (input, init) => {
+				calls.push({ input, init })
+				if (String(input).endsWith('/csrf-token')) return jsonResponse({ csrf_token: 'csrf-123' })
+				return jsonResponse({ message: 'Logged out successfully' })
+			},
+		})
+
+		await api.logoutAll()
+
+		expect(calls.map((call) => `${call.init?.method ?? 'GET'} ${String(call.input)}`)).toEqual([
+			'GET /api/account/v1/csrf-token',
+			'POST /api/account/v1/session/logout-all',
+		])
+	})
+
   it('refreshes once after a 401 and retries with the new access token', async () => {
     const seenAuth: Array<string | null> = []
     let accessToken = 'old-token'

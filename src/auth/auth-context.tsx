@@ -37,6 +37,7 @@ type AuthContextValue = {
   profile: Profile | null
   mfaChallenge: MfaChallenge | null
   isBootstrapping: boolean
+  logoutError: string | null
   api: AuthApi
   login: (request: LoginRequest) => Promise<LoginResponse>
   completeLogin: (response: LoginResponse) => Promise<LoginResponse>
@@ -51,6 +52,11 @@ type AuthProviderProps = {
   api?: AuthApi
   config?: RuntimeConfig
   restoreSession?: boolean
+  navigateAfterLogout?: (url: string) => void
+}
+
+function defaultNavigateAfterLogout(url: string) {
+  window.location.replace(url)
 }
 
 export function AuthProvider({
@@ -58,12 +64,14 @@ export function AuthProvider({
   api: injectedApi,
   config = readRuntimeConfig(),
   restoreSession = true,
+  navigateAfterLogout = defaultNavigateAfterLogout,
 }: AuthProviderProps) {
   const tokenRef = useRef<string | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [mfaChallenge, setMfaChallenge] = useState<MfaChallenge | null>(null)
   const [isBootstrapping, setIsBootstrapping] = useState(true)
+  const [logoutError, setLogoutError] = useState<string | null>(null)
 
   const writeAccessToken = useCallback((token: string | null) => {
     tokenRef.current = token
@@ -122,11 +130,17 @@ export function AuthProvider({
   )
 
   const logout = useCallback(async () => {
-    await api.logout()
-    writeAccessToken(null)
-    setProfile(null)
-    setMfaChallenge(null)
-  }, [api, writeAccessToken])
+    setLogoutError(null)
+    try {
+      await (api.logoutAll ? api.logoutAll() : api.logout())
+      writeAccessToken(null)
+      setProfile(null)
+      setMfaChallenge(null)
+      navigateAfterLogout('/login?signed_out=1')
+    } catch {
+      setLogoutError('Unable to sign out. Try again.')
+    }
+  }, [api, navigateAfterLogout, writeAccessToken])
 
   useEffect(() => {
     let alive = true
@@ -169,13 +183,14 @@ export function AuthProvider({
       profile,
       mfaChallenge,
       isBootstrapping,
+      logoutError,
       api,
       login,
       completeLogin,
       refreshProfile,
       logout,
     }),
-    [accessToken, api, completeLogin, isBootstrapping, login, logout, mfaChallenge, profile, refreshProfile],
+    [accessToken, api, completeLogin, isBootstrapping, login, logout, logoutError, mfaChallenge, profile, refreshProfile],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -28,6 +28,7 @@ export function LoginPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const authRequestId = searchParams.get('auth_request_id') ?? undefined
+  const signedOut = searchParams.get('signed_out') === '1'
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [mfaSetup, setMfaSetup] = useState<MfaSetup | null>(null)
@@ -45,6 +46,16 @@ export function LoginPage() {
       return href ? [{ ...provider, href }] : []
     })
   }, [auth.api, authRequestId])
+
+  useEffect(() => {
+    if (!signedOut) return
+
+    setNotice(t.login.signedOut)
+    const nextSearchParams = new URLSearchParams(searchParams)
+    nextSearchParams.delete('signed_out')
+    const search = nextSearchParams.toString()
+    navigate({ pathname: '/login', search: search ? `?${search}` : '' }, { replace: true })
+  }, [navigate, searchParams, signedOut, t.login.signedOut])
 
   useEffect(() => {
     if (challenge?.type !== 'setup_required' || !auth.api.setupMfaWithToken) return

@@ -1,4 +1,4 @@
-import { AccountMenu, Button, Drawer } from '@hhc/ui'
+import { AccountMenu, Button, Drawer, Toast } from '@hhc/ui'
 import { Menu, ShieldCheck, UserRound } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
@@ -173,6 +173,11 @@ function Layout() {
               }}
               onSignOut={() => void auth.logout()}
             />
+            {auth.logoutError ? (
+              <div className="auth-error-toast">
+                <Toast tone="danger">{auth.logoutError}</Toast>
+              </div>
+            ) : null}
           </header>
           <main className="main-panel">
             <Routes>

@@ -127,6 +127,10 @@ export class MockAccountApi {
     return { message: 'Signed out.' }
   }
 
+  async logoutAll() {
+    return
+  }
+
   getSocialLoginUrl(provider: string) {
     return `/login?mock_social=${encodeURIComponent(provider)}`
   }

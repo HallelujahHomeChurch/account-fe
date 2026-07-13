@@ -44,7 +44,65 @@ function BootstrapProbe() {
   return <div>{auth.isBootstrapping ? 'bootstrapping' : 'ready'}</div>
 }
 
+function LogoutProbe() {
+  const auth = useAuth()
+  return (
+    <div>
+      <button type="button" onClick={() => void auth.logout()}>
+        Logout
+      </button>
+      <div data-testid="email">{auth.profile?.email}</div>
+      <div role="alert">{auth.logoutError}</div>
+    </div>
+  )
+}
+
 describe('AuthProvider', () => {
+  it('retains authenticated state when global logout fails', async () => {
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'access-123' }),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken: async () => 'access-123',
+      logout: async () => ({}),
+      logoutAll: async () => {
+        throw new Error('unavailable')
+      },
+    }
+
+    render(
+      <AuthProvider api={api}>
+        <LogoutProbe />
+      </AuthProvider>,
+    )
+    expect(await screen.findByTestId('email')).toHaveTextContent('admin@example.com')
+    await userEvent.click(screen.getByRole('button', { name: 'Logout' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to sign out. Try again.')
+    expect(screen.getByTestId('email')).toHaveTextContent('admin@example.com')
+  })
+
+  it('clears state and replaces history after global logout succeeds', async () => {
+    const navigateAfterLogout = vi.fn()
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'access-123' }),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken: async () => 'access-123',
+      logout: async () => ({}),
+      logoutAll: async () => {},
+    }
+
+    render(
+      <AuthProvider api={api} navigateAfterLogout={navigateAfterLogout}>
+        <LogoutProbe />
+      </AuthProvider>,
+    )
+    expect(await screen.findByTestId('email')).toHaveTextContent('admin@example.com')
+    await userEvent.click(screen.getByRole('button', { name: 'Logout' }))
+
+    await waitFor(() => expect(navigateAfterLogout).toHaveBeenCalledWith('/login?signed_out=1'))
+    expect(screen.getByTestId('email')).toBeEmptyDOMElement()
+  })
+
   it('uses the built-in mock account API when mock mode is enabled', async () => {
     const config: RuntimeConfig = {
       accountApiBaseUrl: '/api/account/v1',

@@ -1123,6 +1123,14 @@ textarea::selection {
   }
 }
 
+.auth-error-toast {
+  position: fixed;
+  top: 76px;
+  right: 24px;
+  z-index: 60;
+  max-width: min(360px, calc(100vw - 32px));
+}
+
 @media (max-width: 600px) {
   .auth-main-panel {
     align-items: start;

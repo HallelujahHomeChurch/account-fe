@@ -1,13 +1,39 @@
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
 import { LoginPage } from './LoginPage'
 
 describe('LoginPage', () => {
+  it('shows a one-time signed-out notice without refreshing the session', async () => {
+    document.cookie = 'hhc_locale=en; Path=/'
+    const refreshAccessToken = vi.fn(async () => null)
+    const api: AuthApi = {
+      login: async () => ({}),
+      me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken,
+      logout: async () => ({}),
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/login?signed_out=1']}>
+        <LocaleProvider>
+          <AuthProvider api={api} restoreSession={false}>
+            <LoginPage />
+            <LocationSearch />
+          </AuthProvider>
+        </LocaleProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Signed out.')).toBeInTheDocument()
+    expect(refreshAccessToken).not.toHaveBeenCalled()
+    await vi.waitFor(() => expect(screen.getByTestId('location-search')).toBeEmptyDOMElement())
+  })
+
   it('keeps the login card copy minimal', () => {
     document.cookie = 'hhc_locale=zh-Hant; Path=/'
     const api: AuthApi = {
@@ -353,3 +379,7 @@ describe('LoginPage', () => {
     )
   })
 })
+
+function LocationSearch() {
+  return <span data-testid="location-search">{useLocation().search}</span>
+}

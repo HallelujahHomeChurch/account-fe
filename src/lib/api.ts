@@ -1,3 +1,5 @@
+import { createAccountSessionClient } from '@hhc/account-client'
+
 export type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
 export type AccountApiOptions = {
@@ -248,6 +250,13 @@ export class AccountApi {
 
   logout() {
     return this.request<{ message?: string }>('/logout', { method: 'POST', body: {} })
+  }
+
+  logoutAll() {
+    return createAccountSessionClient({
+      baseUrl: this.baseUrl,
+      fetcher: this.fetcher as typeof fetch,
+    }).logoutAll()
   }
 
   getSocialLoginUrl(provider: string, authRequestId?: string) {

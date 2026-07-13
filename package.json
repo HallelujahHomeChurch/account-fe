@@ -13,6 +13,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@hhc/account-client": "workspace:*",
     "@hhc/preferences": "workspace:*",
     "@hhc/ui": "workspace:*",
     "lucide-react": "^1.24.0",
