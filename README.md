@@ -1,4 +1,4 @@
-# account-fe
+# HHC Account
 
 React account console for `account.alive.org.tw`.
 
@@ -7,7 +7,7 @@ React account console for `account.alive.org.tw`.
 Use mock mode when you want to test the UI without `account-api`.
 
 ```bash
-npm run dev:mock
+pnpm --filter @hhc/account dev:mock
 ```
 
 Open `http://127.0.0.1:5174/login`.
@@ -22,7 +22,7 @@ Mock mode covers login, profile editing, password change, MFA setup/disable, dev
 ## Real API mode
 
 ```bash
-npm run dev
+pnpm --filter @hhc/account dev
 ```
 
 The Vite dev server proxies `/api/account/*` to `http://127.0.0.1:8080`.
