@@ -1,4 +1,4 @@
-import { Button, Modal } from '@heroui/react'
+import { Button, Modal } from '@hhc/ui'
 import { Camera, ImagePlus, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import Cropper, { type Area, type Point } from 'react-easy-crop'

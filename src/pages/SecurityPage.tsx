@@ -3,12 +3,12 @@ import {
   Card,
   Form,
   Input,
-  InputOTP,
   Label,
   Modal,
+  OTP,
   REGEXP_ONLY_DIGITS,
   TextField,
-} from '@heroui/react'
+} from '@hhc/ui'
 import { useEffect, useState, type FormEvent } from 'react'
 
 import { useAuth } from '../auth/auth-context'
@@ -388,30 +388,15 @@ function MfaDialogContent({
                     </code>
                   ) : null}
                   <div className="mfa-code-field">
-                    <Label className="mfa-code-label" id="security-mfa-code-label">
-                      {labels.verificationCode}
-                    </Label>
-                    <InputOTP
-                      aria-labelledby="security-mfa-code-label"
+                    <OTP
                       autoComplete="one-time-code"
                       inputMode="numeric"
+                      label={labels.verificationCode}
                       maxLength={6}
                       name="code"
                       pattern={REGEXP_ONLY_DIGITS}
                       required
-                    >
-                      <InputOTP.Group>
-                        <InputOTP.Slot index={0} />
-                        <InputOTP.Slot index={1} />
-                        <InputOTP.Slot index={2} />
-                      </InputOTP.Group>
-                      <InputOTP.Separator />
-                      <InputOTP.Group>
-                        <InputOTP.Slot index={3} />
-                        <InputOTP.Slot index={4} />
-                        <InputOTP.Slot index={5} />
-                      </InputOTP.Group>
-                    </InputOTP>
+                    />
                   </div>
                   {setupVerified && mfaSetup?.backup_codes?.length ? (
                     <BackupCodes codes={mfaSetup.backup_codes} label={labels.backupCodes} />

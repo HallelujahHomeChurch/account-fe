@@ -1,4 +1,4 @@
-import { Card } from '@heroui/react'
+import { Card } from '@hhc/ui'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 

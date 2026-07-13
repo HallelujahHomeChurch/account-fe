@@ -3,11 +3,11 @@ import {
   FieldError,
   Form,
   Input,
-  InputOTP,
   Label,
+  OTP,
   REGEXP_ONLY_DIGITS,
   TextField,
-} from '@heroui/react'
+} from '@hhc/ui'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -142,31 +142,16 @@ export function LoginPage() {
                 </ul>
               ) : null}
               <div className="mfa-code-field">
-                <Label className="mfa-code-label" id="mfa-code-label">
-                  {t.login.verify}
-                </Label>
-                <InputOTP
-                  aria-labelledby="mfa-code-label"
+                <OTP
                   autoComplete="one-time-code"
                   autoFocus
                   inputMode="numeric"
+                  label={t.login.verify}
                   maxLength={6}
                   name="code"
                   pattern={REGEXP_ONLY_DIGITS}
                   required
-                >
-                  <InputOTP.Group>
-                    <InputOTP.Slot index={0} />
-                    <InputOTP.Slot index={1} />
-                    <InputOTP.Slot index={2} />
-                  </InputOTP.Group>
-                  <InputOTP.Separator />
-                  <InputOTP.Group>
-                    <InputOTP.Slot index={3} />
-                    <InputOTP.Slot index={4} />
-                    <InputOTP.Slot index={5} />
-                  </InputOTP.Group>
-                </InputOTP>
+                />
               </div>
               <div className="login-actions">
                 <Button isPending={isSubmitting} type="submit">

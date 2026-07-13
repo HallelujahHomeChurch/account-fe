@@ -1,4 +1,4 @@
-import { Card } from '@heroui/react'
+import { Card } from '@hhc/ui'
 
 export function OAuthCallbackPage() {
   return (
