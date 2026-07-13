@@ -6,6 +6,7 @@ import App from './App'
 import { RoutedAuthProvider } from './auth/auth-context'
 import { LocaleProvider } from './i18n/locale-context'
 import { ThemeProvider } from './theme/theme-context'
+import '@hhc/ui/styles.css'
 import './index.css'
 
 createRoot(document.getElementById('root')!).render(

@@ -1,11 +1,9 @@
-import { Drawer, Dropdown } from '@heroui/react'
-import { LogOut, Menu, ShieldCheck, UserRound } from 'lucide-react'
-import { useState } from 'react'
+import { AccountMenu, Button, Drawer } from '@hhc/ui'
+import { Menu, ShieldCheck, UserRound } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
 import { useAuth } from './auth/auth-context'
 import { isAuthRoutePath } from './auth/auth-routes'
-import { AccountAvatar } from './components/AccountAvatar'
 import { useLocale } from './i18n/locale-context'
 import { accountGreetingName } from './lib/account-display'
 import { readRuntimeConfig } from './lib/redirects'
@@ -23,7 +21,6 @@ function Layout() {
   const location = useLocation()
   const isAuthRoute = isAuthRoutePath(location.pathname)
   const publicSiteUrl = readRuntimeConfig().publicSiteUrl
-  const [isNavigationOpen, setNavigationOpen] = useState(false)
 
   if (isAuthRoute) {
     return (
@@ -94,83 +91,88 @@ function Layout() {
         </aside>
         <div className="account-content">
           <header className="account-header">
-            <Drawer>
-              <button
-                aria-label={t.nav.openNavigation}
-                className="mobile-navigation-trigger"
-                type="button"
-                onClick={() => setNavigationOpen(true)}
-              >
-                <Menu size={21} aria-hidden="true" />
-              </button>
-              <Drawer.Backdrop isOpen={isNavigationOpen} onOpenChange={setNavigationOpen}>
-                <Drawer.Content placement="left">
-                  <Drawer.Dialog className="mobile-navigation-drawer">
-                    <Drawer.CloseTrigger aria-label={t.nav.closeNavigation} />
-                    <Drawer.Header className="mobile-navigation-heading">
-                      <Drawer.Heading>{t.nav.accountNavigation}</Drawer.Heading>
-                    </Drawer.Header>
-                    <Drawer.Body className="mobile-navigation-body">
-                      <Link className="brand mobile-navigation-brand" to="/profile" onClick={() => setNavigationOpen(false)}>
-                        <img className="brand-mark" src="/assets/brand/logo.png" alt="" />
-                        <span>{t.site.accountName}</span>
-                      </Link>
-                      <nav className="nav-links mobile-navigation-links" aria-label={t.nav.accountNavigation}>
-                        <Link
-                          aria-current={location.pathname === '/profile' ? 'page' : undefined}
-                          to="/profile"
-                          onClick={() => setNavigationOpen(false)}
-                        >
-                          <UserRound size={17} />
-                          {t.nav.personalInfo}
-                        </Link>
-                        <Link
-                          aria-current={location.pathname === '/security' ? 'page' : undefined}
-                          to="/security"
-                          onClick={() => setNavigationOpen(false)}
-                        >
-                          <ShieldCheck size={17} />
-                          {t.nav.security}
-                        </Link>
-                      </nav>
-                      <div className="sidebar-legal-links mobile-navigation-legal">
-                        <a href={`${publicSiteUrl}/${locale}/privacy-policy`} rel="noopener noreferrer" target="_blank">
-                          {t.nav.privacy}
-                        </a>
-                        <span aria-hidden="true">/</span>
-                        <a href={`${publicSiteUrl}/${locale}/terms-of-use`} rel="noopener noreferrer" target="_blank">
-                          {t.nav.terms}
-                        </a>
-                      </div>
-                    </Drawer.Body>
-                  </Drawer.Dialog>
-                </Drawer.Content>
-              </Drawer.Backdrop>
+            <Drawer
+              closeLabel={t.nav.closeNavigation}
+              placement="left"
+              title={t.nav.accountNavigation}
+              trigger={
+                <Button
+                  aria-label={t.nav.openNavigation}
+                  className="mobile-navigation-trigger"
+                  variant="ghost"
+                >
+                  <Menu size={21} aria-hidden="true" />
+                </Button>
+              }
+            >
+              {(close) => (
+                <div className="mobile-navigation-body">
+                  <Link
+                    className="brand mobile-navigation-brand"
+                    to="/profile"
+                    onClick={close}
+                  >
+                    <img className="brand-mark" src="/assets/brand/logo.png" alt="" />
+                    <span>{t.site.accountName}</span>
+                  </Link>
+                  <nav
+                    className="nav-links mobile-navigation-links"
+                    aria-label={t.nav.accountNavigation}
+                  >
+                    <Link
+                      aria-current={location.pathname === '/profile' ? 'page' : undefined}
+                      to="/profile"
+                      onClick={close}
+                    >
+                      <UserRound size={17} />
+                      {t.nav.personalInfo}
+                    </Link>
+                    <Link
+                      aria-current={location.pathname === '/security' ? 'page' : undefined}
+                      to="/security"
+                      onClick={close}
+                    >
+                      <ShieldCheck size={17} />
+                      {t.nav.security}
+                    </Link>
+                  </nav>
+                  <div className="sidebar-legal-links mobile-navigation-legal">
+                    <a
+                      href={`${publicSiteUrl}/${locale}/privacy-policy`}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      {t.nav.privacy}
+                    </a>
+                    <span aria-hidden="true">/</span>
+                    <a
+                      href={`${publicSiteUrl}/${locale}/terms-of-use`}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      {t.nav.terms}
+                    </a>
+                  </div>
+                </div>
+              )}
             </Drawer>
             <Link className="mobile-shell-brand" to="/profile">
               <img className="brand-mark" src="/assets/brand/logo.png" alt="" />
               <span>{t.site.accountName}</span>
             </Link>
-            <Dropdown>
-              <Dropdown.Trigger aria-label={t.nav.accountMenu} className="account-menu-trigger">
-                <AccountAvatar profile={auth.profile} size="md" />
-              </Dropdown.Trigger>
-              <Dropdown.Popover className="account-menu-popover" placement="bottom end">
-                <div className="account-menu-greeting">Hi {accountGreetingName(auth.profile)}</div>
-                <Dropdown.Menu
-                  aria-label={t.nav.accountMenu}
-                  className="account-menu-list"
-                  onAction={(key) => {
-                    if (key === 'sign-out') void auth.logout()
-                  }}
-                >
-                  <Dropdown.Item id="sign-out" className="account-menu-item" textValue={t.nav.signOut}>
-                    <LogOut size={16} aria-hidden="true" />
-                    {t.nav.signOut}
-                  </Dropdown.Item>
-                </Dropdown.Menu>
-              </Dropdown.Popover>
-            </Dropdown>
+            <AccountMenu
+              labels={{
+                greeting: `Hi ${accountGreetingName(auth.profile)}`,
+                menu: t.nav.accountMenu,
+                signOut: t.nav.signOut,
+              }}
+              user={{
+                avatarUrl: auth.profile.avatar_url,
+                email: auth.profile.email,
+                name: accountGreetingName(auth.profile),
+              }}
+              onSignOut={() => void auth.logout()}
+            />
           </header>
           <main className="main-panel">
             <Routes>

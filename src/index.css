@@ -248,24 +248,9 @@ textarea::selection {
   display: none;
 }
 
-.mobile-navigation-drawer {
-  width: min(82vw, 292px);
-  border-radius: 0 18px 18px 0;
-  background: var(--color-paper);
-  color: var(--color-ink);
-}
-
-.mobile-navigation-heading {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-}
-
 .mobile-navigation-body {
   display: flex;
-  min-height: 100%;
+  flex: 1;
   flex-direction: column;
   gap: 28px;
   padding: 24px;
@@ -280,100 +265,30 @@ textarea::selection {
   margin-top: auto;
 }
 
-.account-menu-trigger {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--color-primary);
-  cursor: pointer;
-  list-style: none;
-  padding: 0;
-  box-shadow: none;
+.hhc-modal--drawer-left {
+  width: min(82vw, 292px);
 }
 
-.account-menu-trigger:hover,
-.account-menu-trigger[data-hovered] {
-  background: transparent;
-}
-
-.account-menu-trigger:hover .account-avatar,
-.account-menu-trigger[data-hovered] .account-avatar {
-  filter: brightness(0.94);
-}
-
-.account-menu-trigger:focus,
-.account-menu-trigger:focus-visible,
-.account-menu-trigger[data-focus-visible] {
-  outline: none;
-  box-shadow: none;
-}
-
-.account-menu-trigger:focus-visible .account-avatar,
-.account-menu-trigger[data-focus-visible] .account-avatar {
-  box-shadow: inset 0 0 0 2px var(--color-primary);
-}
-
-.account-avatar,
-.account-avatar .avatar__image,
-.account-avatar .avatar__fallback {
-  overflow: hidden;
-  border-radius: 50%;
-}
-
-.account-avatar .avatar__image {
-  width: 100%;
+.hhc-modal--drawer-left .hhc-dialog {
+  display: flex;
   height: 100%;
-  object-fit: cover;
+  flex-direction: column;
 }
 
-.account-menu-popover {
-  display: grid;
+.hhc-modal--drawer-left .hhc-dialog__body {
+  display: flex;
+  flex: 1;
+  padding: 0;
+}
+
+.account-header .hhc-menu__popover {
   width: min(260px, calc(100vw - 32px));
-  gap: 6px;
-  border: 1px solid var(--color-panel-border);
-  border-radius: 14px;
-  background: var(--color-paper-raised);
-  box-shadow: var(--shadow-warm);
-  padding: 8px;
 }
 
-.account-menu-greeting {
+.account-header .hhc-menu__header {
   overflow: hidden;
-  padding: 10px 12px 8px;
-  color: var(--color-ink);
-  font-size: 14px;
-  font-weight: 750;
-  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.account-menu-list {
-  display: grid;
-  gap: 4px;
-}
-
-.account-menu-item {
-  display: flex;
-  min-height: 36px;
-  align-items: center;
-  gap: 8px;
-  border-radius: 10px;
-  color: var(--color-muted);
-  padding: 0 10px;
-  cursor: pointer;
-}
-
-.account-menu-item:hover,
-.account-menu-item[data-hovered],
-.account-menu-item[data-focused] {
-  outline: 0;
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
 }
 
 .main-panel,

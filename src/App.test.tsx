@@ -1,5 +1,5 @@
 import { MemoryRouter } from 'react-router-dom'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 
@@ -72,6 +72,7 @@ describe('App layout', () => {
     expect(await screen.findByRole('complementary', { name: /account sections/i })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: /account navigation/i })).toBeInTheDocument()
     expect(screen.getByLabelText(/account menu/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/account menu/i).closest('.hhc-account-menu')).toBeInTheDocument()
     expect(document.querySelector('.account-header')).toHaveClass('account-header')
   })
 
@@ -91,6 +92,13 @@ describe('App layout', () => {
 
     await user.keyboard('{Escape}')
     expect(screen.queryByText('Hi Ray Self')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByLabelText(/account menu/i)).toHaveFocus())
+
+    await user.click(screen.getByLabelText(/account menu/i))
+    expect(await screen.findByText('Hi Ray Self')).toBeInTheDocument()
+
+    await user.click(document.body)
+    expect(screen.queryByText('Hi Ray Self')).not.toBeInTheDocument()
   })
 
   it('opens and dismisses the mobile account navigation drawer', async () => {
@@ -105,10 +113,33 @@ describe('App layout', () => {
     )
 
     await user.click(await screen.findByRole('button', { name: /open navigation/i }))
-    expect(await screen.findByRole('dialog', { name: /account navigation/i })).toBeInTheDocument()
+    const dialog = await screen.findByRole('dialog', { name: /account navigation/i })
+    expect(dialog.closest('.hhc-modal--drawer-left')).toBeInTheDocument()
 
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('dialog', { name: /account navigation/i })).not.toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /open navigation/i })).toHaveFocus(),
+    )
+  })
+
+  it('closes the mobile navigation after navigating', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter initialEntries={['/profile']}>
+        <AuthProvider api={signedInApi}>
+          <App />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    await user.click(await screen.findByRole('button', { name: /open navigation/i }))
+    const dialog = await screen.findByRole('dialog', { name: /account navigation/i })
+    await user.click(within(dialog).getByRole('link', { name: /security/i }))
+
+    expect(screen.queryByRole('dialog', { name: /account navigation/i })).not.toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /security/i })).toBeInTheDocument()
   })
 
   it('localizes the account brand and legal links using canonical public routes', async () => {
