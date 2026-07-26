@@ -10,6 +10,8 @@ export class MockAccountApi {
     first_name: 'Mock',
     last_name: 'Admin',
     avatar_url: '',
+    avatar_source: 'none',
+    avatar_status: 'none',
     is_active: true,
     is_email_verified: true,
     has_password: true,
@@ -35,6 +37,7 @@ export class MockAccountApi {
   ]
 
   private linkedAccounts: LinkedAccount[] = [{ provider: 'google', provider_id: 'mock-google' }]
+  private avatarPolls = 0
 
   async login(request: { email: string; password: string }) {
     if (request.email !== 'admin' || request.password !== 'admin123') {
@@ -49,6 +52,14 @@ export class MockAccountApi {
   }
 
   async me() {
+    if (this.profile.avatar_status === 'processing' && ++this.avatarPolls >= 2) {
+      this.profile = {
+        ...this.profile,
+        avatar_url: 'data:image/jpeg;base64,/9j/4AAQSkZJRg==',
+        avatar_source: 'custom',
+        avatar_status: 'ready',
+      }
+    }
     return this.profile
   }
 
@@ -58,13 +69,13 @@ export class MockAccountApi {
   }
 
   async uploadAvatar() {
-    const avatarUrl = 'data:image/jpeg;base64,/9j/4AAQSkZJRg=='
-    this.profile = { ...this.profile, avatar_url: avatarUrl }
-    return { avatar_url: avatarUrl }
+    this.avatarPolls = 0
+    this.profile = { ...this.profile, avatar_status: 'processing' }
+    return { avatar_url: this.profile.avatar_url ?? '', avatar_status: 'processing' as const }
   }
 
   async deleteAvatar() {
-    this.profile = { ...this.profile, avatar_url: '' }
+    this.profile = { ...this.profile, avatar_url: '', avatar_source: 'none', avatar_status: 'none' }
   }
 
   async changePassword() {

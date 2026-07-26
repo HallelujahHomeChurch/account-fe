@@ -625,6 +625,12 @@ textarea::selection {
   outline-offset: 4px;
 }
 
+.avatar-status {
+  margin: 8px 0 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
 .profile-avatar-camera {
   position: absolute;
   right: -2px;

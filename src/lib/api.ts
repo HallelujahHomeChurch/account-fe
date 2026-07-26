@@ -32,6 +32,8 @@ export type Profile = {
   first_name?: string
   last_name?: string
   avatar_url?: string
+  avatar_source?: 'custom' | 'provider' | 'none'
+  avatar_status?: 'none' | 'processing' | 'ready' | 'failed'
   is_active?: boolean
   is_email_verified?: boolean
   has_password?: boolean
@@ -156,7 +158,7 @@ export class AccountApi {
   uploadAvatar(avatar: Blob) {
     const form = new FormData()
     form.append('avatar', avatar, 'avatar.jpg')
-    return this.request<{ avatar_url: string }>('/profile/avatar', { method: 'POST', body: form })
+    return this.request<{ avatar_url: string; avatar_status: 'processing' }>('/profile/avatar', { method: 'POST', body: form })
   }
 
   deleteAvatar() {

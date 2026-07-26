@@ -11,6 +11,7 @@ import { AccountAvatar } from './AccountAvatar'
 
 export function ProfileAvatarEditor({ profile }: { profile: Profile }) {
   const auth = useAuth()
+  const refreshProfile = auth.refreshProfile
   const { messages: t } = useLocale()
   const [isOpen, setOpen] = useState(false)
   const [imageSource, setImageSource] = useState('')
@@ -22,6 +23,13 @@ export function ProfileAvatarEditor({ profile }: { profile: Profile }) {
   const objectURL = useRef('')
 
   useEffect(() => () => releaseObjectURL(objectURL), [])
+  useEffect(() => {
+    if (profile.avatar_status !== 'processing') return
+    const timer = window.setInterval(() => {
+      void refreshProfile().catch(() => undefined)
+    }, 2000)
+    return () => window.clearInterval(timer)
+  }, [profile.avatar_status, refreshProfile])
 
   function resetSelection() {
     releaseObjectURL(objectURL)
@@ -100,6 +108,8 @@ export function ProfileAvatarEditor({ profile }: { profile: Profile }) {
           <Camera size={15} />
         </span>
       </button>
+      {profile.avatar_status === 'processing' ? <p className="avatar-status" aria-live="polite">{t.profile.avatarProcessing}</p> : null}
+      {profile.avatar_status === 'failed' ? <p className="avatar-status form-error" role="alert">{t.profile.avatarFailed}</p> : null}
 
       <Modal isOpen={isOpen} onOpenChange={changeOpen}>
         <Modal.Backdrop className="modal-backdrop">
@@ -160,7 +170,7 @@ export function ProfileAvatarEditor({ profile }: { profile: Profile }) {
                 {error ? <p className="form-error">{error}</p> : null}
               </Modal.Body>
               <Modal.Footer className="modal-actions avatar-modal-actions">
-                {profile.avatar_url ? (
+                {profile.avatar_source === 'custom' ? (
                   <Button isDisabled={isSaving} variant="ghost" onPress={removeAvatar}>
                     <Trash2 size={16} aria-hidden="true" />
                     {t.profile.removePhoto}

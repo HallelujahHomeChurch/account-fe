@@ -167,7 +167,9 @@ describe('ProfilePage', () => {
         email: 'ray@example.com',
         first_name: 'Ray',
         last_name: 'Self',
-        avatar_url: 'https://account.alive.org.tw/api/account/v1/avatars/avatar.jpg',
+        avatar_url: 'https://www.alive.org.tw/api/assets/public/avatar-1',
+        avatar_source: 'custom',
+        avatar_status: 'ready',
       }),
       logout: async () => ({}),
       deleteAvatar: async () => {
@@ -188,6 +190,33 @@ describe('ProfilePage', () => {
     await userEvent.click(screen.getByRole('button', { name: /remove photo/i }))
 
     expect(removed).toBe(true)
+  })
+
+  it('keeps provider avatars and shows asynchronous processing state', async () => {
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }),
+      refreshAccessToken: async () => 'token',
+      me: async () => ({
+        id: 'u1',
+        email: 'ray@example.com',
+        avatar_url: 'https://provider.example/avatar.jpg',
+        avatar_source: 'provider',
+        avatar_status: 'processing',
+      }),
+      logout: async () => ({}),
+    }
+
+    render(
+      <MemoryRouter>
+        <AuthProvider api={api}>
+          <ProfilePage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Checking the new photo...')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /change profile picture/i }))
+    expect(screen.queryByRole('button', { name: /remove photo/i })).not.toBeInTheDocument()
   })
 
   it('validates selected avatar files before opening the cropper', async () => {
