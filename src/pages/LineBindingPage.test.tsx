@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
@@ -55,7 +55,7 @@ describe('LineBindingPage', () => {
 
     expect(confirmLineBinding).toHaveBeenCalledWith('binding-token')
     expect(await screen.findByText('LINE account connected.')).toBeInTheDocument()
-    expect(screen.getByTestId('location-search')).toBeEmptyDOMElement()
+    await waitFor(() => expect(screen.getByTestId('location-search')).toBeEmptyDOMElement())
   })
 
   it('allows an expired binding to be retried', async () => {
