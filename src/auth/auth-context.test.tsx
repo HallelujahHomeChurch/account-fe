@@ -144,9 +144,9 @@ describe('AuthProvider', () => {
     expect(screen.getByTestId('email')).toHaveTextContent('admin@example.com')
   })
 
-  it('keeps MFA setup-required challenge from login response', async () => {
+  it('keeps MFA verification challenge from login response', async () => {
     const api: AuthApi = {
-      login: async () => ({ mfa_type: 'setup_required', mfa_token: 'mfa-123' }),
+      login: async () => ({ mfa_type: 'verification_required', mfa_token: 'mfa-123' }),
       me: async () => ({ id: 'u1', email: 'admin@example.com' }),
       refreshAccessToken: async () => null,
       logout: async () => ({}),
@@ -160,7 +160,7 @@ describe('AuthProvider', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Login' }))
 
-    expect(await screen.findByTestId('mfa')).toHaveTextContent('setup_required')
+    expect(await screen.findByTestId('mfa')).toHaveTextContent('verification_required')
     expect(screen.getByTestId('token')).toBeEmptyDOMElement()
   })
 

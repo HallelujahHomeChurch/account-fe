@@ -12,7 +12,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { LanguageSelector } from '../components/LanguageSelector'
-import { ApiError, type MfaSetup } from '../lib/api'
+import { ApiError } from '../lib/api'
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 
@@ -31,13 +31,11 @@ export function LoginPage() {
   const signedOut = searchParams.get('signed_out') === '1'
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const [mfaSetup, setMfaSetup] = useState<MfaSetup | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const title = t.login.brandTitle
   const challenge = auth.mfaChallenge
-  const mfaSubtitle =
-    challenge?.type === 'setup_required' ? t.login.mfaSetupSubtitle : t.login.mfaVerificationSubtitle
+  const mfaSubtitle = t.login.mfaVerificationSubtitle
 
   const socialLinks = useMemo(() => {
     if (!auth.api.getSocialLoginUrl) return []
@@ -56,15 +54,6 @@ export function LoginPage() {
     const search = nextSearchParams.toString()
     navigate({ pathname: '/login', search: search ? `?${search}` : '' }, { replace: true })
   }, [navigate, searchParams, signedOut, t.login.signedOut])
-
-  useEffect(() => {
-    if (challenge?.type !== 'setup_required' || !auth.api.setupMfaWithToken) return
-
-    auth.api
-      .setupMfaWithToken(challenge.token)
-      .then(setMfaSetup)
-      .catch((caught: unknown) => setError(errorMessage(caught)))
-  }, [auth.api, challenge])
 
   async function submitLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -101,10 +90,7 @@ export function LoginPage() {
     const code = String(new FormData(event.currentTarget).get('code') ?? '')
 
     try {
-      const response =
-        challenge.type === 'setup_required'
-          ? await auth.api.verifyMfaSetupWithToken?.(challenge.token, code)
-          : await auth.api.verifyMfa?.(challenge.token, code)
+      const response = await auth.api.verifyMfa?.(challenge.token, code)
 
       if (response) {
         await auth.completeLogin(response)
@@ -140,18 +126,6 @@ export function LoginPage() {
 
           {challenge ? (
             <Form className="form-stack" onSubmit={submitMfa}>
-              {mfaSetup?.qr_code_url ? (
-                <img className="mfa-qr-code" src={mfaSetup.qr_code_url} alt={t.login.mfaQrCodeAlt} />
-              ) : mfaSetup?.otpauth_url ? (
-                <code className="setup-code">{mfaSetup.otpauth_url}</code>
-              ) : null}
-              {mfaSetup?.backup_codes?.length ? (
-                <ul className="backup-codes">
-                  {mfaSetup.backup_codes.map((code) => (
-                    <li key={code}>{code}</li>
-                  ))}
-                </ul>
-              ) : null}
               <div className="mfa-code-field">
                 <OTP
                   autoComplete="one-time-code"

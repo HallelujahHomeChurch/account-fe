@@ -17,7 +17,7 @@ export type LoginRequest = {
 
 export type LoginResponse = {
   access_token?: string
-  mfa_type?: 'setup_required' | 'verification_required'
+  mfa_type?: 'verification_required'
   mfa_token?: string
   redirect_type?: 'oauth'
   redirect_uri?: string
@@ -197,22 +197,6 @@ export class AccountApi {
 
   verifyMfaSetup(code: string) {
     return this.request<{ message?: string }>('/mfa/verify-setup', { method: 'POST', body: { code } })
-  }
-
-  setupMfaWithToken(mfaToken: string) {
-    return this.request<MfaSetup>('/mfa/setup-with-token', {
-      method: 'POST',
-      auth: false,
-      body: { mfa_token: mfaToken },
-    })
-  }
-
-  verifyMfaSetupWithToken(mfaToken: string, code: string) {
-    return this.request<LoginResponse>('/mfa/verify-setup-with-token', {
-      method: 'POST',
-      auth: false,
-      body: { mfa_token: mfaToken, code },
-    })
   }
 
   verifyMfa(mfaToken: string, code: string) {

@@ -21,7 +21,7 @@ import {
 import { isAuthRoutePath } from './auth-routes'
 
 export type MfaChallenge = {
-  type: 'setup_required' | 'verification_required'
+  type: 'verification_required'
   token: string
 }
 

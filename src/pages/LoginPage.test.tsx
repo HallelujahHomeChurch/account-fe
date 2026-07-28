@@ -181,7 +181,7 @@ describe('LoginPage', () => {
     const api: AuthApi = {
       login: async (request) => {
         requestAuthId = request.authRequestId ?? ''
-        return { mfa_type: 'setup_required', mfa_token: 'mfa-123' }
+        return { mfa_type: 'verification_required', mfa_token: 'mfa-123' }
       },
       me: async () => ({ id: 'u1', email: 'admin@example.com' }),
       refreshAccessToken: async () => null,
@@ -298,42 +298,6 @@ describe('LoginPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /next/i }))
 
     expect(await screen.findByRole('heading', { name: /profile reached/i })).toBeInTheDocument()
-  })
-
-  it('renders the MFA setup QR code when setup is required', async () => {
-    const api: AuthApi = {
-      login: async () => ({ mfa_type: 'setup_required', mfa_token: 'mfa-123' }),
-      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
-      refreshAccessToken: async () => null,
-      logout: async () => ({}),
-      setupMfaWithToken: async () => ({
-        otpauth_url: 'otpauth://totp/HHC:admin@example.com?secret=ABC123&issuer=HHC',
-        qr_code_url: 'data:image/png;base64,abc123',
-        backup_codes: ['11111111'],
-      }),
-    }
-
-    render(
-      <MemoryRouter initialEntries={['/login']}>
-        <AuthProvider api={api}>
-          <LoginPage />
-        </AuthProvider>
-      </MemoryRouter>,
-    )
-
-    await userEvent.type(screen.getByLabelText('Email'), 'admin@example.com')
-    await userEvent.type(screen.getByLabelText('Password'), 'secret123')
-    await userEvent.click(screen.getByRole('button', { name: /next/i }))
-
-    expect(await screen.findByText('Set up your authenticator.')).toBeInTheDocument()
-    expect(
-      screen.queryByText('Scan the QR code with your authenticator app, then enter the 6-digit code.'),
-    ).not.toBeInTheDocument()
-    expect(await screen.findByRole('img', { name: /MFA setup QR code/i })).toHaveAttribute(
-      'src',
-      'data:image/png;base64,abc123',
-    )
-    expect(screen.queryByText(/otpauth:\/\/totp/i)).not.toBeInTheDocument()
   })
 
   it('renders OAuth provider links as circular icon buttons below the email login flow', () => {

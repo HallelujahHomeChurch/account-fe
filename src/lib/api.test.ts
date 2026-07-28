@@ -10,6 +10,13 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 describe('AccountApi', () => {
+  it('does not expose forced MFA setup token methods', () => {
+    const api = new AccountApi({ baseUrl: '/api/account/v1' })
+
+    expect(api).not.toHaveProperty('setupMfaWithToken')
+    expect(api).not.toHaveProperty('verifyMfaSetupWithToken')
+  })
+
   it('binds the default fetcher to globalThis', async () => {
     const originalFetch = globalThis.fetch
     const receivers: unknown[] = []
