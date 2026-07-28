@@ -1,4 +1,4 @@
-import { ApiError, type Device, type LinkedAccount, type MfaSetup, type Profile } from './api'
+import { ApiError, type Device, type LineBindingSummary, type LinkedAccount, type MfaSetup, type Profile } from './api'
 
 const token = 'mock-access-token'
 const mockTimestamp = (millisecondsAgo: number) => new Date(Date.now() - millisecondsAgo).toISOString()
@@ -119,6 +119,23 @@ export class MockAccountApi {
 
   async unlinkAccount(provider: string) {
     this.linkedAccounts = this.linkedAccounts.filter((account) => account.provider !== provider)
+  }
+
+  async getLineBinding(token: string): Promise<LineBindingSummary> {
+    if (token === 'expired') {
+      throw new ApiError(410, 'This link has expired.', 'ACC_LINE_BINDING_INVALID')
+    }
+    return {
+      profile_name: 'HHC_LINE_Helper',
+      expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+    }
+  }
+
+  async confirmLineBinding(token: string) {
+    if (token === 'conflict') {
+      throw new ApiError(409, 'LINE account already linked.', 'ACC_LINE_IDENTITY_CONFLICT')
+    }
+    return { message: 'LINE account linked successfully' }
   }
 
   async forgotPassword() {

@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { LanguageSelector } from '../components/LanguageSelector'
+import { safeReturnTo } from '../auth/auth-routes'
 import { ApiError } from '../lib/api'
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
@@ -28,6 +29,7 @@ export function LoginPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const authRequestId = searchParams.get('auth_request_id') ?? undefined
+  const returnTo = safeReturnTo(searchParams.get('return_to'))
   const signedOut = searchParams.get('signed_out') === '1'
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -70,7 +72,7 @@ export function LoginPage() {
         authRequestId,
       })
       if (response.access_token) {
-        navigate('/profile', { replace: true })
+        navigate(returnTo, { replace: true })
       } else if (!response.mfa_type) {
         setNotice(t.login.signedIn)
       }
@@ -95,7 +97,7 @@ export function LoginPage() {
       if (response) {
         await auth.completeLogin(response)
         if (response.access_token) {
-          navigate('/profile', { replace: true })
+          navigate(returnTo, { replace: true })
         }
       }
     } catch (caught) {

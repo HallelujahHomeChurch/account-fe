@@ -72,6 +72,11 @@ export type MfaSetup = {
   backup_codes?: string[]
 }
 
+export type LineBindingSummary = {
+  profile_name: string
+  expires_at: string
+}
+
 type RequestOptions = {
   method?: string
   body?: unknown
@@ -232,6 +237,17 @@ export class AccountApi {
 
   unlinkAccount(provider: string) {
     return this.request<void>(`/linked-accounts/${encodeURIComponent(provider)}`, { method: 'DELETE' })
+  }
+
+  getLineBinding(token: string) {
+    return this.request<LineBindingSummary>(`/line/bindings/${encodeURIComponent(token)}`)
+  }
+
+  confirmLineBinding(token: string) {
+    return this.request<{ message?: string }>(`/line/bindings/${encodeURIComponent(token)}/confirm`, {
+      method: 'POST',
+      body: {},
+    })
   }
 
   logout() {

@@ -3,12 +3,13 @@ import { Menu, ShieldCheck, UserRound } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
 import { useAuth } from './auth/auth-context'
-import { isAuthRoutePath } from './auth/auth-routes'
+import { isAuthRoutePath, loginPath } from './auth/auth-routes'
 import { useLocale } from './i18n/locale-context'
 import { accountGreetingName } from './lib/account-display'
 import { readRuntimeConfig } from './lib/redirects'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
+import { LineBindingPage } from './pages/LineBindingPage'
 import { OAuthCallbackPage } from './pages/OAuthCallbackPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
@@ -20,6 +21,7 @@ function Layout() {
   const { locale, messages: t } = useLocale()
   const location = useLocation()
   const isAuthRoute = isAuthRoutePath(location.pathname)
+  const isLineBindingRoute = location.pathname === '/line/bind'
   const publicSiteUrl = readRuntimeConfig().publicSiteUrl
 
   if (isAuthRoute) {
@@ -50,7 +52,17 @@ function Layout() {
   }
 
   if (!auth.profile) {
-    return <Navigate replace state={{ from: location.pathname }} to="/login" />
+    return <Navigate replace to={loginPath(`${location.pathname}${location.search}`)} />
+  }
+
+  if (isLineBindingRoute) {
+    return (
+      <div className="app-shell">
+        <main className="auth-main-panel">
+          <LineBindingPage />
+        </main>
+      </div>
+    )
   }
 
   return (

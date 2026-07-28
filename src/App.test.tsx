@@ -1,7 +1,7 @@
 import { MemoryRouter } from 'react-router-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import App from './App'
 import { AuthProvider, type AuthApi } from './auth/auth-context'
@@ -58,6 +58,40 @@ describe('App layout', () => {
     expect(await screen.findByRole('heading', { name: /hallelujah home church/i })).toBeInTheDocument()
     expect(screen.queryByRole('complementary', { name: /account sections/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('navigation', { name: /account navigation/i })).not.toBeInTheDocument()
+  })
+
+  it('returns to LINE binding after login and MFA verification', async () => {
+    const getLineBinding = vi.fn(async () => ({
+      profile_name: 'LINE_Helper',
+      expires_at: '2026-07-28T10:10:00Z',
+    }))
+    const bindingApi: AuthApi = {
+      login: async () => ({ mfa_type: 'verification_required', mfa_token: 'mfa-token' }),
+      verifyMfa: async () => ({ access_token: 'access-token' }),
+      refreshAccessToken: async () => null,
+      me: async () => ({ id: 'u1', email: 'ray@example.com' }),
+      logout: async () => ({}),
+      getLineBinding,
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/line/bind?token=binding-token']}>
+        <LocaleProvider>
+          <AuthProvider api={bindingApi}>
+            <App />
+          </AuthProvider>
+        </LocaleProvider>
+      </MemoryRouter>,
+    )
+
+    await userEvent.type(await screen.findByLabelText('Email'), 'ray@example.com')
+    await userEvent.type(screen.getByLabelText('Password'), 'secret123')
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+    await userEvent.type(await screen.findByLabelText('Verification code'), '123456')
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+
+    expect(await screen.findByText('LINE_Helper')).toBeInTheDocument()
+    expect(getLineBinding).toHaveBeenCalledWith('binding-token')
   })
 
   it('shows account navigation and account menu for signed-in account routes', async () => {
