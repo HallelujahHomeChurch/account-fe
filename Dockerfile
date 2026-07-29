@@ -8,6 +8,10 @@ COPY package.json pnpm-lock.yaml ./
 RUN --mount=type=secret,id=npmrc,target=/root/.npmrc pnpm install --frozen-lockfile
 
 COPY . .
+ARG VITE_LOCALE_COOKIE_DOMAIN=.alive.org.tw
+ARG VITE_THEME_COOKIE_DOMAIN=.alive.org.tw
+ENV VITE_LOCALE_COOKIE_DOMAIN=$VITE_LOCALE_COOKIE_DOMAIN
+ENV VITE_THEME_COOKIE_DOMAIN=$VITE_THEME_COOKIE_DOMAIN
 RUN pnpm build
 
 FROM nginx:1.29-alpine

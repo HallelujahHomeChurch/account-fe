@@ -1,0 +1,118 @@
+name: Production Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/release.yml
+      - Dockerfile
+      - nginx.conf
+      - package.json
+      - pnpm-lock.yaml
+      - src/**
+      - infra/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: account-fe-production
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          registry-url: https://npm.pkg.github.com
+          package-manager-cache: false
+      - run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: |
+          corepack pnpm test:run
+          corepack pnpm lint
+          corepack pnpm build
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+    env:
+      ACR_NAME: alive
+      ACR_LOGIN_SERVER: alive.azurecr.io
+      IMAGE_REPOSITORY: alive/account-fe
+      RESOURCE_GROUP: alive
+      APP_NAME: account-fe
+      API_GATEWAY_APP_NAME: api-gateway
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Validate release configuration
+        run: |
+          for name in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID; do
+            test -n "${!name:-}" || { echo "Missing repository variable: ${name}" >&2; exit 1; }
+          done
+      - name: Set image tag
+        run: echo "IMAGE_TAG=main-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+      - name: Sign in to Azure with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - run: az extension add --name containerapp --upgrade --yes
+      - name: Build and push image
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          az acr login --name "$ACR_NAME"
+          printf '@hallelujahhomechurch:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=%s\n' "$GITHUB_TOKEN" > "$RUNNER_TEMP/npmrc"
+          image_ref="${ACR_LOGIN_SERVER}/${IMAGE_REPOSITORY}:${IMAGE_TAG}"
+          docker build --secret id=npmrc,src="$RUNNER_TEMP/npmrc" -t "$image_ref" .
+          docker push "$image_ref"
+      - name: Deploy
+        run: |
+          image_ref="${ACR_LOGIN_SERVER}/${IMAGE_REPOSITORY}:${IMAGE_TAG}"
+          az deployment group create \
+            --name "account-fe-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --resource-group "$RESOURCE_GROUP" \
+            --template-file infra/main.bicep \
+            --parameters image="$image_ref" provisionPermissions=false \
+            --only-show-errors --output none
+      - name: Wait for revision
+        run: |
+          image_ref="${ACR_LOGIN_SERVER}/${IMAGE_REPOSITORY}:${IMAGE_TAG}"
+          for attempt in {1..60}; do
+            latest="$(az containerapp show -g "$RESOURCE_GROUP" -n "$APP_NAME" --query properties.latestRevisionName -o tsv --only-show-errors)"
+            ready="$(az containerapp show -g "$RESOURCE_GROUP" -n "$APP_NAME" --query properties.latestReadyRevisionName -o tsv --only-show-errors)"
+            if [[ -n "$latest" && "$latest" == "$ready" ]]; then
+              image="$(az containerapp revision show -g "$RESOURCE_GROUP" -n "$APP_NAME" --revision "$ready" \
+                --query properties.template.containers[0].image -o tsv --only-show-errors)"
+              [[ "$image" == "$image_ref" ]] && exit 0
+            fi
+            sleep 10
+          done
+          echo "Account frontend did not become ready" >&2
+          exit 1
+      - name: Verify Dapr health through API gateway
+        run: |
+          output="$(timeout 60s script -q -e -c \
+            "az containerapp exec -g \"$RESOURCE_GROUP\" -n \"$API_GATEWAY_APP_NAME\" --command \"/usr/bin/wget -S -O - http://localhost:3500/v1.0/invoke/account-fe/method/health\"" \
+            /dev/null 2>&1)"
+          output="${output//$'\r'/}"
+          printf '%s\n' "$output"
+          grep -Eq 'HTTP/1\.[01][[:space:]]+200' <<< "$output"
+          grep -Eq '"status"[[:space:]]*:[[:space:]]*"healthy"' <<< "$output"
