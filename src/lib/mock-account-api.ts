@@ -162,4 +162,8 @@ export class MockAccountApi {
   getSocialLoginUrl(provider: string) {
     return `/login?mock_social=${encodeURIComponent(provider)}`
   }
+
+  async getOAuthProviders() {
+    return ['google', 'line', 'microsoft']
+  }
 }

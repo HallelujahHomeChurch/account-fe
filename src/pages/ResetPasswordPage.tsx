@@ -1,15 +1,27 @@
 import { Button, Card, FieldError, Form, Input, Label, TextField } from '@hallelujahhomechurch/ui'
-import { useState, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useEffect, useState, type FormEvent } from 'react'
 
 import { useAuth } from '../auth/auth-context'
+import { useLocale } from '../i18n/locale-context'
 import { ApiError } from '../lib/api'
 
 export function ResetPasswordPage() {
   const auth = useAuth()
-  const [searchParams] = useSearchParams()
+  const { messages: t } = useLocale()
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [resetLink] = useState(() => {
+    const values = new URLSearchParams(window.location.hash.slice(1))
+    return {
+      email: values.get('email') ?? '',
+      token: values.get('token') ?? '',
+    }
+  })
+
+  useEffect(() => {
+    if (!window.location.hash) return
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
+  }, [])
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -20,48 +32,43 @@ export function ResetPasswordPage() {
     setError('')
 
     try {
-      const response = await auth.api.resetPassword({
+      await auth.api.resetPassword({
         email: String(form.get('email') ?? ''),
-        token: String(form.get('token') ?? ''),
+        token: resetLink.token,
         new_password: String(form.get('new_password') ?? ''),
       })
-      setMessage(response.message ?? 'Password reset.')
+      setMessage(t.passwordRecovery.resetSuccess)
     } catch (caught) {
-      setError(errorMessage(caught))
+      setError(errorMessage(caught, t.passwordRecovery.requestFailed))
     }
   }
 
   return (
     <section className="auth-grid">
       <div className="page-heading">
-        <p className="eyebrow">Password</p>
-        <h1>Reset password</h1>
-        <p>Use the reset token from your email.</p>
+        <p className="eyebrow">{t.passwordRecovery.section}</p>
+        <h1>{t.passwordRecovery.resetTitle}</h1>
+        <p>{t.passwordRecovery.resetDescription}</p>
       </div>
       <Card className="panel-card">
         <Card.Header>
-          <Card.Title>New password</Card.Title>
+          <Card.Title>{t.passwordRecovery.newPassword}</Card.Title>
         </Card.Header>
         <Card.Content>
           {message ? <p className="form-notice">{message}</p> : null}
           {error ? <p className="form-error">{error}</p> : null}
           <Form className="form-stack" onSubmit={submit}>
-            <TextField isRequired defaultValue={searchParams.get('email') ?? ''} name="email" type="email">
-              <Label>Email</Label>
+            <TextField isRequired defaultValue={resetLink.email} name="email" type="email">
+              <Label>{t.passwordRecovery.email}</Label>
               <Input autoComplete="email" />
               <FieldError />
             </TextField>
-            <TextField isRequired defaultValue={searchParams.get('token') ?? ''} name="token">
-              <Label>Reset token</Label>
-              <Input />
-              <FieldError />
-            </TextField>
             <TextField isRequired name="new_password" type="password">
-              <Label>New password</Label>
+              <Label>{t.passwordRecovery.newPassword}</Label>
               <Input autoComplete="new-password" />
               <FieldError />
             </TextField>
-            <Button type="submit">Reset password</Button>
+            <Button type="submit">{t.passwordRecovery.resetPassword}</Button>
           </Form>
         </Card.Content>
       </Card>
@@ -69,7 +76,7 @@ export function ResetPasswordPage() {
   )
 }
 
-function errorMessage(caught: unknown) {
+function errorMessage(caught: unknown, fallback: string) {
   if (caught instanceof ApiError || caught instanceof Error) return caught.message
-  return 'Request failed.'
+  return fallback
 }

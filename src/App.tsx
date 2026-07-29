@@ -11,6 +11,7 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
 import { LineBindingPage } from './pages/LineBindingPage'
 import { OAuthCallbackPage } from './pages/OAuthCallbackPage'
+import { OAuthLinkPage } from './pages/OAuthLinkPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { SecurityPage } from './pages/SecurityPage'
@@ -34,6 +35,7 @@ function Layout() {
             <Route element={<ResetPasswordPage />} path="/reset-password" />
             <Route element={<VerifyEmailPage />} path="/verify-email" />
             <Route element={<OAuthCallbackPage />} path="/oauth/callback" />
+            <Route element={<OAuthLinkPage />} path="/oauth/link" />
             <Route element={<Navigate replace to="/profile" />} path="*" />
           </Routes>
         </main>

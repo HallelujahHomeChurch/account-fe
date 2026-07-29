@@ -34,6 +34,30 @@ describe('LoginPage', () => {
     await vi.waitFor(() => expect(screen.getByTestId('location-search')).toBeEmptyDOMElement())
   })
 
+  it('shows a localized OAuth cancellation and removes the callback detail', async () => {
+    document.cookie = 'hhc_locale=en; Path=/'
+    const api: AuthApi = {
+      login: async () => ({}),
+      me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken: async () => null,
+      logout: async () => ({}),
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/login?oauth_error=cancelled']}>
+        <LocaleProvider>
+          <AuthProvider api={api} restoreSession={false}>
+            <LoginPage />
+            <LocationSearch />
+          </AuthProvider>
+        </LocaleProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Social sign-in was cancelled.')).toBeInTheDocument()
+    await vi.waitFor(() => expect(screen.getByTestId('location-search')).toBeEmptyDOMElement())
+  })
+
   it('keeps the login card copy minimal', () => {
     document.cookie = 'hhc_locale=zh-Hant; Path=/'
     const api: AuthApi = {
@@ -300,18 +324,19 @@ describe('LoginPage', () => {
     expect(await screen.findByRole('heading', { name: /profile reached/i })).toBeInTheDocument()
   })
 
-  it('renders OAuth provider links as circular icon buttons below the email login flow', () => {
+  it('renders OAuth provider links as circular icon buttons below the email login flow', async () => {
     const api: AuthApi = {
       login: async () => ({ access_token: 'token' }),
       me: async () => ({ id: 'u1', email: 'admin@example.com' }),
       refreshAccessToken: async () => null,
       logout: async () => ({}),
+      getOAuthProviders: async () => ['google', 'line', 'microsoft'],
       getSocialLoginUrl: (provider, authRequestId) =>
-        `/api/account/v1/oauth2/${provider}/login?auth_request_id=${authRequestId}`,
+        `/api/account/v1/oauth2/${provider}/login${authRequestId ? `?auth_request_id=${authRequestId}` : ''}`,
     }
 
     render(
-      <MemoryRouter initialEntries={['/login?auth_request_id=req-123']}>
+      <MemoryRouter initialEntries={['/login']}>
         <LocaleProvider>
           <AuthProvider api={api}>
             <LoginPage />
@@ -320,6 +345,7 @@ describe('LoginPage', () => {
       </MemoryRouter>,
     )
 
+    await screen.findByLabelText('Continue with Google')
     const form = document.querySelector('.form-stack')
     const socialPanel = document.querySelector('.social-login-panel')
     const socialButtons = Array.from(document.querySelectorAll('.social-icon-button'))
@@ -331,16 +357,41 @@ describe('LoginPage', () => {
 
     expect(screen.getByLabelText('Continue with Google')).toHaveAttribute(
       'href',
-      '/api/account/v1/oauth2/google/login?auth_request_id=req-123',
+      '/api/account/v1/oauth2/google/login',
     )
     expect(screen.getByLabelText('Continue with LINE')).toHaveAttribute(
       'href',
-      '/api/account/v1/oauth2/line/login?auth_request_id=req-123',
+      '/api/account/v1/oauth2/line/login',
     )
     expect(screen.getByLabelText('Continue with Microsoft')).toHaveAttribute(
       'href',
-      '/api/account/v1/oauth2/microsoft/login?auth_request_id=req-123',
+      '/api/account/v1/oauth2/microsoft/login',
     )
+  })
+
+  it('only renders OAuth providers enabled by the API', async () => {
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken: async () => null,
+      logout: async () => ({}),
+      getOAuthProviders: async () => ['google'],
+      getSocialLoginUrl: (provider) => `/api/account/v1/oauth2/${provider}/login`,
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <LocaleProvider>
+          <AuthProvider api={api}>
+            <LoginPage />
+          </AuthProvider>
+        </LocaleProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByLabelText('Continue with Google')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Continue with LINE')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Continue with Microsoft')).not.toBeInTheDocument()
   })
 })
 

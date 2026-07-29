@@ -31,31 +31,63 @@ export function LoginPage() {
   const authRequestId = searchParams.get('auth_request_id') ?? undefined
   const returnTo = safeReturnTo(searchParams.get('return_to'))
   const signedOut = searchParams.get('signed_out') === '1'
+  const oauthError = searchParams.get('oauth_error')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [enabledProviderIds, setEnabledProviderIds] = useState<string[] | null>(null)
 
   const title = t.login.brandTitle
   const challenge = auth.mfaChallenge
   const mfaSubtitle = t.login.mfaVerificationSubtitle
 
   const socialLinks = useMemo(() => {
-    if (!auth.api.getSocialLoginUrl) return []
+    if (!auth.api.getSocialLoginUrl || !enabledProviderIds) return []
     return socialProviders.flatMap((provider) => {
+      if (!enabledProviderIds.includes(provider.id)) return []
       const href = auth.api.getSocialLoginUrl?.(provider.id, authRequestId)
       return href ? [{ ...provider, href }] : []
     })
-  }, [auth.api, authRequestId])
+  }, [auth.api, authRequestId, enabledProviderIds])
 
   useEffect(() => {
-    if (!signedOut) return
+    let active = true
+    const request = auth.api.getOAuthProviders
+      ? auth.api.getOAuthProviders()
+      : Promise.resolve(socialProviders.map(({ id }) => id))
+    request
+      .then((providers) => {
+        if (active) setEnabledProviderIds(providers)
+      })
+      .catch(() => {
+        if (active) setEnabledProviderIds([])
+      })
+    return () => {
+      active = false
+    }
+  }, [auth.api])
 
-    setNotice(t.login.signedOut)
+  useEffect(() => {
+    if (!signedOut && !oauthError) return
+
+    if (signedOut) setNotice(t.login.signedOut)
+    if (oauthError) {
+      setError(oauthError === 'cancelled' ? t.login.oauthCancelled : t.login.oauthFailed)
+    }
     const nextSearchParams = new URLSearchParams(searchParams)
     nextSearchParams.delete('signed_out')
+    nextSearchParams.delete('oauth_error')
     const search = nextSearchParams.toString()
     navigate({ pathname: '/login', search: search ? `?${search}` : '' }, { replace: true })
-  }, [navigate, searchParams, signedOut, t.login.signedOut])
+  }, [
+    navigate,
+    oauthError,
+    searchParams,
+    signedOut,
+    t.login.oauthCancelled,
+    t.login.oauthFailed,
+    t.login.signedOut,
+  ])
 
   async function submitLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()

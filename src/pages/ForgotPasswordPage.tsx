@@ -3,10 +3,12 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 import { useAuth } from '../auth/auth-context'
+import { useLocale } from '../i18n/locale-context'
 import { ApiError } from '../lib/api'
 
 export function ForgotPasswordPage() {
   const auth = useAuth()
+  const { messages: t } = useLocale()
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -21,10 +23,10 @@ export function ForgotPasswordPage() {
     setIsSubmitting(true)
 
     try {
-      const response = await auth.api.forgotPassword(email)
-      setMessage(response.message ?? 'If the email exists, a reset link has been sent.')
+      await auth.api.forgotPassword(email)
+      setMessage(t.passwordRecovery.sent)
     } catch (caught) {
-      setError(errorMessage(caught))
+      setError(errorMessage(caught, t.passwordRecovery.requestFailed))
     } finally {
       setIsSubmitting(false)
     }
@@ -33,29 +35,29 @@ export function ForgotPasswordPage() {
   return (
     <section className="auth-grid">
       <div className="page-heading">
-        <p className="eyebrow">Password</p>
-        <h1>Forgot password</h1>
-        <p>Enter your email and we will send a reset link.</p>
+        <p className="eyebrow">{t.passwordRecovery.section}</p>
+        <h1>{t.passwordRecovery.forgotTitle}</h1>
+        <p>{t.passwordRecovery.forgotDescription}</p>
       </div>
       <Card className="panel-card">
         <Card.Header>
-          <Card.Title>Reset link</Card.Title>
+          <Card.Title>{t.passwordRecovery.resetLink}</Card.Title>
         </Card.Header>
         <Card.Content>
           {message ? <p className="form-notice">{message}</p> : null}
           {error ? <p className="form-error">{error}</p> : null}
           <Form className="form-stack" onSubmit={submit}>
             <TextField isRequired name="email" type="email">
-              <Label>Email</Label>
+              <Label>{t.passwordRecovery.email}</Label>
               <Input autoComplete="email" />
               <FieldError />
             </TextField>
             <div className="login-actions">
               <Link className="muted-link" to="/login">
-                Back to sign in
+                {t.passwordRecovery.backToLogin}
               </Link>
               <Button isPending={isSubmitting} type="submit">
-                Send reset link
+                {t.passwordRecovery.sendResetLink}
               </Button>
             </div>
           </Form>
@@ -65,7 +67,7 @@ export function ForgotPasswordPage() {
   )
 }
 
-function errorMessage(caught: unknown) {
+function errorMessage(caught: unknown, fallback: string) {
   if (caught instanceof ApiError || caught instanceof Error) return caught.message
-  return 'Request failed.'
+  return fallback
 }

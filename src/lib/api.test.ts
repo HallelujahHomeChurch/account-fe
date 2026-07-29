@@ -10,6 +10,24 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 describe('AccountApi', () => {
+  it('accepts the direct profile redirect contract', async () => {
+    const api = new AccountApi({
+      baseUrl: '/api/account/v1',
+      fetcher: async (input) =>
+        String(input).endsWith('/csrf-token')
+          ? jsonResponse({ csrf_token: 'csrf-123' })
+          : jsonResponse({
+              access_token: 'access-token',
+              redirect_type: 'profile',
+              redirect_uri: '/profile',
+            }),
+    })
+
+    const response = await api.login({ email: 'user@example.com', password: 'password' })
+
+    expect(response.redirect_type).toBe('profile')
+  })
+
   it('does not expose forced MFA setup token methods', () => {
     const api = new AccountApi({ baseUrl: '/api/account/v1' })
 
@@ -224,20 +242,52 @@ describe('AccountApi', () => {
     await api.resetPassword({ email: 'user@example.com', token: 'reset-token', new_password: 'Secret123!' })
 
     expect(calls.map((call) => `${call.init?.method ?? 'GET'} ${String(call.input)}`)).toEqual([
-      'GET /api/account/v1/verify-email?token=verify-token',
       'GET /api/account/v1/csrf-token',
+      'POST /api/account/v1/verify-email',
       'POST /api/account/v1/forgot-password',
       'POST /api/account/v1/reset-password',
     ])
+    expect(calls[1]?.init?.body).toBe(JSON.stringify({ token: 'verify-token' }))
   })
 
-  it('only builds social login URLs when an auth request is available', () => {
+  it('builds direct and client-authorized social login URLs', () => {
     const api = new AccountApi({ baseUrl: '/api/account/v1' })
 
-    expect(api.getSocialLoginUrl('google')).toBe('')
+    expect(api.getSocialLoginUrl('google')).toBe('/api/account/v1/oauth2/google/login')
     expect(api.getSocialLoginUrl('google', 'req-123')).toBe(
       '/api/account/v1/oauth2/google/login?auth_request_id=req-123',
     )
+  })
+
+  it('lists OAuth providers enabled by the API', async () => {
+    const api = new AccountApi({
+      baseUrl: '/api/account/v1',
+      fetcher: async () => jsonResponse({ providers: ['google', 'line'] }),
+    })
+
+    await expect(api.getOAuthProviders()).resolves.toEqual(['google', 'line'])
+  })
+
+  it('confirms OAuth account links with CSRF-protected POST', async () => {
+    const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
+    const api = new AccountApi({
+      baseUrl: '/api/account/v1',
+      fetcher: async (input, init) => {
+        calls.push({ input, init })
+        if (String(input).endsWith('/csrf-token')) {
+          return jsonResponse({ csrf_token: 'csrf-123' })
+        }
+        return jsonResponse({ message: 'linked' })
+      },
+    })
+
+    await api.confirmOAuthLink('link-token')
+
+    expect(calls.map((call) => `${call.init?.method ?? 'GET'} ${String(call.input)}`)).toEqual([
+      'GET /api/account/v1/csrf-token',
+      'POST /api/account/v1/oauth/confirm-link',
+    ])
+    expect(calls[1]?.init?.body).toBe(JSON.stringify({ token: 'link-token' }))
   })
 
   it('coalesces concurrent csrf token requests across clients with the same base URL', async () => {

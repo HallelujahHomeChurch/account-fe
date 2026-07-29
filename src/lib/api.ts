@@ -19,7 +19,7 @@ export type LoginResponse = {
   access_token?: string
   mfa_type?: 'verification_required'
   mfa_token?: string
-  redirect_type?: 'oauth'
+  redirect_type?: 'oauth' | 'profile'
   redirect_uri?: string
   code?: string
   state?: string
@@ -183,8 +183,10 @@ export class AccountApi {
   }
 
   verifyEmail(token: string) {
-    return this.request<{ message?: string }>(`/verify-email?token=${encodeURIComponent(token)}`, {
+    return this.request<{ message?: string }>('/verify-email', {
+      method: 'POST',
       auth: false,
+      body: { token },
     })
   }
 
@@ -239,6 +241,14 @@ export class AccountApi {
     return this.request<void>(`/linked-accounts/${encodeURIComponent(provider)}`, { method: 'DELETE' })
   }
 
+  confirmOAuthLink(token: string) {
+    return this.request<{ message?: string }>('/oauth/confirm-link', {
+      method: 'POST',
+      auth: false,
+      body: { token },
+    })
+  }
+
   getLineBinding(token: string) {
     return this.request<LineBindingSummary>(`/line/bindings/${encodeURIComponent(token)}`)
   }
@@ -262,10 +272,13 @@ export class AccountApi {
   }
 
   getSocialLoginUrl(provider: string, authRequestId?: string) {
-    if (!authRequestId) return ''
-
     const url = `${this.baseUrl}/oauth2/${encodeURIComponent(provider)}/login`
-    return `${url}?auth_request_id=${encodeURIComponent(authRequestId)}`
+    return authRequestId ? `${url}?auth_request_id=${encodeURIComponent(authRequestId)}` : url
+  }
+
+  async getOAuthProviders() {
+    const response = await this.request<{ providers?: string[] }>('/oauth-providers', { auth: false })
+    return response.providers ?? []
   }
 
   private async request<T>(path: string, options: RequestOptions = {}): Promise<T> {

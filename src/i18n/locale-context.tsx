@@ -1,5 +1,5 @@
 /* oxlint-disable react/only-export-components */
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 
 import { getInitialLocale, getLocaleCookie, type Locale } from './locales'
 import { messages, type Messages } from './messages'
@@ -35,6 +35,11 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = nextLocale
     setLocaleState(nextLocale)
   }, [])
+
+  useEffect(() => {
+    document.cookie = getLocaleCookie(locale, import.meta.env.VITE_LOCALE_COOKIE_DOMAIN)
+    document.documentElement.lang = locale
+  }, [locale])
 
   const value = useMemo(
     () => ({

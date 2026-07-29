@@ -32,6 +32,6 @@ describe('ForgotPasswordPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Send reset link' }))
 
     expect(submittedEmail).toBe('user@example.com')
-    expect(await screen.findByText('If the email exists, a reset link has been sent.')).toBeInTheDocument()
+    expect(await screen.findByText('If this email is registered, we sent a password reset link.')).toBeInTheDocument()
   })
 })

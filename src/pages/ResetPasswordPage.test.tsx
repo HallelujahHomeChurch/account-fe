@@ -8,6 +8,11 @@ import { ResetPasswordPage } from './ResetPasswordPage'
 
 describe('ResetPasswordPage', () => {
   it('prefills email and token from the reset link', async () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/reset-password#email=user%40example.com&token=reset-token',
+    )
     let request: { email: string; token: string; new_password: string } | null = null
     const api: AuthApi = {
       login: async () => ({}),
@@ -21,7 +26,7 @@ describe('ResetPasswordPage', () => {
     }
 
     render(
-      <MemoryRouter initialEntries={['/reset-password?email=user%40example.com&token=reset-token']}>
+      <MemoryRouter initialEntries={['/reset-password']}>
         <AuthProvider api={api}>
           <ResetPasswordPage />
         </AuthProvider>
@@ -29,7 +34,8 @@ describe('ResetPasswordPage', () => {
     )
 
     expect(screen.getByLabelText('Email')).toHaveValue('user@example.com')
-    expect(screen.getByLabelText('Reset token')).toHaveValue('reset-token')
+    expect(screen.queryByLabelText('Reset token')).not.toBeInTheDocument()
+    expect(window.location.hash).toBe('')
 
     await userEvent.type(screen.getByLabelText('New password'), 'Secret123!')
     await userEvent.click(screen.getByRole('button', { name: 'Reset password' }))
