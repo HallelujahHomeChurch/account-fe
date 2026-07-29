@@ -7,7 +7,8 @@ React account console for `account.alive.org.tw`.
 Use mock mode when you want to test the UI without `account-api`.
 
 ```bash
-pnpm --filter @hhc/account dev:mock
+NODE_AUTH_TOKEN="$(gh auth token)" corepack pnpm install
+corepack pnpm dev:mock
 ```
 
 Open `http://127.0.0.1:5174/login`.
@@ -22,7 +23,7 @@ Mock mode covers login, profile editing, password change, MFA setup/disable, dev
 ## Real API mode
 
 ```bash
-pnpm --filter @hhc/account dev
+corepack pnpm dev
 ```
 
 The Vite dev server proxies `/api/account/*` to `http://127.0.0.1:8080`.

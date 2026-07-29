@@ -1,4 +1,4 @@
-import { Card } from '@hhc/ui'
+import { Card } from '@hallelujahhomechurch/ui'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 

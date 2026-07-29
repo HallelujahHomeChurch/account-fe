@@ -7,7 +7,7 @@ import {
   themeCookieName,
   themes,
   type Theme,
-} from '@hhc/preferences'
+} from '@hallelujahhomechurch/preferences'
 
 export { applyTheme, getInitialTheme, getStoredTheme, isTheme, themeCookieName, themes, type Theme }
 

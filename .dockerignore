@@ -1,0 +1,6 @@
+.git
+.github
+.npmrc
+node_modules
+dist
+*.log

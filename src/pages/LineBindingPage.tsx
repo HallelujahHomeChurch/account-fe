@@ -1,4 +1,4 @@
-import { Button } from '@hhc/ui'
+import { Button } from '@hallelujahhomechurch/ui'
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 

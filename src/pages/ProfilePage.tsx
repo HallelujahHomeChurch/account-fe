@@ -1,4 +1,4 @@
-import { Button, Card, Form, Input, Label, Modal, TextField } from '@hhc/ui'
+import { Button, Card, Form, Input, Label, Modal, TextField } from '@hallelujahhomechurch/ui'
 import { useEffect, useState, type FormEvent } from 'react'
 
 import { useAuth } from '../auth/auth-context'

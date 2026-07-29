@@ -1,4 +1,4 @@
-import { Card } from '@hhc/ui'
+import { Card } from '@hallelujahhomechurch/ui'
 
 export function OAuthCallbackPage() {
   return (
