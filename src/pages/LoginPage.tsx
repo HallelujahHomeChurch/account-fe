@@ -7,7 +7,7 @@ import {
   OTP,
   REGEXP_ONLY_DIGITS,
   TextField,
-} from '@hhc/ui'
+} from '@hallelujahhomechurch/ui'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 

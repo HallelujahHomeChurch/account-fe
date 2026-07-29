@@ -1,4 +1,4 @@
-import { Avatar, type AvatarProps } from '@hhc/ui'
+import { Avatar, type AvatarProps } from '@hallelujahhomechurch/ui'
 
 import { accountGreetingName } from '../lib/account-display'
 import type { Profile } from '../lib/api'

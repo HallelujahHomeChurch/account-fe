@@ -8,7 +8,7 @@ import {
   OTP,
   REGEXP_ONLY_DIGITS,
   TextField,
-} from '@hhc/ui'
+} from '@hallelujahhomechurch/ui'
 import { useEffect, useState, type FormEvent } from 'react'
 
 import { useAuth } from '../auth/auth-context'

@@ -1,4 +1,4 @@
-import { AccountMenu, Button, Drawer, Toast } from '@hhc/ui'
+import { AccountMenu, Button, Drawer, Toast } from '@hallelujahhomechurch/ui'
 import { Menu, ShieldCheck, UserRound } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 

@@ -7,7 +7,7 @@ import {
   localeCookieName,
   locales,
   type Locale,
-} from '@hhc/preferences'
+} from '@hallelujahhomechurch/preferences'
 
 export { detectLocale, getInitialLocale, getStoredLocale, isLocale, localeCookieName, locales, type Locale }
 

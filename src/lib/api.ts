@@ -1,4 +1,4 @@
-import { createAccountSessionClient } from '@hhc/account-client'
+import { createAccountSessionClient } from '@hallelujahhomechurch/account-client'
 
 export type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
