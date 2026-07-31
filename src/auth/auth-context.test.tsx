@@ -112,6 +112,10 @@ describe('AuthProvider', () => {
   it('uses the built-in mock account API when mock mode is enabled', async () => {
     const config: RuntimeConfig = {
       accountApiBaseUrl: '/api/account/v1',
+      accountAuthorizeBaseUrl: '/api/account/v1',
+      accountClientId: 'account-console',
+      redirectUri: 'http://localhost/oauth/callback',
+      oauthScope: 'openid profile email',
       mockApi: true,
       allowedRedirectOrigins: ['http://localhost:5173'],
       allowedRedirectSchemes: ['hhc'],
@@ -267,5 +271,93 @@ describe('AuthProvider', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Unable to check your sign-in status. Try again.')
     expect(refreshAccessToken).not.toHaveBeenCalled()
+  })
+
+  it('starts one authorization transaction for a protected route without a local session', async () => {
+    sessionStorage.clear()
+    const navigateExternal = vi.fn()
+    const refreshAccessToken = vi.fn(async () => null)
+    const api: AuthApi = {
+      getSession: async () => ({ authenticated: false as const }),
+      login: async () => ({}),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken,
+      logout: async () => ({}),
+    }
+    const config: RuntimeConfig = {
+      accountApiBaseUrl: '/api/account/v1',
+      accountAuthorizeBaseUrl: '/api/account/v1',
+      accountClientId: 'account-console',
+      redirectUri: 'http://localhost/oauth/callback',
+      oauthScope: 'openid profile email',
+      mockApi: false,
+      allowedRedirectOrigins: ['http://localhost'],
+      allowedRedirectSchemes: ['hhc'],
+      publicSiteUrl: 'https://www.alive.org.tw',
+    }
+
+    render(
+      <StrictMode>
+        <MemoryRouter initialEntries={['/security?tab=mfa#codes']}>
+          <RoutedAuthProvider api={api} config={config} navigateExternal={navigateExternal}>
+            <BootstrapProbe />
+          </RoutedAuthProvider>
+        </MemoryRouter>
+      </StrictMode>,
+    )
+
+    await waitFor(() => expect(navigateExternal).toHaveBeenCalledTimes(1))
+    const authorizeUrl = new URL(navigateExternal.mock.calls[0]?.[0], 'http://localhost')
+    expect(authorizeUrl.pathname).toBe('/api/account/v1/oauth/authorize')
+    expect(authorizeUrl.searchParams.get('client_id')).toBe('account-console')
+    expect(authorizeUrl.searchParams.get('code_challenge_method')).toBe('S256')
+    expect(refreshAccessToken).not.toHaveBeenCalled()
+    expect(sessionStorage.getItem('hhc_account_oauth_transaction')).toContain('/security?tab=mfa#codes')
+  })
+
+  it('does not start authorization from the login route', async () => {
+    const navigateExternal = vi.fn()
+    const api: AuthApi = {
+      getSession: async () => ({ authenticated: false as const }),
+      login: async () => ({}),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken: async () => null,
+      logout: async () => ({}),
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <RoutedAuthProvider api={api} navigateExternal={navigateExternal}>
+          <BootstrapProbe />
+        </RoutedAuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('ready')).toBeInTheDocument()
+    expect(navigateExternal).not.toHaveBeenCalled()
+  })
+
+  it('falls back to authorization when a local session disappears before refresh', async () => {
+    const navigateExternal = vi.fn()
+    const api: AuthApi = {
+      getSession: async () => ({
+        authenticated: true as const,
+        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+      }),
+      login: async () => ({}),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken: async () => null,
+      logout: async () => ({}),
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/devices']}>
+        <RoutedAuthProvider api={api} navigateExternal={navigateExternal}>
+          <BootstrapProbe />
+        </RoutedAuthProvider>
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => expect(navigateExternal).toHaveBeenCalledTimes(1))
   })
 })

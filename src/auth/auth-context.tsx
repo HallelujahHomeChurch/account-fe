@@ -1,6 +1,11 @@
 /* oxlint-disable react/only-export-components */
 import {
+  createOAuthTransaction,
+  currentReturnTo,
+  validateOAuthState,
   type AccountSession,
+  type OAuthTokenResponse,
+  type OAuthTransaction,
 } from '@hallelujahhomechurch/account-client'
 import {
   createContext,
@@ -12,13 +17,20 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { useLocation } from 'react-router-dom'
 import { AccountApi, type LoginRequest, type LoginResponse, type Profile } from '../lib/api'
 import { MockAccountApi } from '../lib/mock-account-api'
 import {
+  accountOAuthConfig,
+  buildAccountAuthorizeUrl,
   buildOAuthRedirectUrl,
+  clearAccountOAuthTransaction,
+  readAccountOAuthTransaction,
   readRuntimeConfig,
+  saveAccountOAuthTransaction,
   type RuntimeConfig,
 } from '../lib/redirects'
+import { isAuthRoutePath } from './auth-routes'
 
 export type MfaChallenge = {
   type: 'verification_required'
@@ -31,6 +43,11 @@ export type AuthApi = {
   me: () => Promise<Profile>
   refreshAccessToken: () => Promise<string | null>
   logout: () => Promise<unknown>
+  exchangeCode?: (
+    config: ReturnType<typeof accountOAuthConfig>,
+    transaction: OAuthTransaction,
+    code: string,
+  ) => Promise<OAuthTokenResponse>
 } & Partial<AccountApi>
 
 type AuthContextValue = {
@@ -43,6 +60,8 @@ type AuthContextValue = {
   api: AuthApi
   login: (request: LoginRequest) => Promise<LoginResponse>
   completeLogin: (response: LoginResponse) => Promise<LoginResponse>
+  completeOAuthCallback: (code: string, state: string) => Promise<string>
+  startAuthorization: (returnTo: string) => Promise<void>
   refreshProfile: () => Promise<Profile>
   logout: () => Promise<void>
   clearLocalSession: () => void
@@ -56,10 +75,17 @@ type AuthProviderProps = {
   config?: RuntimeConfig
   restoreSession?: boolean
   navigateAfterLogout?: (url: string) => void
+  navigateExternal?: (url: string) => void
+  route?: Pick<Location, 'pathname' | 'search' | 'hash'>
+  authorizeMissingSession?: boolean
 }
 
 function defaultNavigateAfterLogout(url: string) {
   window.location.replace(url)
+}
+
+function defaultNavigateExternal(url: string) {
+  window.location.assign(url)
 }
 
 export function AuthProvider({
@@ -68,6 +94,9 @@ export function AuthProvider({
   config = readRuntimeConfig(),
   restoreSession = true,
   navigateAfterLogout = defaultNavigateAfterLogout,
+  navigateExternal = defaultNavigateExternal,
+  route = window.location,
+  authorizeMissingSession = false,
 }: AuthProviderProps) {
   const tokenRef = useRef<string | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
@@ -76,8 +105,11 @@ export function AuthProvider({
   const [isBootstrapping, setIsBootstrapping] = useState(true)
   const [bootstrapError, setBootstrapError] = useState<string | null>(null)
   const [logoutError, setLogoutError] = useState<string | null>(null)
+  const authorizationRef = useRef<Promise<void> | null>(null)
+  const authRevisionRef = useRef(0)
   const bootstrapRef = useRef<{
     api: AuthApi
+    revision: number
     promise: Promise<{ token: string | null; profile: Profile | null }>
   } | null>(null)
 
@@ -102,6 +134,35 @@ export function AuthProvider({
     setProfile(nextProfile)
     return nextProfile
   }, [api])
+
+  const beginAuthorization = useCallback((returnTo: string) => {
+    if (authorizationRef.current) return authorizationRef.current
+    const request = (async () => {
+      const transaction = await createOAuthTransaction(returnTo)
+      saveAccountOAuthTransaction(transaction)
+      navigateExternal(buildAccountAuthorizeUrl(config, transaction).toString())
+    })()
+    authorizationRef.current = request
+    void request.catch(() => {
+      authorizationRef.current = null
+    })
+    return request
+  }, [config, navigateExternal])
+
+  const completeOAuthCallback = useCallback(async (code: string, state: string) => {
+    const transaction = readAccountOAuthTransaction()
+    if (!validateOAuthState(transaction, state)) {
+      throw new Error('OAuth state did not match this browser session.')
+    }
+    if (!api.exchangeCode) throw new Error('OAuth code exchange is unavailable.')
+
+    authRevisionRef.current += 1
+    const response = await api.exchangeCode(accountOAuthConfig(config), transaction, code)
+    writeAccessToken(response.access_token)
+    clearAccountOAuthTransaction()
+    await refreshProfile()
+    return transaction.returnTo
+  }, [api, config, refreshProfile, writeAccessToken])
 
   const completeLogin = useCallback(
     async (response: LoginResponse) => {
@@ -131,6 +192,7 @@ export function AuthProvider({
 
   const login = useCallback(
     async (request: LoginRequest) => {
+      authRevisionRef.current += 1
       const response = await api.login(request)
       return completeLogin(response)
     },
@@ -138,6 +200,7 @@ export function AuthProvider({
   )
 
   const logout = useCallback(async () => {
+    authRevisionRef.current += 1
     setLogoutError(null)
     try {
       await (api.logoutAll ? api.logoutAll() : api.logout())
@@ -151,6 +214,7 @@ export function AuthProvider({
   }, [api, navigateAfterLogout, writeAccessToken])
 
   const clearLocalSession = useCallback(() => {
+    authRevisionRef.current += 1
     writeAccessToken(null)
     setProfile(null)
     setMfaChallenge(null)
@@ -170,14 +234,25 @@ export function AuthProvider({
     if (!bootstrapRef.current || bootstrapRef.current.api !== api) {
       bootstrapRef.current = {
         api,
+        revision: authRevisionRef.current,
         promise: (async () => {
+          const shouldAuthorize = authorizeMissingSession
+            && !config.mockApi
+            && !isAuthRoutePath(route.pathname)
           const session = api.getSession
             ? await api.getSession()
             : { authenticated: true as const, user: undefined }
-          if (!session.authenticated) return { token: null, profile: null }
+          if (!session.authenticated) {
+            if (!shouldAuthorize) return { token: null, profile: null }
+            await beginAuthorization(currentReturnTo(route))
+            return { token: null, profile: null }
+          }
 
           const token = await api.refreshAccessToken()
-          if (!token) return { token: null, profile: null }
+          if (!token) {
+            if (shouldAuthorize) await beginAuthorization(currentReturnTo(route))
+            return { token: null, profile: null }
+          }
           return { token, profile: await api.me() }
         })(),
       }
@@ -186,12 +261,12 @@ export function AuthProvider({
     setBootstrapError(null)
     bootstrapRef.current.promise
       .then((result) => {
-        if (!alive) return
+        if (!alive || bootstrapRef.current?.revision !== authRevisionRef.current) return
         writeAccessToken(result.token)
         setProfile(result.profile)
       })
       .catch(() => {
-        if (!alive) return
+        if (!alive || bootstrapRef.current?.revision !== authRevisionRef.current) return
         writeAccessToken(null)
         setProfile(null)
         setBootstrapError('Unable to check your sign-in status. Try again.')
@@ -203,7 +278,7 @@ export function AuthProvider({
     return () => {
       alive = false
     }
-  }, [api, refreshProfile, restoreSession, writeAccessToken])
+  }, [api, authorizeMissingSession, beginAuthorization, config.mockApi, restoreSession, route, writeAccessToken])
 
   const value = useMemo(
     () => ({
@@ -216,19 +291,28 @@ export function AuthProvider({
       api,
       login,
       completeLogin,
+      completeOAuthCallback,
+      startAuthorization: beginAuthorization,
       refreshProfile,
       logout,
       clearLocalSession,
     }),
-    [accessToken, api, bootstrapError, clearLocalSession, completeLogin, isBootstrapping, login, logout, logoutError, mfaChallenge, profile, refreshProfile],
+    [accessToken, api, beginAuthorization, bootstrapError, clearLocalSession, completeLogin, completeOAuthCallback, isBootstrapping, login, logout, logoutError, mfaChallenge, profile, refreshProfile],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-export function RoutedAuthProvider({ children, api, config }: AuthProviderProps) {
+export function RoutedAuthProvider({ children, api, config, navigateExternal }: AuthProviderProps) {
+  const route = useLocation()
   return (
-    <AuthProvider api={api} config={config}>
+    <AuthProvider
+      api={api}
+      config={config}
+      route={route}
+      authorizeMissingSession
+      navigateExternal={navigateExternal}
+    >
       {children}
     </AuthProvider>
   )

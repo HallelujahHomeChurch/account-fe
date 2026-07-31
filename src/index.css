@@ -8,6 +8,8 @@
   --color-gold: #e4a43a;
   --color-primary: #cf685f;
   --color-primary-hover: #b64e45;
+  --color-primary-solid: #ad493f;
+  --color-primary-solid-hover: #9d3d35;
   --color-primary-soft: rgb(207 104 95 / 14%);
   --color-primary-soft-hover: rgb(207 104 95 / 22%);
   --color-teal: #3a7e7a;
@@ -16,7 +18,7 @@
   --color-line: #eee3d7;
   --color-panel: #f8f0e7;
   --color-panel-border: rgb(232 217 203 / 86%);
-  --color-on-primary: #ffffff;
+  --color-on-primary: #fff8f4;
   --color-danger: #9d3328;
   --color-danger-soft: rgb(180 58 45 / 10%);
   --color-success: #24725f;
@@ -43,6 +45,8 @@
   --color-gold: #e7aa49;
   --color-primary: #df7a70;
   --color-primary-hover: #f08c82;
+  --color-primary-solid: #b64e45;
+  --color-primary-solid-hover: #a9433b;
   --color-primary-soft: rgb(223 122 112 / 16%);
   --color-primary-soft-hover: rgb(223 122 112 / 24%);
   --color-teal: #65aaa4;
@@ -51,7 +55,7 @@
   --color-line: #443b37;
   --color-panel: #312a27;
   --color-panel-border: rgb(79 67 61 / 88%);
-  --color-on-primary: #1d1a19;
+  --color-on-primary: #fff8f4;
   --color-danger: #ff9b8f;
   --color-danger-soft: rgb(255 155 143 / 14%);
   --color-success: #7bc7ae;
@@ -588,7 +592,7 @@ textarea::selection {
   place-items: center;
   border: 2px solid var(--color-paper);
   border-radius: 50%;
-  background: var(--color-primary);
+  background: var(--color-primary-solid);
   color: var(--color-on-primary);
   box-shadow: 0 4px 10px rgb(0 0 0 / 16%);
 }
@@ -896,7 +900,7 @@ textarea::selection {
 
 .button-link:hover {
   border-color: var(--color-primary);
-  background: var(--color-primary);
+  background: var(--color-primary-solid-hover);
   color: var(--color-on-primary);
 }
 
@@ -912,10 +916,18 @@ textarea::selection {
   min-height: 44px;
   align-items: center;
   border-radius: 999px;
-  background: var(--color-primary);
-  color: white;
+  background: var(--color-primary-solid);
+  color: var(--color-on-primary);
   padding: 0 18px;
   font-weight: 750;
+}
+
+.oauth-callback-error {
+  display: grid;
+  width: min(420px, calc(100% - 40px));
+  justify-items: start;
+  gap: 16px;
+  margin: auto;
 }
 
 .fact-list,

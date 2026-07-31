@@ -1,4 +1,10 @@
-import { createAccountSessionClient, type AccountSession } from '@hallelujahhomechurch/account-client'
+import {
+  createAccountSessionClient,
+  exchangeAuthorizationCode,
+  type AccountSession,
+  type OAuthClientConfig,
+  type OAuthTransaction,
+} from '@hallelujahhomechurch/account-client'
 
 export type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
@@ -135,6 +141,10 @@ export class AccountApi {
       baseUrl: this.baseUrl,
       fetcher: this.fetcher as typeof fetch,
     }).getSession()
+  }
+
+  exchangeCode(config: OAuthClientConfig, transaction: OAuthTransaction, code: string) {
+    return exchangeAuthorizationCode(config, transaction, code, this.fetcher as typeof fetch)
   }
 
   async refreshAccessToken() {

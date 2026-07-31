@@ -4,6 +4,10 @@ import { isAllowedRedirect, readRuntimeConfig, type RuntimeConfig } from './redi
 
 const config: RuntimeConfig = {
   accountApiBaseUrl: '/api/account/v1',
+  accountAuthorizeBaseUrl: '/api/account/v1',
+  accountClientId: 'account-console',
+  redirectUri: 'http://localhost/oauth/callback',
+  oauthScope: 'openid profile email',
   mockApi: false,
   allowedRedirectOrigins: ['https://admin.alive.org.tw', 'http://localhost:5173'],
   allowedRedirectSchemes: ['hhc'],
