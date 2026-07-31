@@ -45,6 +45,7 @@ type AuthContextValue = {
   completeLogin: (response: LoginResponse) => Promise<LoginResponse>
   refreshProfile: () => Promise<Profile>
   logout: () => Promise<void>
+  clearLocalSession: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -149,6 +150,13 @@ export function AuthProvider({
     }
   }, [api, navigateAfterLogout, writeAccessToken])
 
+  const clearLocalSession = useCallback(() => {
+    writeAccessToken(null)
+    setProfile(null)
+    setMfaChallenge(null)
+    navigateAfterLogout('/login?signed_out=1')
+  }, [navigateAfterLogout, writeAccessToken])
+
   useEffect(() => {
     let alive = true
 
@@ -210,8 +218,9 @@ export function AuthProvider({
       completeLogin,
       refreshProfile,
       logout,
+      clearLocalSession,
     }),
-    [accessToken, api, bootstrapError, completeLogin, isBootstrapping, login, logout, logoutError, mfaChallenge, profile, refreshProfile],
+    [accessToken, api, bootstrapError, clearLocalSession, completeLogin, isBootstrapping, login, logout, logoutError, mfaChallenge, profile, refreshProfile],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

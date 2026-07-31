@@ -102,14 +102,14 @@ export function ProfilePage() {
       </Card>
 
       <Modal isOpen={isNameDialogOpen} onOpenChange={setNameDialogOpen}>
-        <Modal.Backdrop className="modal-backdrop">
-          <Modal.Container className="modal-container" placement="center">
-            <Modal.Dialog className="modal-dialog">
+        <Modal.Backdrop>
+          <Modal.Container placement="center">
+            <Modal.Dialog>
               <Modal.Header>
                 <Modal.Heading>{t.profile.editName}</Modal.Heading>
               </Modal.Header>
               <Form key={profile.id} onSubmit={submitName}>
-                <Modal.Body className="modal-form-grid">
+                <Modal.Body>
                   <TextField defaultValue={profile.first_name ?? ''} name="first_name">
                     <Label>{t.profile.firstName}</Label>
                     <Input autoComplete="given-name" />
@@ -119,7 +119,7 @@ export function ProfilePage() {
                     <Input autoComplete="family-name" />
                   </TextField>
                 </Modal.Body>
-                <Modal.Footer className="modal-actions">
+                <Modal.Footer>
                   <Button variant="ghost" onPress={() => setNameDialogOpen(false)}>
                     {t.profile.cancel}
                   </Button>

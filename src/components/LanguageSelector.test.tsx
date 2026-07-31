@@ -13,33 +13,30 @@ function renderLanguageSelector() {
     </LocaleProvider>,
   )
 
-  const trigger = screen.getByLabelText('Language')
-  const details = trigger.closest('details')
-  if (!(details instanceof HTMLDetailsElement)) throw new Error('Language selector details not found')
-
-  return { details, trigger }
+  return screen.getByRole('button', { name: /language/i })
 }
 
 describe('LanguageSelector', () => {
   it('closes when clicking outside the open menu', async () => {
     const user = userEvent.setup()
-    const { details, trigger } = renderLanguageSelector()
+    const trigger = renderLanguageSelector()
 
     await user.click(trigger)
-    expect(details.open).toBe(true)
+    expect(screen.getByRole('listbox')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Outside' }))
-    expect(details.open).toBe(false)
+    await user.click(document.body)
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
   })
 
   it('closes the open menu with Escape', async () => {
     const user = userEvent.setup()
-    const { details, trigger } = renderLanguageSelector()
+    const trigger = renderLanguageSelector()
 
     await user.click(trigger)
-    expect(details.open).toBe(true)
+    expect(screen.getByRole('listbox')).toBeInTheDocument()
 
     await user.keyboard('{Escape}')
-    expect(details.open).toBe(false)
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
   })
 })

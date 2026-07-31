@@ -39,6 +39,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.cookie = getLocaleCookie(locale, import.meta.env.VITE_LOCALE_COOKIE_DOMAIN)
     document.documentElement.lang = locale
+    document.title = messages[locale].site.accountName
   }, [locale])
 
   const value = useMemo(
