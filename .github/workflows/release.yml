@@ -1,21 +1,12 @@
 name: Production Release
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/release.yml
-      - Dockerfile
-      - nginx.conf
-      - package.json
-      - pnpm-lock.yaml
-      - index.html
-      - vite.config.ts
-      - tsconfig*.json
-      - src/**
-      - public/**
-      - infra/**
   workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type deploy-account-fe-production
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -43,6 +34,7 @@ jobs:
           corepack pnpm test:run
           corepack pnpm lint
           corepack pnpm build
+          ./scripts/test-release-policy.sh
 
   deploy:
     needs: verify
@@ -62,10 +54,13 @@ jobs:
       AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      RELEASE_CONFIRMATION: ${{ inputs.confirmation }}
     steps:
       - uses: actions/checkout@v5
       - name: Validate release configuration
         run: |
+          [[ "$GITHUB_REF" == "refs/heads/main" ]]
+          [[ "$RELEASE_CONFIRMATION" == "deploy-account-fe-production" ]]
           for name in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID; do
             test -n "${!name:-}" || { echo "Missing repository variable: ${name}" >&2; exit 1; }
           done
@@ -80,6 +75,18 @@ jobs:
       - run: az extension add --name containerapp --upgrade --yes
       - name: Capture rollback revision
         run: |
+          resolve_image_ref() {
+            local image="$1"
+            if [[ "$image" == *@sha256:* ]]; then printf '%s\n' "$image"; return; fi
+            local image_spec="${image#${ACR_LOGIN_SERVER}/}"
+            local repository="${image_spec%:*}"
+            local digest
+            digest="$(az acr repository show --name "$ACR_NAME" --image "$image_spec" \
+              --query digest -o tsv --only-show-errors)"
+            [[ "$digest" == sha256:* ]]
+            printf '%s/%s@%s\n' "$ACR_LOGIN_SERVER" "$repository" "$digest"
+          }
+
           revision="$(az containerapp show -g "$RESOURCE_GROUP" -n "$APP_NAME" \
             --query properties.latestReadyRevisionName -o tsv --only-show-errors)"
           test -n "$revision"
@@ -89,7 +96,7 @@ jobs:
           test -n "$image"
           {
             echo "PREVIOUS_READY_REVISION=$revision"
-            echo "PREVIOUS_IMAGE=$image"
+            echo "PREVIOUS_IMAGE_REF=$(resolve_image_ref "$image")"
           } >> "$GITHUB_ENV"
       - name: Build and push image
         env:
@@ -100,26 +107,30 @@ jobs:
           image_ref="${ACR_LOGIN_SERVER}/${IMAGE_REPOSITORY}:${IMAGE_TAG}"
           docker build --secret id=npmrc,src="$RUNNER_TEMP/npmrc" -t "$image_ref" .
           docker push "$image_ref"
+      - name: Resolve immutable image
+        run: |
+          digest="$(az acr repository show --name "$ACR_NAME" \
+            --image "${IMAGE_REPOSITORY}:${IMAGE_TAG}" --query digest -o tsv --only-show-errors)"
+          [[ "$digest" == sha256:* ]]
+          echo "IMAGE_REF=${ACR_LOGIN_SERVER}/${IMAGE_REPOSITORY}@${digest}" >> "$GITHUB_ENV"
       - name: Deploy
         id: deploy_runtime
         run: |
-          image_ref="${ACR_LOGIN_SERVER}/${IMAGE_REPOSITORY}:${IMAGE_TAG}"
           az deployment group create \
             --name "account-fe-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
             --resource-group "$RESOURCE_GROUP" \
             --template-file infra/main.bicep \
-            --parameters image="$image_ref" provisionPermissions=false \
+            --parameters image="$IMAGE_REF" provisionPermissions=false \
             --only-show-errors --output none
       - name: Wait for revision
         run: |
-          image_ref="${ACR_LOGIN_SERVER}/${IMAGE_REPOSITORY}:${IMAGE_TAG}"
           for attempt in {1..60}; do
             latest="$(az containerapp show -g "$RESOURCE_GROUP" -n "$APP_NAME" --query properties.latestRevisionName -o tsv --only-show-errors)"
             ready="$(az containerapp show -g "$RESOURCE_GROUP" -n "$APP_NAME" --query properties.latestReadyRevisionName -o tsv --only-show-errors)"
             if [[ -n "$latest" && "$latest" == "$ready" ]]; then
               image="$(az containerapp revision show -g "$RESOURCE_GROUP" -n "$APP_NAME" --revision "$ready" \
                 --query properties.template.containers[0].image -o tsv --only-show-errors)"
-              [[ "$image" == "$image_ref" ]] && exit 0
+              [[ "$image" == "$IMAGE_REF" ]] && exit 0
             fi
             sleep 10
           done
@@ -148,6 +159,7 @@ jobs:
             -g "$RESOURCE_GROUP" \
             -n "$APP_NAME" \
             --from-revision "$PREVIOUS_READY_REVISION" \
+            --image "$PREVIOUS_IMAGE_REF" \
             --revision-suffix "rollback-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
             --only-show-errors \
             --output none
@@ -161,7 +173,7 @@ jobs:
               image="$(az containerapp revision show -g "$RESOURCE_GROUP" -n "$APP_NAME" \
                 --revision "$ready" \
                 --query properties.template.containers[0].image -o tsv --only-show-errors)"
-              [[ "$image" == "$PREVIOUS_IMAGE" ]] && exit 0
+              [[ "$image" == "$PREVIOUS_IMAGE_REF" ]] && exit 0
             fi
             sleep 10
           done

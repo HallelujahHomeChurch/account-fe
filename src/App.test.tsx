@@ -108,6 +108,8 @@ describe('App layout', () => {
     expect(screen.getByLabelText(/account menu/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/account menu/i).closest('.hhc-account-menu')).toBeInTheDocument()
     expect(document.querySelector('.account-header')).toHaveClass('account-header')
+    expect(screen.getByRole('link', { name: 'Devices' })).toBeInTheDocument()
+    expect(document.title).toBe('HHC Account')
   })
 
   it('shows a dismissible avatar account dropdown', async () => {
@@ -149,6 +151,7 @@ describe('App layout', () => {
     await user.click(await screen.findByRole('button', { name: /open navigation/i }))
     const dialog = await screen.findByRole('dialog', { name: /account navigation/i })
     expect(dialog.closest('.hhc-modal--drawer-left')).toBeInTheDocument()
+    expect(within(dialog).getByRole('link', { name: 'Devices' })).toBeInTheDocument()
 
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('dialog', { name: /account navigation/i })).not.toBeInTheDocument()

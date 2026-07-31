@@ -1,4 +1,4 @@
-import { createAccountSessionClient } from '@hallelujahhomechurch/account-client'
+import { createAccountSessionClient, type AccountSession } from '@hallelujahhomechurch/account-client'
 
 export type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
@@ -128,6 +128,13 @@ export class AccountApi {
         password: request.password,
       },
     })
+  }
+
+  getSession(): Promise<AccountSession> {
+    return createAccountSessionClient({
+      baseUrl: this.baseUrl,
+      fetcher: this.fetcher as typeof fetch,
+    }).getSession()
   }
 
   async refreshAccessToken() {

@@ -4,6 +4,7 @@ const token = 'mock-access-token'
 const mockTimestamp = (millisecondsAgo: number) => new Date(Date.now() - millisecondsAgo).toISOString()
 
 export class MockAccountApi {
+  private authenticated = false
   private profile: Profile = {
     id: 'mock-admin',
     email: 'admin',
@@ -44,7 +45,22 @@ export class MockAccountApi {
       throw new ApiError(401, 'Mock login accepts admin / admin123')
     }
 
+    this.authenticated = true
     return { access_token: token }
+  }
+
+  async getSession() {
+    return this.authenticated
+      ? {
+          authenticated: true as const,
+          user: {
+            id: this.profile.id,
+            email: this.profile.email,
+            display_name: [this.profile.first_name, this.profile.last_name].filter(Boolean).join(' '),
+            avatar_url: this.profile.avatar_url ?? null,
+          },
+        }
+      : { authenticated: false as const }
   }
 
   async refreshAccessToken() {
@@ -152,11 +168,12 @@ export class MockAccountApi {
   }
 
   async logout() {
+    this.authenticated = false
     return { message: 'Signed out.' }
   }
 
   async logoutAll() {
-    return
+    this.authenticated = false
   }
 
   getSocialLoginUrl(provider: string) {

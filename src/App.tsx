@@ -1,5 +1,5 @@
 import { AccountMenu, Button, Drawer, Toast } from '@hallelujahhomechurch/ui'
-import { Menu, ShieldCheck, UserRound } from 'lucide-react'
+import { Menu, MonitorSmartphone, ShieldCheck, UserRound } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
 import { useAuth } from './auth/auth-context'
@@ -15,6 +15,7 @@ import { OAuthLinkPage } from './pages/OAuthLinkPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { SecurityPage } from './pages/SecurityPage'
+import { DevicesPage } from './pages/DevicesPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
 
 function Layout() {
@@ -24,6 +25,11 @@ function Layout() {
   const isAuthRoute = isAuthRoutePath(location.pathname)
   const isLineBindingRoute = location.pathname === '/line/bind'
   const publicSiteUrl = readRuntimeConfig().publicSiteUrl
+  const navigation = [
+    { icon: UserRound, label: t.nav.personalInfo, path: '/profile' },
+    { icon: ShieldCheck, label: t.nav.security, path: '/security' },
+    { icon: MonitorSmartphone, label: t.nav.devices, path: '/devices' },
+  ]
 
   if (isAuthRoute) {
     return (
@@ -76,14 +82,16 @@ function Layout() {
             <span>{t.site.accountName}</span>
           </Link>
           <nav className="nav-links" aria-label={t.nav.accountNavigation}>
-            <Link aria-current={location.pathname === '/profile' ? 'page' : undefined} to="/profile">
-              <UserRound size={17} />
-              {t.nav.personalInfo}
-            </Link>
-            <Link aria-current={location.pathname === '/security' ? 'page' : undefined} to="/security">
-              <ShieldCheck size={17} />
-              {t.nav.security}
-            </Link>
+            {navigation.map(({ icon: Icon, label, path }) => (
+              <Link
+                key={path}
+                aria-current={location.pathname === path ? 'page' : undefined}
+                to={path}
+              >
+                <Icon size={17} />
+                {label}
+              </Link>
+            ))}
           </nav>
           <div className="sidebar-legal-links">
             <a
@@ -133,22 +141,17 @@ function Layout() {
                     className="nav-links mobile-navigation-links"
                     aria-label={t.nav.accountNavigation}
                   >
-                    <Link
-                      aria-current={location.pathname === '/profile' ? 'page' : undefined}
-                      to="/profile"
-                      onClick={close}
-                    >
-                      <UserRound size={17} />
-                      {t.nav.personalInfo}
-                    </Link>
-                    <Link
-                      aria-current={location.pathname === '/security' ? 'page' : undefined}
-                      to="/security"
-                      onClick={close}
-                    >
-                      <ShieldCheck size={17} />
-                      {t.nav.security}
-                    </Link>
+                    {navigation.map(({ icon: Icon, label, path }) => (
+                      <Link
+                        key={path}
+                        aria-current={location.pathname === path ? 'page' : undefined}
+                        to={path}
+                        onClick={close}
+                      >
+                        <Icon size={17} />
+                        {label}
+                      </Link>
+                    ))}
                   </nav>
                   <div className="sidebar-legal-links mobile-navigation-legal">
                     <a
@@ -197,6 +200,7 @@ function Layout() {
             <Routes>
               <Route element={<ProfilePage />} path="/profile" />
               <Route element={<SecurityPage />} path="/security" />
+              <Route element={<DevicesPage />} path="/devices" />
               <Route element={<Navigate replace to="/profile" />} path="*" />
             </Routes>
           </main>

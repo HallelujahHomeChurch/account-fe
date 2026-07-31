@@ -112,9 +112,9 @@ export function ProfileAvatarEditor({ profile }: { profile: Profile }) {
       {profile.avatar_status === 'failed' ? <p className="avatar-status form-error" role="alert">{t.profile.avatarFailed}</p> : null}
 
       <Modal isOpen={isOpen} onOpenChange={changeOpen}>
-        <Modal.Backdrop className="modal-backdrop">
-          <Modal.Container className="modal-container avatar-modal-container" placement="center">
-            <Modal.Dialog className="modal-dialog avatar-modal-dialog">
+        <Modal.Backdrop>
+          <Modal.Container className="avatar-modal-container" placement="center">
+            <Modal.Dialog className="avatar-modal-dialog">
               <Modal.Header>
                 <Modal.Heading>{t.profile.profilePicture}</Modal.Heading>
               </Modal.Header>
@@ -169,7 +169,7 @@ export function ProfileAvatarEditor({ profile }: { profile: Profile }) {
                 </label>
                 {error ? <p className="form-error">{error}</p> : null}
               </Modal.Body>
-              <Modal.Footer className="modal-actions avatar-modal-actions">
+              <Modal.Footer className="avatar-modal-actions">
                 {profile.avatar_source === 'custom' ? (
                   <Button isDisabled={isSaving} variant="ghost" onPress={removeAvatar}>
                     <Trash2 size={16} aria-hidden="true" />

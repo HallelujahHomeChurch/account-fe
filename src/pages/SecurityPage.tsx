@@ -1,4 +1,5 @@
 import {
+  AlertDialog,
   Button,
   Card,
   Form,
@@ -9,11 +10,11 @@ import {
   REGEXP_ONLY_DIGITS,
   TextField,
 } from '@hallelujahhomechurch/ui'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
-import { ApiError, type Device, type LinkedAccount, type MfaSetup } from '../lib/api'
+import { ApiError, type LinkedAccount, type MfaSetup } from '../lib/api'
 
 type MfaDialog = 'setup' | 'manage' | null
 
@@ -21,9 +22,9 @@ const supportedProviders = ['google', 'line', 'microsoft']
 
 export function SecurityPage() {
   const auth = useAuth()
-  const { locale, messages: t } = useLocale()
-  const [devices, setDevices] = useState<Device[]>([])
+  const { messages: t } = useLocale()
   const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[]>([])
+  const [linkedAccountsError, setLinkedAccountsError] = useState(false)
   const [mfaSetup, setMfaSetup] = useState<MfaSetup | null>(null)
   const [mfaDialog, setMfaDialog] = useState<MfaDialog>(null)
   const [isMfaSetupVerified, setMfaSetupVerified] = useState(false)
@@ -34,12 +35,20 @@ export function SecurityPage() {
   const mfaEnabled = isMfaEnabled ?? Boolean(auth.profile?.mfa?.enabled)
   const visibleLinkedAccounts = linkedAccounts.filter((account) => supportedProviders.includes(account.provider))
 
+  const loadLinkedAccounts = useCallback(async () => {
+    if (!auth.api.listLinkedAccounts) return
+    setLinkedAccountsError(false)
+    try {
+      setLinkedAccounts(await auth.api.listLinkedAccounts())
+    } catch {
+      setLinkedAccountsError(true)
+    }
+  }, [auth.api])
+
   useEffect(() => {
     if (!auth.accessToken || auth.isBootstrapping) return
-
-    auth.api.listDevices?.().then(setDevices).catch(() => setDevices([]))
-    auth.api.listLinkedAccounts?.().then(setLinkedAccounts).catch(() => setLinkedAccounts([]))
-  }, [auth.accessToken, auth.api, auth.isBootstrapping])
+    void loadLinkedAccounts()
+  }, [auth.accessToken, auth.isBootstrapping, loadLinkedAccounts])
 
   async function submitPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -109,6 +118,7 @@ export function SecurityPage() {
       setMessage(t.security.mfaDisabledNotice)
     } catch (caught) {
       setError(errorMessage(caught))
+      throw caught
     }
   }
 
@@ -127,26 +137,17 @@ export function SecurityPage() {
     }
   }
 
-  async function removeDevice(device: Device) {
+  async function unlink(provider: string) {
     setError('')
+    setMessage('')
     try {
-      await auth.api.logoutDevice?.(device.id)
-      if (device.is_current) {
-        await auth.logout()
-        return
-      }
-      setDevices((current) =>
-        current.map((item) => (item.id === device.id ? { ...item, is_signed_in: false } : item)),
-      )
+      await auth.api.unlinkAccount?.(provider)
+      setLinkedAccounts((current) => current.filter((account) => account.provider !== provider))
+      setMessage(t.security.providerRemoved)
     } catch (caught) {
       setError(errorMessage(caught))
+      throw caught
     }
-  }
-
-  async function unlink(provider: string) {
-    await auth.api.unlinkAccount?.(provider)
-    setLinkedAccounts((current) => current.filter((account) => account.provider !== provider))
-    setMessage(t.security.providerRemoved)
   }
 
   if (auth.isBootstrapping || !auth.profile) return <p className="inline-status">{t.security.loading}</p>
@@ -174,7 +175,14 @@ export function SecurityPage() {
               {t.security.change}
             </Button>
           </div>
-          {visibleLinkedAccounts.length ? (
+          {linkedAccountsError ? (
+            <div className="settings-row">
+              <p className="muted-copy">{t.security.linkedAccountsLoadFailed}</p>
+              <Button variant="secondary" onPress={() => void loadLinkedAccounts()}>
+                {t.security.retry}
+              </Button>
+            </div>
+          ) : visibleLinkedAccounts.length ? (
             visibleLinkedAccounts.map((account) => {
               const provider = providerLabel(account.provider, t.security)
 
@@ -182,15 +190,23 @@ export function SecurityPage() {
                 <div key={account.provider} className="settings-row">
                   <div className="settings-row-copy">
                     <span className="settings-row-label">{provider}</span>
-                    <strong>{account.provider_id ?? provider}</strong>
+                    <strong>{t.security.linked}</strong>
                   </div>
-                  <Button
-                    aria-label={formatMessage(t.security.removeProviderLabel, { provider })}
-                    variant="ghost"
-                    onPress={() => void unlink(account.provider)}
-                  >
-                    {t.security.removeProvider}
-                  </Button>
+                  <AlertDialog
+                    cancelLabel={t.security.cancel}
+                    confirmLabel={t.security.removeProvider}
+                    description={formatMessage(t.security.removeProviderDescription, { provider })}
+                    title={formatMessage(t.security.removeProviderTitle, { provider })}
+                    trigger={
+                      <Button
+                        aria-label={formatMessage(t.security.removeProviderLabel, { provider })}
+                        variant="ghost"
+                      >
+                        {t.security.removeProvider}
+                      </Button>
+                    }
+                    onConfirm={() => unlink(account.provider)}
+                  />
                 </div>
               )
             })
@@ -223,48 +239,6 @@ export function SecurityPage() {
         </Card.Content>
       </Card>
 
-      <Card className="panel-card settings-card">
-        <Card.Header>
-          <Card.Title>{t.security.devices}</Card.Title>
-        </Card.Header>
-        <Card.Content className="settings-list">
-          {devices.length ? (
-      devices.map((device) => {
-        const deviceName = device.display_name || `${device.browser} on ${device.os}`
-
-        return (
-          <div key={device.id} className="settings-row device-row">
-            <div className="settings-row-copy device-row-copy">
-              <div className="device-heading">
-                <strong>{deviceName}</strong>
-                {device.is_current ? <span className="device-status">{t.security.currentDevice}</span> : null}
-                {!device.is_signed_in ? <span className="device-status is-signed-out">{t.security.signedOut}</span> : null}
-              </div>
-              <span className="device-platform">{device.browser} · {device.os}</span>
-              <div className="device-metadata">
-                <span>{t.security.lastActive}: <time dateTime={device.last_active_at}>{relativeTime(device.last_active_at, locale)}</time></span>
-                <span>{t.security.lastSignIn}: <time dateTime={device.last_login_at}>{relativeTime(device.last_login_at, locale)}</time></span>
-                {device.ip_address ? <span>{t.security.ipAddress}: {device.ip_address}</span> : null}
-              </div>
-            </div>
-            {device.is_signed_in ? (
-              <Button
-                aria-label={formatMessage(t.security.signOutDeviceLabel, { device: deviceName })}
-                variant="ghost"
-                onPress={() => void removeDevice(device)}
-              >
-                {t.security.signOutDevice}
-              </Button>
-            ) : null}
-          </div>
-              )
-            })
-          ) : (
-            <p className="muted-copy">{t.security.noDevices}</p>
-          )}
-        </Card.Content>
-      </Card>
-
       <PasswordDialog
         isOpen={isPasswordDialogOpen}
         labels={t.security}
@@ -276,32 +250,13 @@ export function SecurityPage() {
         labels={t.security}
         mfaSetup={mfaSetup}
         setupVerified={isMfaSetupVerified}
-        onDisable={() => void disableMfa()}
+        onDisable={disableMfa}
         onOpenChange={(open) => setMfaDialog(open ? mfaDialog : null)}
         onRegenerate={() => void regenerateBackupCodes()}
         onSubmitSetup={submitMfaSetup}
       />
     </section>
   )
-}
-
-function relativeTime(value: string, locale: string) {
-  const timestamp = Date.parse(value)
-  if (!Number.isFinite(timestamp)) return value
-  const seconds = Math.round((timestamp - Date.now()) / 1000)
-  const units: Array<[Intl.RelativeTimeFormatUnit, number]> = [
-    ['year', 365 * 24 * 60 * 60],
-    ['month', 30 * 24 * 60 * 60],
-    ['day', 24 * 60 * 60],
-    ['hour', 60 * 60],
-    ['minute', 60],
-  ]
-  for (const [unit, size] of units) {
-    if (Math.abs(seconds) >= size) {
-      return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(Math.round(seconds / size), unit)
-    }
-  }
-  return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(seconds, 'second')
 }
 
 function PasswordDialog({
@@ -317,14 +272,14 @@ function PasswordDialog({
 }) {
   return (
     <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
-      <Modal.Backdrop className="modal-backdrop">
-        <Modal.Container className="modal-container" placement="center">
-          <Modal.Dialog className="modal-dialog">
+      <Modal.Backdrop>
+        <Modal.Container placement="center">
+          <Modal.Dialog>
             <Modal.Header>
               <Modal.Heading>{labels.changePassword}</Modal.Heading>
             </Modal.Header>
             <Form onSubmit={onSubmit}>
-              <Modal.Body className="modal-form-grid">
+              <Modal.Body>
                 <TextField isRequired name="old_password" type="password">
                   <Label>{labels.currentPassword}</Label>
                   <Input autoComplete="current-password" />
@@ -334,7 +289,7 @@ function PasswordDialog({
                   <Input autoComplete="new-password" />
                 </TextField>
               </Modal.Body>
-              <Modal.Footer className="modal-actions">
+              <Modal.Footer>
                 <Button variant="ghost" onPress={() => onOpenChange(false)}>
                   {labels.cancel}
                 </Button>
@@ -362,7 +317,7 @@ function MfaDialogContent({
   labels: Record<string, string>
   mfaSetup: MfaSetup | null
   setupVerified: boolean
-  onDisable: () => void
+  onDisable: () => Promise<void>
   onOpenChange: (isOpen: boolean) => void
   onRegenerate: () => void
   onSubmitSetup: (event: FormEvent<HTMLFormElement>) => void
@@ -371,15 +326,15 @@ function MfaDialogContent({
 
   return (
     <Modal isOpen={Boolean(dialog)} onOpenChange={onOpenChange}>
-      <Modal.Backdrop className="modal-backdrop">
-        <Modal.Container className="modal-container" placement="center">
-          <Modal.Dialog className="modal-dialog">
+      <Modal.Backdrop>
+        <Modal.Container placement="center">
+          <Modal.Dialog>
             <Modal.Header>
               <Modal.Heading>{labels.mfa}</Modal.Heading>
             </Modal.Header>
             {isSetup ? (
               <Form onSubmit={onSubmitSetup}>
-                <Modal.Body className="modal-form-grid">
+                <Modal.Body>
                   {mfaSetup?.qr_code_url ? (
                     <img className="mfa-qr-code" src={mfaSetup.qr_code_url} alt={labels.mfa} />
                   ) : mfaSetup?.otpauth_url ? (
@@ -402,7 +357,7 @@ function MfaDialogContent({
                     <BackupCodes codes={mfaSetup.backup_codes} label={labels.backupCodes} />
                   ) : null}
                 </Modal.Body>
-                <Modal.Footer className="modal-actions">
+                <Modal.Footer>
                   <Button variant="ghost" onPress={() => onOpenChange(false)}>
                     {labels.cancel}
                   </Button>
@@ -411,21 +366,26 @@ function MfaDialogContent({
               </Form>
             ) : (
               <>
-                <Modal.Body className="modal-form-grid">
+                <Modal.Body>
                   {setupVerified && mfaSetup?.backup_codes?.length ? (
                     <BackupCodes codes={mfaSetup.backup_codes} label={labels.backupCodes} />
                   ) : null}
                 </Modal.Body>
-                <Modal.Footer className="modal-actions">
+                <Modal.Footer>
                   <Button variant="ghost" onPress={() => onOpenChange(false)}>
                     {labels.cancel}
                   </Button>
                   <Button variant="secondary" onPress={onRegenerate}>
                     {labels.regenerateBackupCodes}
                   </Button>
-                  <Button variant="danger" onPress={onDisable}>
-                    {labels.disableMfa}
-                  </Button>
+                  <AlertDialog
+                    cancelLabel={labels.cancel}
+                    confirmLabel={labels.disableMfa}
+                    description={labels.disableMfaDescription}
+                    title={labels.disableMfaTitle}
+                    trigger={<Button variant="danger">{labels.disableMfa}</Button>}
+                    onConfirm={onDisable}
+                  />
                 </Modal.Footer>
               </>
             )}

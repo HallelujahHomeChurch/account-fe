@@ -26,6 +26,7 @@ jobs:
       - run: corepack pnpm test:run
       - run: corepack pnpm lint
       - run: corepack pnpm build
+      - run: ./scripts/test-release-policy.sh
       - name: Build image
         run: |
           printf '@hallelujahhomechurch:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=%s\n' "$GITHUB_TOKEN" > "$RUNNER_TEMP/npmrc"

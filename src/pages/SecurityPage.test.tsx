@@ -18,11 +18,6 @@ describe('SecurityPage', () => {
         mfa: { enabled: false },
       }),
       logout: async () => ({}),
-      listDevices: async () => [{
-        id: 'device-1', display_name: 'Personal Mac', device_type: 'desktop', browser: 'Chrome', os: 'macOS',
-        ip_address: '203.0.113.10', first_seen_at: '2026-07-01T00:00:00Z', last_login_at: '2026-07-11T00:00:00Z',
-        last_active_at: '2026-07-12T00:00:00Z', is_current: false, is_signed_in: true,
-      }],
       listLinkedAccounts: async () => [{ provider: 'google' }],
       changePassword: async (body) => {
         passwordBody = body
@@ -38,7 +33,7 @@ describe('SecurityPage', () => {
       </MemoryRouter>,
     )
 
-    await screen.findByText('Personal Mac')
+    await screen.findAllByText('Google')
     expect(screen.queryByLabelText('Current password')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('New password')).not.toBeInTheDocument()
 
@@ -64,7 +59,6 @@ describe('SecurityPage', () => {
         mfa: { enabled: false },
       }),
       logout: async () => ({}),
-      listDevices: async () => [],
       listLinkedAccounts: async () => [],
       setupMfa: async () => {
         calls.push('setup')
@@ -104,7 +98,7 @@ describe('SecurityPage', () => {
     expect(await screen.findByText('11111111')).toBeInTheDocument()
   })
 
-  it('manages linked sign-in methods and devices from settings rows', async () => {
+  it('manages linked sign-in methods from settings rows', async () => {
     const calls: string[] = []
     const api: AuthApi = {
       login: async () => ({ access_token: 'token' }),
@@ -116,17 +110,9 @@ describe('SecurityPage', () => {
         mfa: { enabled: true },
       }),
       logout: async () => ({}),
-      listDevices: async () => [{
-        id: 'device-1', display_name: 'Chrome on macOS', device_type: 'desktop', browser: 'Chrome', os: 'macOS',
-        ip_address: '203.0.113.10', first_seen_at: '2026-07-01T00:00:00Z', last_login_at: '2026-07-11T00:00:00Z',
-        last_active_at: '2026-07-12T00:00:00Z', is_current: false, is_signed_in: true,
-      }],
       listLinkedAccounts: async () => [{ provider: 'google' }],
       unlinkAccount: async (provider) => {
         calls.push(`unlink:${provider}`)
-      },
-      logoutDevice: async (deviceId) => {
-    calls.push(`device:${deviceId}`)
       },
     }
 
@@ -143,40 +129,9 @@ describe('SecurityPage', () => {
     expect(screen.queryByText('Linked accounts')).not.toBeInTheDocument()
 
     await userEvent.click(await screen.findByRole('button', { name: /remove google/i }))
+    expect(screen.getByRole('alertdialog', { name: /remove google sign-in/i })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /^remove$/i }))
     expect(calls).toContain('unlink:google')
 
-    await userEvent.click(await screen.findByRole('button', { name: /sign out chrome on macos/i }))
-    expect(calls).toContain('device:device-1')
-    expect(await screen.findByText('Signed out')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /sign out chrome on macos/i })).not.toBeInTheDocument()
-  })
-
-  it('clears the local auth state when signing out the current device', async () => {
-    const calls: string[] = []
-    const api: AuthApi = {
-      login: async () => ({ access_token: 'token' }),
-      refreshAccessToken: async () => 'token',
-      me: async () => ({ id: 'u1', email: 'ray@example.com', mfa: { enabled: false } }),
-      logout: async () => { calls.push('logout'); return {} },
-      listLinkedAccounts: async () => [],
-      listDevices: async () => [{
-        id: 'current-device', display_name: 'This Mac', device_type: 'desktop', browser: 'Chrome', os: 'macOS',
-        ip_address: '203.0.113.10', first_seen_at: '2026-07-01T00:00:00Z', last_login_at: '2026-07-11T00:00:00Z',
-        last_active_at: '2026-07-12T00:00:00Z', is_current: true, is_signed_in: true,
-      }],
-      logoutDevice: async (deviceId) => { calls.push(`device:${deviceId}`) },
-    }
-
-    render(
-      <MemoryRouter>
-        <AuthProvider api={api}>
-          <SecurityPage />
-        </AuthProvider>
-      </MemoryRouter>,
-    )
-
-    expect(await screen.findByText('Current device')).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: /sign out this mac/i }))
-    expect(calls).toEqual(['device:current-device', 'logout'])
   })
 })

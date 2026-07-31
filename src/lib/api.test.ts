@@ -10,6 +10,22 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 describe('AccountApi', () => {
+  it('reads the non-rotating account session summary', async () => {
+    const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
+    const api = new AccountApi({
+      baseUrl: '/api/account/v1',
+      fetcher: async (input, init) => {
+        calls.push({ input, init })
+        return jsonResponse({ authenticated: false })
+      },
+    })
+
+    await expect(api.getSession()).resolves.toEqual({ authenticated: false })
+    expect(calls).toHaveLength(1)
+    expect(String(calls[0]?.input)).toBe('/api/account/v1/session')
+    expect(calls[0]?.init).toMatchObject({ method: 'GET', credentials: 'include', cache: 'no-store' })
+  })
+
   it('accepts the direct profile redirect contract', async () => {
     const api = new AccountApi({
       baseUrl: '/api/account/v1',

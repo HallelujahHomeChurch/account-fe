@@ -1,5 +1,8 @@
 /* oxlint-disable react/only-export-components */
 import {
+  type AccountSession,
+} from '@hallelujahhomechurch/account-client'
+import {
   createContext,
   useCallback,
   useContext,
@@ -9,8 +12,6 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { useLocation } from 'react-router-dom'
-
 import { AccountApi, type LoginRequest, type LoginResponse, type Profile } from '../lib/api'
 import { MockAccountApi } from '../lib/mock-account-api'
 import {
@@ -18,7 +19,6 @@ import {
   readRuntimeConfig,
   type RuntimeConfig,
 } from '../lib/redirects'
-import { isAuthRoutePath } from './auth-routes'
 
 export type MfaChallenge = {
   type: 'verification_required'
@@ -26,6 +26,7 @@ export type MfaChallenge = {
 }
 
 export type AuthApi = {
+  getSession?: () => Promise<AccountSession>
   login: (request: LoginRequest) => Promise<LoginResponse>
   me: () => Promise<Profile>
   refreshAccessToken: () => Promise<string | null>
@@ -37,12 +38,14 @@ type AuthContextValue = {
   profile: Profile | null
   mfaChallenge: MfaChallenge | null
   isBootstrapping: boolean
+  bootstrapError: string | null
   logoutError: string | null
   api: AuthApi
   login: (request: LoginRequest) => Promise<LoginResponse>
   completeLogin: (response: LoginResponse) => Promise<LoginResponse>
   refreshProfile: () => Promise<Profile>
   logout: () => Promise<void>
+  clearLocalSession: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -71,7 +74,12 @@ export function AuthProvider({
   const [profile, setProfile] = useState<Profile | null>(null)
   const [mfaChallenge, setMfaChallenge] = useState<MfaChallenge | null>(null)
   const [isBootstrapping, setIsBootstrapping] = useState(true)
+  const [bootstrapError, setBootstrapError] = useState<string | null>(null)
   const [logoutError, setLogoutError] = useState<string | null>(null)
+  const bootstrapRef = useRef<{
+    api: AuthApi
+    promise: Promise<{ token: string | null; profile: Profile | null }>
+  } | null>(null)
 
   const writeAccessToken = useCallback((token: string | null) => {
     tokenRef.current = token
@@ -142,35 +150,55 @@ export function AuthProvider({
     }
   }, [api, navigateAfterLogout, writeAccessToken])
 
+  const clearLocalSession = useCallback(() => {
+    writeAccessToken(null)
+    setProfile(null)
+    setMfaChallenge(null)
+    navigateAfterLogout('/login?signed_out=1')
+  }, [navigateAfterLogout, writeAccessToken])
+
   useEffect(() => {
     let alive = true
 
-    async function bootstrap() {
-      if (!restoreSession) {
-        setIsBootstrapping(false)
-        return
+    if (!restoreSession) {
+      setIsBootstrapping(false)
+      return () => {
+        alive = false
       }
-
-      const token = await api.refreshAccessToken()
-      if (!alive) return
-
-      if (token) {
-        writeAccessToken(token)
-        await refreshProfile().catch(() => {
-          writeAccessToken(null)
-          setProfile(null)
-        })
-      }
-
-      if (alive) setIsBootstrapping(false)
     }
 
-    bootstrap().catch(() => {
-      if (!alive) return
-      writeAccessToken(null)
-      setProfile(null)
-      setIsBootstrapping(false)
-    })
+    if (!bootstrapRef.current || bootstrapRef.current.api !== api) {
+      bootstrapRef.current = {
+        api,
+        promise: (async () => {
+          const session = api.getSession
+            ? await api.getSession()
+            : { authenticated: true as const, user: undefined }
+          if (!session.authenticated) return { token: null, profile: null }
+
+          const token = await api.refreshAccessToken()
+          if (!token) return { token: null, profile: null }
+          return { token, profile: await api.me() }
+        })(),
+      }
+    }
+
+    setBootstrapError(null)
+    bootstrapRef.current.promise
+      .then((result) => {
+        if (!alive) return
+        writeAccessToken(result.token)
+        setProfile(result.profile)
+      })
+      .catch(() => {
+        if (!alive) return
+        writeAccessToken(null)
+        setProfile(null)
+        setBootstrapError('Unable to check your sign-in status. Try again.')
+      })
+      .finally(() => {
+        if (alive) setIsBootstrapping(false)
+      })
 
     return () => {
       alive = false
@@ -183,24 +211,24 @@ export function AuthProvider({
       profile,
       mfaChallenge,
       isBootstrapping,
+      bootstrapError,
       logoutError,
       api,
       login,
       completeLogin,
       refreshProfile,
       logout,
+      clearLocalSession,
     }),
-    [accessToken, api, completeLogin, isBootstrapping, login, logout, logoutError, mfaChallenge, profile, refreshProfile],
+    [accessToken, api, bootstrapError, clearLocalSession, completeLogin, isBootstrapping, login, logout, logoutError, mfaChallenge, profile, refreshProfile],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function RoutedAuthProvider({ children, api, config }: AuthProviderProps) {
-  const location = useLocation()
-
   return (
-    <AuthProvider api={api} config={config} restoreSession={!isAuthRoutePath(location.pathname)}>
+    <AuthProvider api={api} config={config}>
       {children}
     </AuthProvider>
   )
