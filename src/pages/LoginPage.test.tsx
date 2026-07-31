@@ -146,6 +146,35 @@ describe('LoginPage', () => {
     expect(await screen.findByRole('heading', { name: /profile reached/i })).toBeInTheDocument()
   })
 
+  it('continues an existing account session without showing a refresh error', async () => {
+    const refreshAccessToken = vi.fn(async () => 'token')
+    const api: AuthApi = {
+      getSession: async () => ({
+        authenticated: true,
+        user: { id: 'u1', email: 'admin', display_name: 'Admin', avatar_url: null },
+      }),
+      login: async () => ({}),
+      me: async () => ({ id: 'u1', email: 'admin' }),
+      refreshAccessToken,
+      logout: async () => ({}),
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/login?return_to=/security']}>
+        <AuthProvider api={api}>
+          <Routes>
+            <Route element={<LoginPage />} path="/login" />
+            <Route element={<h1>Security reached</h1>} path="/security" />
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { name: 'Security reached' })).toBeInTheDocument()
+    expect(refreshAccessToken).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('ACC_AUTH_REFRESH_TOKEN_REQUIRED')).not.toBeInTheDocument()
+  })
+
   it('keeps forgot password with the password field instead of the action row', () => {
     const api: AuthApi = {
       login: async () => ({ access_token: 'token' }),

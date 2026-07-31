@@ -89,6 +89,11 @@ export function LoginPage() {
     t.login.signedOut,
   ])
 
+  useEffect(() => {
+    if (authRequestId || auth.isBootstrapping || !auth.profile) return
+    navigate(returnTo, { replace: true })
+  }, [auth.isBootstrapping, auth.profile, authRequestId, navigate, returnTo])
+
   async function submitLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
@@ -155,7 +160,7 @@ export function LoginPage() {
             </>
           ) : null}
 
-          {error ? <p className="form-error">{error}</p> : null}
+          {error || auth.bootstrapError ? <p className="form-error">{error || auth.bootstrapError}</p> : null}
           {notice ? <p className="form-notice">{notice}</p> : null}
 
           {challenge ? (

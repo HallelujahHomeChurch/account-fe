@@ -1,6 +1,7 @@
 import { MemoryRouter } from 'react-router-dom'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { StrictMode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider, RoutedAuthProvider, useAuth, type AuthApi } from './auth-context'
@@ -41,7 +42,12 @@ function MockLoginProbe() {
 function BootstrapProbe() {
   const auth = useAuth()
 
-  return <div>{auth.isBootstrapping ? 'bootstrapping' : 'ready'}</div>
+  return (
+    <div>
+      <span>{auth.isBootstrapping ? 'bootstrapping' : 'ready'}</span>
+      <span role="alert">{auth.bootstrapError}</span>
+    </div>
+  )
 }
 
 function LogoutProbe() {
@@ -164,9 +170,11 @@ describe('AuthProvider', () => {
     expect(screen.getByTestId('token')).toBeEmptyDOMElement()
   })
 
-  it('does not refresh the session on public auth routes', async () => {
+  it('checks the session without refreshing on anonymous auth routes', async () => {
+    const getSession = vi.fn(async () => ({ authenticated: false as const }))
     const refreshAccessToken = vi.fn(async () => null)
     const api: AuthApi = {
+      getSession,
       login: async () => ({ access_token: 'access-123' }),
       me: async () => ({ id: 'u1', email: 'admin@example.com' }),
       refreshAccessToken,
@@ -182,14 +190,21 @@ describe('AuthProvider', () => {
     )
 
     expect(await screen.findByText('ready')).toBeInTheDocument()
+    expect(getSession).toHaveBeenCalledTimes(1)
     expect(refreshAccessToken).not.toHaveBeenCalled()
   })
 
-  it('refreshes the session on protected account routes', async () => {
-    const refreshAccessToken = vi.fn(async () => null)
+  it('refreshes and loads the profile only when a session exists', async () => {
+    const getSession = vi.fn(async () => ({
+      authenticated: true as const,
+      user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+    }))
+    const refreshAccessToken = vi.fn(async () => 'access-123')
+    const me = vi.fn(async () => ({ id: 'u1', email: 'admin@example.com' }))
     const api: AuthApi = {
+      getSession,
       login: async () => ({ access_token: 'access-123' }),
-      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      me,
       refreshAccessToken,
       logout: async () => ({}),
     }
@@ -203,6 +218,54 @@ describe('AuthProvider', () => {
     )
 
     await waitFor(() => expect(refreshAccessToken).toHaveBeenCalledTimes(1))
+    expect(getSession).toHaveBeenCalledTimes(1)
+    expect(me).toHaveBeenCalledTimes(1)
     expect(await screen.findByText('ready')).toBeInTheDocument()
+  })
+
+  it('shares one session bootstrap across StrictMode effect replay', async () => {
+    const getSession = vi.fn(async () => ({ authenticated: false as const }))
+    const refreshAccessToken = vi.fn(async () => null)
+    const api: AuthApi = {
+      getSession,
+      login: async () => ({}),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken,
+      logout: async () => ({}),
+    }
+
+    render(
+      <StrictMode>
+        <AuthProvider api={api}>
+          <BootstrapProbe />
+        </AuthProvider>
+      </StrictMode>,
+    )
+
+    expect(await screen.findByText('ready')).toBeInTheDocument()
+    expect(getSession).toHaveBeenCalledTimes(1)
+    expect(refreshAccessToken).not.toHaveBeenCalled()
+  })
+
+  it('shows a recoverable error without attempting refresh when session lookup fails', async () => {
+    const refreshAccessToken = vi.fn(async () => null)
+    const api: AuthApi = {
+      getSession: async () => {
+        throw new Error('unavailable')
+      },
+      login: async () => ({}),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken,
+      logout: async () => ({}),
+    }
+
+    render(
+      <AuthProvider api={api}>
+        <BootstrapProbe />
+      </AuthProvider>,
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to check your sign-in status. Try again.')
+    expect(refreshAccessToken).not.toHaveBeenCalled()
   })
 })
