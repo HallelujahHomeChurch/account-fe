@@ -67,6 +67,11 @@ export const messages = {
       unavailable: '目前無法完成連結，請稍後再試。',
       backToLogin: '返回登入',
     },
+    oauthCallback: {
+      completing: '正在完成登入...',
+      failed: '無法完成登入，請再試一次。',
+      retry: '重新登入',
+    },
     passwordRecovery: {
       section: '密碼',
       forgotTitle: '忘記密碼',
@@ -243,6 +248,11 @@ export const messages = {
       unavailable: '目前无法完成关联，请稍后再试。',
       backToLogin: '返回登录',
     },
+    oauthCallback: {
+      completing: '正在完成登录...',
+      failed: '无法完成登录，请重试。',
+      retry: '重新登录',
+    },
     passwordRecovery: {
       section: '密码',
       forgotTitle: '忘记密码',
@@ -418,6 +428,11 @@ export const messages = {
       conflict: 'This social account is already linked to another account.',
       unavailable: 'Unable to complete this link right now. Try again.',
       backToLogin: 'Back to sign in',
+    },
+    oauthCallback: {
+      completing: 'Completing sign-in...',
+      failed: 'Unable to complete sign-in. Try again.',
+      retry: 'Sign in again',
     },
     passwordRecovery: {
       section: 'Password',
