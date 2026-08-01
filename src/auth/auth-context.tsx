@@ -376,7 +376,24 @@ export function AuthProvider({
   const revalidateSession = useCallback(() => {
     if (revalidationRef.current) return revalidationRef.current
     const revision = authRevisionRef.current
-    const request = resolveState(revision)
+    const resolveRevalidation = async () => {
+      if (stateRef.current.status !== 'authenticated' || !tokenRef.current || !api.getSession) {
+        return resolveState(revision)
+      }
+      const session = await resolveAccountAuth({ getSession: api.getSession })
+      if (session.status === 'anonymous') return { ...emptyAuthState, status: 'anonymous' as const }
+      if (session.status === 'unavailable') {
+        return { ...stateRef.current, status: 'unavailable' as const, bootstrapError: 'Unable to check your sign-in status. Try again.' }
+      }
+      try {
+        const profile = await api.me()
+        return { ...stateRef.current, accessToken: tokenRef.current, profile, bootstrapError: null }
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) return resolveState(revision)
+        return { ...stateRef.current, status: 'unavailable' as const, bootstrapError: 'Unable to check your sign-in status. Try again.' }
+      }
+    }
+    const request = resolveRevalidation()
       .then((next) => {
         if (revision === authRevisionRef.current) commitState(next)
       })
@@ -385,7 +402,7 @@ export function AuthProvider({
       })
     revalidationRef.current = request
     return request
-  }, [commitState, resolveState])
+  }, [api, commitState, resolveState])
 
   useEffect(() => {
     let alive = true
@@ -415,6 +432,7 @@ export function AuthProvider({
           && !isAuthRoutePath(initialRouteRef.current.pathname)
         if (result.status === 'anonymous' && shouldAuthorize) {
           await beginAuthorization(currentReturnTo(initialRouteRef.current))
+          return
         }
         if (alive && bootstrapRef.current?.revision === authRevisionRef.current) commitState(result)
       })

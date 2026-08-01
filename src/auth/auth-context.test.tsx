@@ -310,13 +310,17 @@ describe('AuthProvider', () => {
       .fn<() => Promise<string | null>>()
       .mockResolvedValueOnce('access-123')
       .mockRejectedValueOnce(new ApiError(401, 'invalid refresh'))
+    const me = vi
+      .fn()
+      .mockResolvedValueOnce({ id: 'u1', email: 'admin@example.com' })
+      .mockRejectedValueOnce(new ApiError(401, 'expired access token'))
     const api: AuthApi = {
       getSession: async () => ({
         authenticated: true as const,
         user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
       }),
       login: async () => ({}),
-      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      me,
       refreshAccessToken,
       logout: async () => ({}),
     }
@@ -342,11 +346,12 @@ describe('AuthProvider', () => {
       authenticated: true as const,
       user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
     }))
+    const refreshAccessToken = vi.fn(async () => 'access-123')
     const api: AuthApi = {
       getSession,
       login: async () => ({}),
       me: async () => ({ id: 'u1', email: 'admin@example.com' }),
-      refreshAccessToken: async () => 'access-123',
+      refreshAccessToken,
       logout: async () => ({}),
     }
 
@@ -362,6 +367,7 @@ describe('AuthProvider', () => {
     window.dispatchEvent(new Event('focus'))
 
     await waitFor(() => expect(getSession).toHaveBeenCalledTimes(2))
+    expect(refreshAccessToken).toHaveBeenCalledTimes(1)
   })
 
   it('starts one authorization transaction for a protected route without a local session', async () => {
@@ -404,6 +410,8 @@ describe('AuthProvider', () => {
     expect(authorizeUrl.searchParams.get('code_challenge_method')).toBe('S256')
     expect(refreshAccessToken).not.toHaveBeenCalled()
     expect(sessionStorage.getItem('hhc_account_oauth_transaction')).toContain('/security?tab=mfa#codes')
+    expect(screen.getByTestId('status')).toHaveTextContent('loading')
+    expect(screen.queryByText('ready')).not.toBeInTheDocument()
   })
 
   it('does not start authorization from the login route', async () => {
