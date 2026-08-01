@@ -194,6 +194,7 @@ describe('AccountApi', () => {
     const firstRequest = first.refreshAccessToken()
     const secondRequest = second.refreshAccessToken()
 
+    await new Promise((resolve) => setTimeout(resolve, 0))
     expect(csrfCalls).toBe(1)
     releaseCsrf(jsonResponse({ csrf_token: 'csrf-shared' }))
     await new Promise((resolve) => setTimeout(resolve, 0))
@@ -202,6 +203,52 @@ describe('AccountApi', () => {
     releaseRefresh(jsonResponse({ access_token: 'new-token' }))
     await expect(Promise.all([firstRequest, secondRequest])).resolves.toEqual(['new-token', 'new-token'])
     expect(tokens).toEqual(['new-token', 'new-token'])
+  })
+
+  it('retries a superseded refresh once and preserves other errors', async () => {
+    let refreshCalls = 0
+    const api = new AccountApi({
+      baseUrl: '/api/account/v1',
+      fetcher: async (input) => {
+        if (String(input).endsWith('/csrf-token')) return jsonResponse({ csrf_token: 'csrf-123' })
+        refreshCalls += 1
+        return refreshCalls === 1
+          ? jsonResponse({ error_code: 'ACC_AUTH_REFRESH_SUPERSEDED' }, 409)
+          : jsonResponse({ access_token: 'new-token' })
+      },
+    })
+
+    await expect(api.refreshAccessToken()).resolves.toBe('new-token')
+    expect(refreshCalls).toBe(2)
+
+    const unavailable = new AccountApi({
+      baseUrl: '/api/account/unavailable',
+      fetcher: async (input) => String(input).endsWith('/csrf-token')
+        ? jsonResponse({ csrf_token: 'csrf-123' })
+        : jsonResponse({ message: 'unavailable' }, 503),
+    })
+    await expect(unavailable.refreshAccessToken()).rejects.toMatchObject({ status: 503 })
+  })
+
+  it('refreshes an invalid CSRF token once', async () => {
+    let csrfCalls = 0
+    let mutationCalls = 0
+    const api = new AccountApi({
+      baseUrl: '/api/account/csrf-retry',
+      fetcher: async (input) => {
+        if (String(input).endsWith('/csrf-token')) {
+          csrfCalls += 1
+          return jsonResponse({ csrf_token: `csrf-${csrfCalls}` })
+        }
+        mutationCalls += 1
+        return mutationCalls === 1
+          ? jsonResponse({ error_code: 'ACC_CSRF_TOKEN_INVALID' }, 403)
+          : jsonResponse({ message: 'ok' })
+      },
+    })
+
+    await expect(api.forgotPassword('user@example.com')).resolves.toMatchObject({ message: 'ok' })
+    expect({ csrfCalls, mutationCalls }).toEqual({ csrfCalls: 2, mutationCalls: 2 })
   })
 
   it('maps profile and security helpers to account-api endpoints', async () => {
@@ -327,6 +374,7 @@ describe('AccountApi', () => {
     const firstRequest = first.forgotPassword('first@example.com')
     const secondRequest = second.forgotPassword('second@example.com')
 
+    await new Promise((resolve) => setTimeout(resolve, 0))
     expect(csrfCalls).toBe(1)
     releaseCsrf(jsonResponse({ csrf_token: 'csrf-shared' }))
     await Promise.all([firstRequest, secondRequest])

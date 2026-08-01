@@ -59,8 +59,23 @@ function Layout() {
     )
   }
 
+  if (auth.status === 'unavailable' && !auth.profile) {
+    return (
+      <div className="app-shell">
+        <main className="auth-main-panel">
+          <div role="alert">
+            <p className="form-error">{auth.bootstrapError}</p>
+            <Button onPress={() => void auth.retrySession()} variant="secondary">
+              {t.security.retry}
+            </Button>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
   if (!auth.profile) {
-    return <Navigate replace to={loginPath(`${location.pathname}${location.search}`)} />
+    return <Navigate replace to={loginPath(`${location.pathname}${location.search}${location.hash}`)} />
   }
 
   if (isLineBindingRoute) {

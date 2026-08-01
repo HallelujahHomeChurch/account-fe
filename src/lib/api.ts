@@ -1,6 +1,8 @@
 import {
   createAccountSessionClient,
+  createRefreshCoordinator,
   exchangeAuthorizationCode,
+  retrySupersededRefresh,
   type AccountSession,
   type OAuthClientConfig,
   type OAuthTransaction,
@@ -88,10 +90,11 @@ type RequestOptions = {
   body?: unknown
   auth?: boolean
   retry?: boolean
+  csrfRetry?: boolean
 }
 
 const csrfTokenRequests = new Map<string, Promise<string>>()
-const refreshTokenRequests = new Map<string, Promise<string | null>>()
+const refreshCoordinator = createRefreshCoordinator()
 
 export class ApiError extends Error {
   status: number
@@ -148,23 +151,17 @@ export class AccountApi {
   }
 
   async refreshAccessToken() {
-    let request = refreshTokenRequests.get(this.baseUrl)
-    if (!request) {
-      request = this.request<{ access_token?: string }>('/refresh', {
-        method: 'POST',
-        auth: false,
-        retry: false,
-        body: {},
-      })
-        .then((response) => response.access_token ?? null)
-        .catch(() => null)
-        .finally(() => {
-          refreshTokenRequests.delete(this.baseUrl)
+    const token = await refreshCoordinator.run(this.baseUrl, () =>
+      retrySupersededRefresh(async () => {
+        const response = await this.request<{ access_token?: string }>('/refresh', {
+          method: 'POST',
+          auth: false,
+          retry: false,
+          body: {},
         })
-      refreshTokenRequests.set(this.baseUrl, request)
-    }
-
-    const token = await request
+        return response.access_token ?? null
+      }),
+    )
     this.setAccessToken?.(token)
     return token
   }
@@ -329,6 +326,14 @@ export class AccountApi {
       headers,
       body: requestBody,
     })
+
+    if (response.status === 403 && options.csrfRetry !== false && this.needsCsrf(method)) {
+      const data = await response.clone().json().catch(() => undefined) as { error_code?: string } | undefined
+      if (['ACC_AUTH_CSRF_INVALID', 'ACC_CSRF_TOKEN_INVALID', 'ACC_CSRF_TOKEN_MISSING'].includes(data?.error_code ?? '')) {
+        this.csrfToken = null
+        return this.request<T>(path, { ...options, csrfRetry: false })
+      }
+    }
 
     if (
       response.status === 401 &&
