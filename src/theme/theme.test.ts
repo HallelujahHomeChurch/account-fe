@@ -8,8 +8,8 @@ describe('shared theme preference', () => {
     expect(getStoredTheme('hhc_theme=system')).toBeUndefined()
   })
 
-  it('falls back to the system preference when no cookie exists', () => {
-    expect(getInitialTheme('', true)).toBe('dark')
+  it('defaults to light when no cookie exists', () => {
+    expect(getInitialTheme('', true)).toBe('light')
     expect(getInitialTheme('', false)).toBe('light')
   })
 
