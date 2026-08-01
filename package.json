@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@hallelujahhomechurch/account-client": "0.3.0",
-    "@hallelujahhomechurch/preferences": "0.3.0",
+    "@hallelujahhomechurch/preferences": "0.4.2",
     "@hallelujahhomechurch/ui": "0.3.0",
     "lucide-react": "^1.24.0",
     "react": "19.2.7",
