@@ -1,3 +1,5 @@
+import { safeReturnTo as sharedSafeReturnTo } from '@hallelujahhomechurch/account-client'
+
 const authRoutePaths = new Set(['/login', '/forgot-password', '/reset-password', '/verify-email', '/oauth/callback', '/oauth/link'])
 
 export function isAuthRoutePath(pathname: string) {
@@ -5,7 +7,8 @@ export function isAuthRoutePath(pathname: string) {
 }
 
 export function safeReturnTo(value: string | null | undefined) {
-  return value?.startsWith('/') && !value.startsWith('//') ? value : '/profile'
+  const safe = sharedSafeReturnTo(value ?? '')
+  return safe === '/' && value !== '/' ? '/profile' : safe
 }
 
 export function loginPath(returnTo: string) {

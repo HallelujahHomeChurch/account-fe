@@ -7,5 +7,6 @@ describe('safeReturnTo', () => {
     expect(safeReturnTo('/line/bind?token=opaque')).toBe('/line/bind?token=opaque')
     expect(safeReturnTo('//evil.example/path')).toBe('/profile')
     expect(safeReturnTo('https://evil.example/path')).toBe('/profile')
+    expect(safeReturnTo('/profile\\evil')).toBe('/profile')
   })
 })

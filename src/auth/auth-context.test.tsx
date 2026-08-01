@@ -5,6 +5,7 @@ import { StrictMode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider, RoutedAuthProvider, useAuth, type AuthApi } from './auth-context'
+import { ApiError } from '../lib/api'
 import type { RuntimeConfig } from '../lib/redirects'
 
 function LoginProbe() {
@@ -21,6 +22,7 @@ function LoginProbe() {
       <div data-testid="token">{auth.accessToken}</div>
       <div data-testid="email">{auth.profile?.email}</div>
       <div data-testid="mfa">{auth.mfaChallenge?.type}</div>
+      <div data-testid="status">{auth.status}</div>
     </div>
   )
 }
@@ -46,6 +48,7 @@ function BootstrapProbe() {
     <div>
       <span>{auth.isBootstrapping ? 'bootstrapping' : 'ready'}</span>
       <span role="alert">{auth.bootstrapError}</span>
+      <span data-testid="status">{auth.status}</span>
     </div>
   )
 }
@@ -270,7 +273,95 @@ describe('AuthProvider', () => {
     )
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Unable to check your sign-in status. Try again.')
+    expect(screen.getByTestId('status')).toHaveTextContent('unavailable')
     expect(refreshAccessToken).not.toHaveBeenCalled()
+  })
+
+  it('does not let a stale bootstrap overwrite a newer login', async () => {
+    let finishSession!: (session: { authenticated: false }) => void
+    const session = new Promise<{ authenticated: false }>((resolve) => {
+      finishSession = resolve
+    })
+    const api: AuthApi = {
+      getSession: () => session,
+      login: async () => ({ access_token: 'new-access-token' }),
+      me: async () => ({ id: 'u1', email: 'new@example.com' }),
+      refreshAccessToken: async () => null,
+      logout: async () => ({}),
+    }
+
+    render(
+      <AuthProvider api={api}>
+        <LoginProbe />
+      </AuthProvider>,
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Login' }))
+    expect(await screen.findByTestId('email')).toHaveTextContent('new@example.com')
+    finishSession({ authenticated: false })
+
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+    expect(screen.getByTestId('token')).toHaveTextContent('new-access-token')
+    expect(screen.getByTestId('email')).toHaveTextContent('new@example.com')
+  })
+
+  it('clears token and profile together after terminal refresh failure', async () => {
+    const refreshAccessToken = vi
+      .fn<() => Promise<string | null>>()
+      .mockResolvedValueOnce('access-123')
+      .mockRejectedValueOnce(new ApiError(401, 'invalid refresh'))
+    const api: AuthApi = {
+      getSession: async () => ({
+        authenticated: true as const,
+        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+      }),
+      login: async () => ({}),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken,
+      logout: async () => ({}),
+    }
+
+    render(
+      <AuthProvider api={api}>
+        <LoginProbe />
+      </AuthProvider>,
+    )
+    expect(await screen.findByTestId('email')).toHaveTextContent('admin@example.com')
+
+    window.dispatchEvent(new Event('focus'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('anonymous')
+      expect(screen.getByTestId('token')).toBeEmptyDOMElement()
+      expect(screen.getByTestId('email')).toBeEmptyDOMElement()
+    })
+  })
+
+  it('debounces focus and pageshow session revalidation', async () => {
+    const getSession = vi.fn(async () => ({
+      authenticated: true as const,
+      user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+    }))
+    const api: AuthApi = {
+      getSession,
+      login: async () => ({}),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken: async () => 'access-123',
+      logout: async () => ({}),
+    }
+
+    render(
+      <AuthProvider api={api}>
+        <BootstrapProbe />
+      </AuthProvider>,
+    )
+    expect(await screen.findByText('ready')).toBeInTheDocument()
+
+    window.dispatchEvent(new Event('focus'))
+    window.dispatchEvent(new Event('pageshow'))
+    window.dispatchEvent(new Event('focus'))
+
+    await waitFor(() => expect(getSession).toHaveBeenCalledTimes(2))
   })
 
   it('starts one authorization transaction for a protected route without a local session', async () => {

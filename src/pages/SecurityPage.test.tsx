@@ -1,7 +1,7 @@
 import { MemoryRouter } from 'react-router-dom'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { SecurityPage } from './SecurityPage'
@@ -9,6 +9,7 @@ import { SecurityPage } from './SecurityPage'
 describe('SecurityPage', () => {
   it('opens password fields only after the user chooses to change password', async () => {
     let passwordBody: unknown
+    const navigateAfterLogout = vi.fn()
     const api: AuthApi = {
       login: async () => ({ access_token: 'token' }),
       refreshAccessToken: async () => 'token',
@@ -27,7 +28,7 @@ describe('SecurityPage', () => {
 
     render(
       <MemoryRouter>
-        <AuthProvider api={api}>
+        <AuthProvider api={api} navigateAfterLogout={navigateAfterLogout}>
           <SecurityPage />
         </AuthProvider>
       </MemoryRouter>,
@@ -46,6 +47,7 @@ describe('SecurityPage', () => {
       old_password: 'oldSecret1',
       new_password: 'newSecret1',
     })
+    await waitFor(() => expect(navigateAfterLogout).toHaveBeenCalledWith('/login?password_changed=1'))
   })
 
   it('keeps MFA setup fields in a dialog flow', async () => {

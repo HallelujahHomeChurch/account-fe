@@ -54,7 +54,8 @@ export function SecurityPage() {
     event.preventDefault()
     if (!auth.api.changePassword) return
 
-    const form = new FormData(event.currentTarget)
+    const formElement = event.currentTarget
+    const form = new FormData(formElement)
     setError('')
     setMessage('')
 
@@ -63,9 +64,9 @@ export function SecurityPage() {
         old_password: String(form.get('old_password') ?? ''),
         new_password: String(form.get('new_password') ?? ''),
       })
-      event.currentTarget.reset()
+      formElement.reset()
       setPasswordDialogOpen(false)
-      setMessage(t.security.passwordChanged)
+      auth.clearLocalSession('/login?password_changed=1')
     } catch (caught) {
       setError(errorMessage(caught))
     }

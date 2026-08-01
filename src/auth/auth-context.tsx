@@ -2,6 +2,7 @@
 import {
   createOAuthTransaction,
   currentReturnTo,
+  resolveAccountAuth,
   validateOAuthState,
   type AccountSession,
   type OAuthTokenResponse,
@@ -18,7 +19,7 @@ import {
   type ReactNode,
 } from 'react'
 import { useLocation } from 'react-router-dom'
-import { AccountApi, type LoginRequest, type LoginResponse, type Profile } from '../lib/api'
+import { AccountApi, ApiError, type LoginRequest, type LoginResponse, type Profile } from '../lib/api'
 import { MockAccountApi } from '../lib/mock-account-api'
 import {
   accountOAuthConfig,
@@ -51,6 +52,7 @@ export type AuthApi = {
 } & Partial<AccountApi>
 
 type AuthContextValue = {
+  status: AuthStatus
   accessToken: string | null
   profile: Profile | null
   mfaChallenge: MfaChallenge | null
@@ -60,11 +62,33 @@ type AuthContextValue = {
   api: AuthApi
   login: (request: LoginRequest) => Promise<LoginResponse>
   completeLogin: (response: LoginResponse) => Promise<LoginResponse>
+  verifyMfa: (code: string) => Promise<LoginResponse>
   completeOAuthCallback: (code: string, state: string) => Promise<string>
   startAuthorization: (returnTo: string) => Promise<void>
   refreshProfile: () => Promise<Profile>
   logout: () => Promise<void>
-  clearLocalSession: () => void
+  retrySession: () => Promise<void>
+  clearLocalSession: (redirectTo?: string) => void
+}
+
+export type AuthStatus = 'loading' | 'authenticated' | 'anonymous' | 'mfa' | 'unavailable'
+
+type AuthState = {
+  status: AuthStatus
+  accessToken: string | null
+  profile: Profile | null
+  mfaChallenge: MfaChallenge | null
+  bootstrapError: string | null
+  logoutError: string | null
+}
+
+const emptyAuthState: AuthState = {
+  status: 'loading',
+  accessToken: null,
+  profile: null,
+  mfaChallenge: null,
+  bootstrapError: null,
+  logoutError: null,
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -99,24 +123,35 @@ export function AuthProvider({
   authorizeMissingSession = false,
 }: AuthProviderProps) {
   const tokenRef = useRef<string | null>(null)
-  const [accessToken, setAccessToken] = useState<string | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [mfaChallenge, setMfaChallenge] = useState<MfaChallenge | null>(null)
-  const [isBootstrapping, setIsBootstrapping] = useState(true)
-  const [bootstrapError, setBootstrapError] = useState<string | null>(null)
-  const [logoutError, setLogoutError] = useState<string | null>(null)
+  const [state, setState] = useState<AuthState>(emptyAuthState)
+  const stateRef = useRef<AuthState>(emptyAuthState)
   const authorizationRef = useRef<Promise<void> | null>(null)
   const authRevisionRef = useRef(0)
+  const initialRouteRef = useRef({
+    pathname: route.pathname,
+    search: route.search,
+    hash: route.hash,
+  })
+  const revalidationRef = useRef<Promise<void> | null>(null)
   const bootstrapRef = useRef<{
     api: AuthApi
     revision: number
-    promise: Promise<{ token: string | null; profile: Profile | null }>
+    promise: Promise<AuthState>
   } | null>(null)
 
-  const writeAccessToken = useCallback((token: string | null) => {
+  const setTokenRef = useCallback((token: string | null) => {
     tokenRef.current = token
-    setAccessToken(token)
   }, [])
+
+  const commitState = useCallback((next: AuthState) => {
+    tokenRef.current = next.accessToken
+    stateRef.current = next
+    setState(next)
+  }, [])
+
+  const patchState = useCallback((patch: Partial<AuthState>) => {
+    commitState({ ...stateRef.current, ...patch })
+  }, [commitState])
 
   const api = useMemo<AuthApi>(() => {
     if (injectedApi) return injectedApi
@@ -125,15 +160,22 @@ export function AuthProvider({
     return new AccountApi({
       baseUrl: config.accountApiBaseUrl,
       getAccessToken: () => tokenRef.current,
-      setAccessToken: writeAccessToken,
+      setAccessToken: setTokenRef,
     }) as AuthApi
-  }, [config.accountApiBaseUrl, config.mockApi, injectedApi, writeAccessToken])
+  }, [config.accountApiBaseUrl, config.mockApi, injectedApi, setTokenRef])
 
   const refreshProfile = useCallback(async () => {
+    const revision = authRevisionRef.current
     const nextProfile = await api.me()
-    setProfile(nextProfile)
+    if (revision === authRevisionRef.current) {
+      patchState({
+        status: 'authenticated',
+        profile: nextProfile,
+        bootstrapError: null,
+      })
+    }
     return nextProfile
-  }, [api])
+  }, [api, patchState])
 
   const beginAuthorization = useCallback((returnTo: string) => {
     if (authorizationRef.current) return authorizationRef.current
@@ -157,21 +199,46 @@ export function AuthProvider({
     if (!api.exchangeCode) throw new Error('OAuth code exchange is unavailable.')
 
     authRevisionRef.current += 1
+    const revision = authRevisionRef.current
     const response = await api.exchangeCode(accountOAuthConfig(config), transaction, code)
-    writeAccessToken(response.access_token)
+    const previousToken = tokenRef.current
+    setTokenRef(response.access_token)
+    let nextProfile: Profile
+    try {
+      nextProfile = await api.me()
+    } catch (error) {
+      if (revision === authRevisionRef.current) setTokenRef(previousToken)
+      throw error
+    }
+    if (revision !== authRevisionRef.current) {
+      setTokenRef(stateRef.current.accessToken)
+      return transaction.returnTo
+    }
+    commitState({
+      status: 'authenticated',
+      accessToken: response.access_token,
+      profile: nextProfile,
+      mfaChallenge: null,
+      bootstrapError: null,
+      logoutError: null,
+    })
     clearAccountOAuthTransaction()
-    await refreshProfile()
     return transaction.returnTo
-  }, [api, config, refreshProfile, writeAccessToken])
+  }, [api, commitState, config, setTokenRef])
 
   const completeLogin = useCallback(
     async (response: LoginResponse) => {
       if (response.mfa_type && response.mfa_token) {
-        setMfaChallenge({ type: response.mfa_type, token: response.mfa_token })
+        commitState({
+          status: 'mfa',
+          accessToken: null,
+          profile: null,
+          mfaChallenge: { type: response.mfa_type, token: response.mfa_token },
+          bootstrapError: null,
+          logoutError: null,
+        })
         return response
       }
-
-      setMfaChallenge(null)
 
       if (response.redirect_type === 'oauth' && response.redirect_uri && response.code && response.state) {
         window.location.assign(
@@ -181,13 +248,33 @@ export function AuthProvider({
       }
 
       if (response.access_token) {
-        writeAccessToken(response.access_token)
-        await refreshProfile()
+        const revision = authRevisionRef.current
+        const previousToken = tokenRef.current
+        setTokenRef(response.access_token)
+        let nextProfile: Profile
+        try {
+          nextProfile = await api.me()
+        } catch (error) {
+          if (revision === authRevisionRef.current) setTokenRef(previousToken)
+          throw error
+        }
+        if (revision === authRevisionRef.current) {
+          commitState({
+            status: 'authenticated',
+            accessToken: response.access_token,
+            profile: nextProfile,
+            mfaChallenge: null,
+            bootstrapError: null,
+            logoutError: null,
+          })
+        } else {
+          setTokenRef(stateRef.current.accessToken)
+        }
       }
 
       return response
     },
-    [config, refreshProfile, writeAccessToken],
+    [api, commitState, config, setTokenRef],
   )
 
   const login = useCallback(
@@ -199,33 +286,114 @@ export function AuthProvider({
     [api, completeLogin],
   )
 
+  const verifyMfa = useCallback(async (code: string) => {
+    const challenge = stateRef.current.mfaChallenge
+    if (!challenge || !api.verifyMfa) throw new Error('MFA verification is unavailable.')
+    authRevisionRef.current += 1
+    try {
+      const response = await api.verifyMfa(challenge.token, code)
+      return completeLogin(response)
+    } catch (error) {
+      if (error instanceof ApiError && ['ACC_MFA_TOKEN_INVALID', 'ACC_MFA_CODE_EXPIRED'].includes(error.code ?? '')) {
+        commitState({ ...emptyAuthState, status: 'anonymous' })
+      }
+      throw error
+    }
+  }, [api, commitState, completeLogin])
+
   const logout = useCallback(async () => {
     authRevisionRef.current += 1
-    setLogoutError(null)
+    patchState({ logoutError: null })
     try {
       await (api.logoutAll ? api.logoutAll() : api.logout())
-      writeAccessToken(null)
-      setProfile(null)
-      setMfaChallenge(null)
+      commitState({ ...emptyAuthState, status: 'anonymous' })
       navigateAfterLogout('/login?signed_out=1')
     } catch {
-      setLogoutError('Unable to sign out. Try again.')
+      if (api.getSession) {
+        const session = await resolveAccountAuth({ getSession: api.getSession })
+        if (session.status === 'anonymous') {
+          commitState({ ...emptyAuthState, status: 'anonymous' })
+          navigateAfterLogout('/login?signed_out=1')
+          return
+        }
+      }
+      patchState({ logoutError: 'Unable to sign out. Try again.' })
     }
-  }, [api, navigateAfterLogout, writeAccessToken])
+  }, [api, commitState, navigateAfterLogout, patchState])
 
-  const clearLocalSession = useCallback(() => {
+  const clearLocalSession = useCallback((redirectTo = '/login?signed_out=1') => {
     authRevisionRef.current += 1
-    writeAccessToken(null)
-    setProfile(null)
-    setMfaChallenge(null)
-    navigateAfterLogout('/login?signed_out=1')
-  }, [navigateAfterLogout, writeAccessToken])
+    commitState({ ...emptyAuthState, status: 'anonymous' })
+    navigateAfterLogout(redirectTo)
+  }, [commitState, navigateAfterLogout])
+
+  const resolveState = useCallback(async (revision: number): Promise<AuthState> => {
+    const session = api.getSession
+      ? await resolveAccountAuth({ getSession: api.getSession })
+      : { status: 'authenticated' as const }
+    if (session.status === 'anonymous') return { ...emptyAuthState, status: 'anonymous' }
+    if (session.status === 'unavailable') {
+      return {
+        ...stateRef.current,
+        status: 'unavailable',
+        bootstrapError: 'Unable to check your sign-in status. Try again.',
+      }
+    }
+
+    try {
+      const token = await api.refreshAccessToken()
+      if (!token) return { ...emptyAuthState, status: 'anonymous' }
+      if (revision !== authRevisionRef.current) {
+        setTokenRef(stateRef.current.accessToken)
+        return stateRef.current
+      }
+      setTokenRef(token)
+      const nextProfile = await api.me()
+      if (revision !== authRevisionRef.current) {
+        setTokenRef(stateRef.current.accessToken)
+        return stateRef.current
+      }
+      return {
+        status: 'authenticated',
+        accessToken: token,
+        profile: nextProfile,
+        mfaChallenge: null,
+        bootstrapError: null,
+        logoutError: null,
+      }
+    } catch (error) {
+      if (error instanceof ApiError && (error.status === 400 || error.status === 401)) {
+        return { ...emptyAuthState, status: 'anonymous' }
+      }
+      return {
+        ...stateRef.current,
+        status: 'unavailable',
+        bootstrapError: 'Unable to check your sign-in status. Try again.',
+      }
+    }
+  }, [api, setTokenRef])
+
+  const revalidateSession = useCallback(() => {
+    if (revalidationRef.current) return revalidationRef.current
+    const revision = authRevisionRef.current
+    const request = resolveState(revision)
+      .then((next) => {
+        if (revision === authRevisionRef.current) commitState(next)
+      })
+      .finally(() => {
+        revalidationRef.current = null
+      })
+    revalidationRef.current = request
+    return request
+  }, [commitState, resolveState])
 
   useEffect(() => {
     let alive = true
 
     if (!restoreSession) {
-      setIsBootstrapping(false)
+      if (stateRef.current.status === 'loading') {
+        commitState({ ...emptyAuthState, status: 'anonymous' })
+      }
       return () => {
         alive = false
       }
@@ -235,69 +403,67 @@ export function AuthProvider({
       bootstrapRef.current = {
         api,
         revision: authRevisionRef.current,
-        promise: (async () => {
-          const shouldAuthorize = authorizeMissingSession
-            && !config.mockApi
-            && !isAuthRoutePath(route.pathname)
-          const session = api.getSession
-            ? await api.getSession()
-            : { authenticated: true as const, user: undefined }
-          if (!session.authenticated) {
-            if (!shouldAuthorize) return { token: null, profile: null }
-            await beginAuthorization(currentReturnTo(route))
-            return { token: null, profile: null }
-          }
-
-          const token = await api.refreshAccessToken()
-          if (!token) {
-            if (shouldAuthorize) await beginAuthorization(currentReturnTo(route))
-            return { token: null, profile: null }
-          }
-          return { token, profile: await api.me() }
-        })(),
+        promise: resolveState(authRevisionRef.current),
       }
     }
 
-    setBootstrapError(null)
     bootstrapRef.current.promise
-      .then((result) => {
+      .then(async (result) => {
         if (!alive || bootstrapRef.current?.revision !== authRevisionRef.current) return
-        writeAccessToken(result.token)
-        setProfile(result.profile)
-      })
-      .catch(() => {
-        if (!alive || bootstrapRef.current?.revision !== authRevisionRef.current) return
-        writeAccessToken(null)
-        setProfile(null)
-        setBootstrapError('Unable to check your sign-in status. Try again.')
-      })
-      .finally(() => {
-        if (alive) setIsBootstrapping(false)
+        const shouldAuthorize = authorizeMissingSession
+          && !config.mockApi
+          && !isAuthRoutePath(initialRouteRef.current.pathname)
+        if (result.status === 'anonymous' && shouldAuthorize) {
+          await beginAuthorization(currentReturnTo(initialRouteRef.current))
+        }
+        if (alive && bootstrapRef.current?.revision === authRevisionRef.current) commitState(result)
       })
 
     return () => {
       alive = false
     }
-  }, [api, authorizeMissingSession, beginAuthorization, config.mockApi, restoreSession, route, writeAccessToken])
+  }, [api, authorizeMissingSession, beginAuthorization, commitState, config.mockApi, resolveState, restoreSession])
+
+  useEffect(() => {
+    if (!restoreSession) return
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const schedule = () => {
+      clearTimeout(timer)
+      timer = setTimeout(() => void revalidateSession(), 150)
+    }
+    const onFocus = () => {
+      if (document.visibilityState === 'visible') schedule()
+    }
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') schedule()
+    }
+    window.addEventListener('focus', onFocus)
+    window.addEventListener('pageshow', schedule)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('focus', onFocus)
+      window.removeEventListener('pageshow', schedule)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [restoreSession, revalidateSession])
 
   const value = useMemo(
     () => ({
-      accessToken,
-      profile,
-      mfaChallenge,
-      isBootstrapping,
-      bootstrapError,
-      logoutError,
+      ...state,
+      isBootstrapping: state.status === 'loading',
       api,
       login,
       completeLogin,
+      verifyMfa,
       completeOAuthCallback,
       startAuthorization: beginAuthorization,
       refreshProfile,
       logout,
+      retrySession: revalidateSession,
       clearLocalSession,
     }),
-    [accessToken, api, beginAuthorization, bootstrapError, clearLocalSession, completeLogin, completeOAuthCallback, isBootstrapping, login, logout, logoutError, mfaChallenge, profile, refreshProfile],
+    [api, beginAuthorization, clearLocalSession, completeLogin, completeOAuthCallback, login, logout, refreshProfile, revalidateSession, state, verifyMfa],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

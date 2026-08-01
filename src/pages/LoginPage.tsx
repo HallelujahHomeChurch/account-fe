@@ -31,6 +31,7 @@ export function LoginPage() {
   const authRequestId = searchParams.get('auth_request_id') ?? undefined
   const returnTo = safeReturnTo(searchParams.get('return_to'))
   const signedOut = searchParams.get('signed_out') === '1'
+  const passwordChanged = searchParams.get('password_changed') === '1'
   const oauthError = searchParams.get('oauth_error')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -68,25 +69,29 @@ export function LoginPage() {
   }, [auth.api])
 
   useEffect(() => {
-    if (!signedOut && !oauthError) return
+    if (!signedOut && !passwordChanged && !oauthError) return
 
     if (signedOut) setNotice(t.login.signedOut)
+    if (passwordChanged) setNotice(t.security.passwordChanged)
     if (oauthError) {
       setError(oauthError === 'cancelled' ? t.login.oauthCancelled : t.login.oauthFailed)
     }
     const nextSearchParams = new URLSearchParams(searchParams)
     nextSearchParams.delete('signed_out')
+    nextSearchParams.delete('password_changed')
     nextSearchParams.delete('oauth_error')
     const search = nextSearchParams.toString()
     navigate({ pathname: '/login', search: search ? `?${search}` : '' }, { replace: true })
   }, [
     navigate,
     oauthError,
+    passwordChanged,
     searchParams,
     signedOut,
     t.login.oauthCancelled,
     t.login.oauthFailed,
     t.login.signedOut,
+    t.security.passwordChanged,
   ])
 
   useEffect(() => {
@@ -129,13 +134,9 @@ export function LoginPage() {
     const code = String(new FormData(event.currentTarget).get('code') ?? '')
 
     try {
-      const response = await auth.api.verifyMfa?.(challenge.token, code)
-
-      if (response) {
-        await auth.completeLogin(response)
-        if (response.access_token) {
-          navigate(returnTo, { replace: true })
-        }
+      const response = await auth.verifyMfa(code)
+      if (response.access_token) {
+        navigate(returnTo, { replace: true })
       }
     } catch (caught) {
       setError(errorMessage(caught))
