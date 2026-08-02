@@ -40,6 +40,7 @@ export type MfaChallenge = {
 
 export type AuthApi = {
   getSession?: () => Promise<AccountSession>
+  issueAccessToken?: () => Promise<string>
   login: (request: LoginRequest) => Promise<LoginResponse>
   me: () => Promise<Profile>
   refreshAccessToken: () => Promise<string | null>
@@ -341,7 +342,9 @@ export function AuthProvider({
     }
 
     try {
-      const token = await api.refreshAccessToken()
+      const token = api.issueAccessToken
+        ? await api.issueAccessToken()
+        : await api.refreshAccessToken()
       if (!token) return { ...emptyAuthState, status: 'anonymous' }
       if (revision !== authRevisionRef.current) {
         setTokenRef(stateRef.current.accessToken)
@@ -362,7 +365,7 @@ export function AuthProvider({
         logoutError: null,
       }
     } catch (error) {
-      if (error instanceof ApiError && (error.status === 400 || error.status === 401)) {
+      if (error instanceof ApiError && (error.status === 400 || error.status === 401 || error.status === 409)) {
         return { ...emptyAuthState, status: 'anonymous' }
       }
       return {
@@ -377,32 +380,62 @@ export function AuthProvider({
     if (revalidationRef.current) return revalidationRef.current
     const revision = authRevisionRef.current
     const resolveRevalidation = async () => {
-      if (stateRef.current.status !== 'authenticated' || !tokenRef.current || !api.getSession) {
+      if (stateRef.current.status !== 'authenticated' || !tokenRef.current) {
         return resolveState(revision)
-      }
-      const session = await resolveAccountAuth({ getSession: api.getSession })
-      if (session.status === 'anonymous') return { ...emptyAuthState, status: 'anonymous' as const }
-      if (session.status === 'unavailable') {
-        return { ...stateRef.current, status: 'unavailable' as const, bootstrapError: 'Unable to check your sign-in status. Try again.' }
       }
       try {
         const profile = await api.me()
         return { ...stateRef.current, accessToken: tokenRef.current, profile, bootstrapError: null }
       } catch (error) {
-        if (error instanceof ApiError && error.status === 401) return resolveState(revision)
+        if (!(error instanceof ApiError) || error.status !== 401) {
+          return { ...stateRef.current, status: 'unavailable' as const, bootstrapError: 'Unable to check your sign-in status. Try again.' }
+        }
+      }
+      try {
+        const previousToken = tokenRef.current
+        const token = await api.refreshAccessToken()
+        if (!token) return { ...emptyAuthState, status: 'anonymous' as const }
+        if (revision !== authRevisionRef.current) return stateRef.current
+        setTokenRef(token)
+        let profile: Profile
+        try {
+          profile = await api.me()
+        } catch (error) {
+          if (revision === authRevisionRef.current) setTokenRef(previousToken)
+          throw error
+        }
+        if (revision !== authRevisionRef.current) {
+          setTokenRef(stateRef.current.accessToken)
+          return stateRef.current
+        }
+        return { ...stateRef.current, status: 'authenticated' as const, accessToken: token, profile, bootstrapError: null }
+      } catch (error) {
+        if (error instanceof ApiError && (error.status === 401 || error.status === 409)) {
+          return { ...emptyAuthState, status: 'anonymous' as const }
+        }
         return { ...stateRef.current, status: 'unavailable' as const, bootstrapError: 'Unable to check your sign-in status. Try again.' }
       }
     }
     const request = resolveRevalidation()
-      .then((next) => {
-        if (revision === authRevisionRef.current) commitState(next)
+      .then(async (next) => {
+        if (revision !== authRevisionRef.current) return
+        if (
+          next.status === 'anonymous'
+          && authorizeMissingSession
+          && !config.mockApi
+          && !isAuthRoutePath(window.location.pathname)
+        ) {
+          await beginAuthorization(currentReturnTo(window.location))
+          return
+        }
+        commitState(next)
       })
       .finally(() => {
         revalidationRef.current = null
       })
     revalidationRef.current = request
     return request
-  }, [api, commitState, resolveState])
+  }, [api, authorizeMissingSession, beginAuthorization, commitState, config.mockApi, resolveState, setTokenRef])
 
   useEffect(() => {
     let alive = true
@@ -487,13 +520,14 @@ export function AuthProvider({
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-export function RoutedAuthProvider({ children, api, config, navigateExternal }: AuthProviderProps) {
+export function RoutedAuthProvider({ children, api, config, navigateExternal, restoreSession }: AuthProviderProps) {
   const route = useLocation()
   return (
     <AuthProvider
       api={api}
       config={config}
       route={route}
+      restoreSession={restoreSession ?? route.pathname !== '/oauth/callback'}
       authorizeMissingSession
       navigateExternal={navigateExternal}
     >

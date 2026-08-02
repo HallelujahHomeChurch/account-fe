@@ -201,17 +201,19 @@ describe('AuthProvider', () => {
     expect(refreshAccessToken).not.toHaveBeenCalled()
   })
 
-  it('refreshes and loads the profile only when a session exists', async () => {
+  it('issues a non-rotating access token and loads the profile when a session exists', async () => {
     const getSession = vi.fn(async () => ({
       authenticated: true as const,
       user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
     }))
     const refreshAccessToken = vi.fn(async () => 'access-123')
+    const issueAccessToken = vi.fn(async () => 'access-123')
     const me = vi.fn(async () => ({ id: 'u1', email: 'admin@example.com' }))
     const api: AuthApi = {
       getSession,
       login: async () => ({ access_token: 'access-123' }),
       me,
+      issueAccessToken,
       refreshAccessToken,
       logout: async () => ({}),
     }
@@ -224,10 +226,36 @@ describe('AuthProvider', () => {
       </MemoryRouter>,
     )
 
-    await waitFor(() => expect(refreshAccessToken).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(issueAccessToken).toHaveBeenCalledTimes(1))
+    expect(refreshAccessToken).not.toHaveBeenCalled()
     expect(getSession).toHaveBeenCalledTimes(1)
     expect(me).toHaveBeenCalledTimes(1)
     expect(await screen.findByText('ready')).toBeInTheDocument()
+  })
+
+  it('does not bootstrap the session on the OAuth callback route', async () => {
+    const getSession = vi.fn(async () => ({ authenticated: false as const }))
+    const issueAccessToken = vi.fn(async () => 'unused')
+    const api: AuthApi = {
+      getSession,
+      issueAccessToken,
+      login: async () => ({}),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken: async () => null,
+      logout: async () => ({}),
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/oauth/callback?code=code&state=state']}>
+        <RoutedAuthProvider api={api}>
+          <BootstrapProbe />
+        </RoutedAuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('ready')).toBeInTheDocument()
+    expect(getSession).not.toHaveBeenCalled()
+    expect(issueAccessToken).not.toHaveBeenCalled()
   })
 
   it('shares one session bootstrap across StrictMode effect replay', async () => {
@@ -306,14 +334,13 @@ describe('AuthProvider', () => {
   })
 
   it('clears token and profile together after terminal refresh failure', async () => {
-    const refreshAccessToken = vi
-      .fn<() => Promise<string | null>>()
-      .mockResolvedValueOnce('access-123')
+    const issueAccessToken = vi.fn(async () => 'access-123')
+    const refreshAccessToken = vi.fn<() => Promise<string | null>>()
       .mockRejectedValueOnce(new ApiError(401, 'invalid refresh'))
     const me = vi
       .fn()
       .mockResolvedValueOnce({ id: 'u1', email: 'admin@example.com' })
-      .mockRejectedValueOnce(new ApiError(401, 'expired access token'))
+      .mockRejectedValue(new ApiError(401, 'expired access token'))
     const api: AuthApi = {
       getSession: async () => ({
         authenticated: true as const,
@@ -321,6 +348,7 @@ describe('AuthProvider', () => {
       }),
       login: async () => ({}),
       me,
+      issueAccessToken,
       refreshAccessToken,
       logout: async () => ({}),
     }
@@ -331,9 +359,11 @@ describe('AuthProvider', () => {
       </AuthProvider>,
     )
     expect(await screen.findByTestId('email')).toHaveTextContent('admin@example.com')
+    await new Promise((resolve) => setTimeout(resolve, 0))
 
     window.dispatchEvent(new Event('focus'))
 
+    await waitFor(() => expect(refreshAccessToken).toHaveBeenCalledTimes(1))
     await waitFor(() => {
       expect(screen.getByTestId('status')).toHaveTextContent('anonymous')
       expect(screen.getByTestId('token')).toBeEmptyDOMElement()
@@ -347,10 +377,13 @@ describe('AuthProvider', () => {
       user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
     }))
     const refreshAccessToken = vi.fn(async () => 'access-123')
+    const issueAccessToken = vi.fn(async () => 'access-123')
+    const me = vi.fn(async () => ({ id: 'u1', email: 'admin@example.com' }))
     const api: AuthApi = {
       getSession,
       login: async () => ({}),
-      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      me,
+      issueAccessToken,
       refreshAccessToken,
       logout: async () => ({}),
     }
@@ -366,8 +399,10 @@ describe('AuthProvider', () => {
     window.dispatchEvent(new Event('pageshow'))
     window.dispatchEvent(new Event('focus'))
 
-    await waitFor(() => expect(getSession).toHaveBeenCalledTimes(2))
-    expect(refreshAccessToken).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(me).toHaveBeenCalledTimes(2))
+    expect(getSession).toHaveBeenCalledTimes(1)
+    expect(issueAccessToken).toHaveBeenCalledTimes(1)
+    expect(refreshAccessToken).not.toHaveBeenCalled()
   })
 
   it('starts one authorization transaction for a protected route without a local session', async () => {

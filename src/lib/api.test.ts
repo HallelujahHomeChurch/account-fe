@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { AccountApi } from './api'
 
@@ -24,6 +24,20 @@ describe('AccountApi', () => {
     expect(calls).toHaveLength(1)
     expect(String(calls[0]?.input)).toBe('/api/account/v1/session')
     expect(calls[0]?.init).toMatchObject({ method: 'GET', credentials: 'include', cache: 'no-store' })
+  })
+
+  it('issues a non-rotating access token without committing it', async () => {
+    const setAccessToken = vi.fn()
+    const api = new AccountApi({
+      baseUrl: '/api/account/v1',
+      setAccessToken,
+      fetcher: async (input) => String(input).endsWith('/csrf-token')
+        ? jsonResponse({ csrf_token: 'csrf-123' })
+        : jsonResponse({ access_token: 'access-123', expires_in: 900 }),
+    })
+
+    await expect(api.issueAccessToken()).resolves.toBe('access-123')
+    expect(setAccessToken).not.toHaveBeenCalled()
   })
 
   it('accepts the direct profile redirect contract', async () => {
@@ -156,7 +170,62 @@ describe('AccountApi', () => {
     expect(accessToken).toBe('new-token')
   })
 
-  it('coalesces concurrent refresh token requests across clients with the same base URL', async () => {
+  it('does not restore a token when logout wins an in-flight 401 recovery', async () => {
+    let accessToken = 'expired-token'
+    let finishRefresh!: (response: Response) => void
+    const refreshResponse = new Promise<Response>((resolve) => { finishRefresh = resolve })
+    const api = new AccountApi({
+      baseUrl: '/api/account/v1',
+      getAccessToken: () => accessToken,
+      setAccessToken: (next) => { accessToken = next ?? '' },
+      fetcher: async (input) => {
+        const url = String(input)
+        if (url.endsWith('/csrf-token')) return jsonResponse({ csrf_token: 'csrf-123' })
+        if (url.endsWith('/refresh')) return refreshResponse
+        return jsonResponse({ message: 'expired' }, 401)
+      },
+    })
+
+    const request = api.me()
+    await Promise.resolve()
+    accessToken = ''
+    finishRefresh(jsonResponse({ access_token: 'late-token' }))
+
+    await expect(request).rejects.toMatchObject({ status: 401 })
+    expect(accessToken).toBe('')
+  })
+
+  it('retries every concurrent request after their shared refresh succeeds', async () => {
+    let accessToken = 'expired-token'
+    let refreshCalls = 0
+    let resourceCalls = 0
+    const api = new AccountApi({
+      baseUrl: '/api/account/v1',
+      getAccessToken: () => accessToken,
+      setAccessToken: (next) => { accessToken = next ?? '' },
+      fetcher: async (input, init) => {
+        const url = String(input)
+        if (url.endsWith('/csrf-token')) return jsonResponse({ csrf_token: 'csrf-123' })
+        if (url.endsWith('/refresh')) {
+          refreshCalls += 1
+          return jsonResponse({ access_token: 'new-token' })
+        }
+        resourceCalls += 1
+        return new Headers(init?.headers).get('authorization') === 'Bearer new-token'
+          ? jsonResponse({ id: 'u1', email: 'admin@example.com' })
+          : jsonResponse({ message: 'expired' }, 401)
+      },
+    })
+
+    await expect(Promise.all([api.me(), api.me()])).resolves.toHaveLength(2)
+    expect({ refreshCalls, resourceCalls, accessToken }).toEqual({
+      refreshCalls: 1,
+      resourceCalls: 4,
+      accessToken: 'new-token',
+    })
+  })
+
+  it('coalesces concurrent refresh requests without implicitly committing tokens', async () => {
     let csrfCalls = 0
     let refreshCalls = 0
     const tokens: Array<string | null> = []
@@ -202,7 +271,7 @@ describe('AccountApi', () => {
     expect(refreshCalls).toBe(1)
     releaseRefresh(jsonResponse({ access_token: 'new-token' }))
     await expect(Promise.all([firstRequest, secondRequest])).resolves.toEqual(['new-token', 'new-token'])
-    expect(tokens).toEqual(['new-token', 'new-token'])
+    expect(tokens).toEqual([])
   })
 
   it('retries a superseded refresh once and preserves other errors', async () => {

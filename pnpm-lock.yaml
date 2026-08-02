@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@hallelujahhomechurch/account-client':
-        specifier: 0.4.3
-        version: 0.4.3
+        specifier: 0.4.5
+        version: 0.4.5
       '@hallelujahhomechurch/preferences':
         specifier: 0.4.3
         version: 0.4.3
@@ -166,8 +166,8 @@ packages:
       '@noble/hashes':
         optional: true
 
-  '@hallelujahhomechurch/account-client@0.4.3':
-    resolution: {integrity: sha512-SRI5hKqoT0rS7EIYHcZ7suJ7BwuSqwx6t9x8fbX/9Gpy9SwvMatKoVOPT9v2hqyTnMaN31zNsgSGaMIR7H+PIA==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/account-client/0.4.3/d57a759ddf93ace0305447a52b79c2feb7b7fb6d}
+  '@hallelujahhomechurch/account-client@0.4.5':
+    resolution: {integrity: sha512-bbBBajLwHMvjS34XS9U8xD/B91pc/GjTYtZDs6cGMzpvYc8qj6PlqJ8GLFCp++YMtec9mCwNFtx2Kr4kgzLNew==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/account-client/0.4.5/51b56e801ebd230cdf35473cfea689ea11df22cd}
 
   '@hallelujahhomechurch/preferences@0.4.3':
     resolution: {integrity: sha512-lc4MM/LmAB2ca5eMBP5RGz7KNSiZDCdyDjEEz0mDfyHnnBfcweEkOvTSbGbi1f/9kPatUIqu2RxaPjk1A6Ji8Q==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/preferences/0.4.3/3bcd1edd4fe37511ede4098eeb7e19e1d9d777b6}
@@ -1325,7 +1325,7 @@ snapshots:
 
   '@exodus/bytes@1.15.1': {}
 
-  '@hallelujahhomechurch/account-client@0.4.3': {}
+  '@hallelujahhomechurch/account-client@0.4.5': {}
 
   '@hallelujahhomechurch/preferences@0.4.3': {}
 
