@@ -13,15 +13,9 @@ const ThemeContext = createContext<ThemeContextValue>({
   setTheme: () => undefined,
 })
 
-function prefersDarkTheme() {
-  return typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-color-scheme: dark)').matches
-}
-
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() =>
-    getInitialTheme(typeof document === 'undefined' ? '' : document.cookie, prefersDarkTheme()),
+    getInitialTheme(typeof document === 'undefined' ? '' : document.cookie, false),
   )
 
   const setTheme = useCallback((nextTheme: Theme) => {
