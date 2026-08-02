@@ -19,6 +19,9 @@ function LoginProbe() {
       >
         Login
       </button>
+      <button type="button" onClick={() => void auth.retrySession()}>
+        Retry session
+      </button>
       <div data-testid="token">{auth.accessToken}</div>
       <div data-testid="email">{auth.profile?.email}</div>
       <div data-testid="mfa">{auth.mfaChallenge?.type}</div>
@@ -359,9 +362,7 @@ describe('AuthProvider', () => {
       </AuthProvider>,
     )
     expect(await screen.findByTestId('email')).toHaveTextContent('admin@example.com')
-    await new Promise((resolve) => setTimeout(resolve, 0))
-
-    window.dispatchEvent(new Event('focus'))
+    await userEvent.click(screen.getByRole('button', { name: 'Retry session' }))
 
     await waitFor(() => expect(refreshAccessToken).toHaveBeenCalledTimes(1))
     await waitFor(() => {

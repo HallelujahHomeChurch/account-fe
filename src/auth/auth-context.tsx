@@ -116,13 +116,14 @@ function defaultNavigateExternal(url: string) {
 export function AuthProvider({
   children,
   api: injectedApi,
-  config = readRuntimeConfig(),
+  config: suppliedConfig,
   restoreSession = true,
   navigateAfterLogout = defaultNavigateAfterLogout,
   navigateExternal = defaultNavigateExternal,
   route = window.location,
   authorizeMissingSession = false,
 }: AuthProviderProps) {
+  const [config] = useState(() => suppliedConfig ?? readRuntimeConfig())
   const tokenRef = useRef<string | null>(null)
   const [state, setState] = useState<AuthState>(emptyAuthState)
   const stateRef = useRef<AuthState>(emptyAuthState)
