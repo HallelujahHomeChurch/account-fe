@@ -1,4 +1,5 @@
 import {
+  AccountSessionError,
   createAccountSessionClient,
   createRefreshCoordinator,
   exchangeAuthorizationCode,
@@ -146,6 +147,21 @@ export class AccountApi {
     }).getSession()
   }
 
+  async issueAccessToken() {
+    try {
+      const result = await createAccountSessionClient({
+        baseUrl: this.baseUrl,
+        fetcher: this.fetcher as typeof fetch,
+      }).issueAccessToken()
+      return result.accessToken
+    } catch (error) {
+      if (error instanceof AccountSessionError) {
+        throw new ApiError(error.status, error.message, error.code)
+      }
+      throw error
+    }
+  }
+
   exchangeCode(config: OAuthClientConfig, transaction: OAuthTransaction, code: string) {
     return exchangeAuthorizationCode(config, transaction, code, this.fetcher as typeof fetch)
   }
@@ -162,7 +178,6 @@ export class AccountApi {
         return response.access_token ?? null
       }),
     )
-    this.setAccessToken?.(token)
     return token
   }
 
@@ -341,8 +356,11 @@ export class AccountApi {
       options.retry !== false &&
       path !== '/refresh'
     ) {
+      const previousToken = this.getAccessToken?.() ?? null
       const token = await this.refreshAccessToken()
-      if (token) {
+      const currentToken = this.getAccessToken?.() ?? null
+      if (token && (currentToken === previousToken || currentToken === token)) {
+        this.setAccessToken?.(token)
         return this.request<T>(path, { ...options, retry: false })
       }
     }
