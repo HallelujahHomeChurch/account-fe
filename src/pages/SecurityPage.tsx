@@ -72,6 +72,18 @@ export function SecurityPage() {
     }
   }
 
+  async function requestPasswordSetup() {
+    if (!auth.profile?.email || !auth.api.forgotPassword) return
+    setError('')
+    setMessage('')
+    try {
+      await auth.api.forgotPassword(auth.profile.email)
+      setMessage(t.security.passwordSetupSent)
+    } catch (caught) {
+      setError(errorMessage(caught))
+    }
+  }
+
   async function openMfaSetup() {
     if (!auth.api.setupMfa) return
     setError('')
@@ -172,8 +184,11 @@ export function SecurityPage() {
               <span className="settings-row-label">{t.security.password}</span>
               <strong>{auth.profile.has_password === false ? t.security.passwordNotSet : t.security.passwordSet}</strong>
             </div>
-            <Button variant="secondary" onPress={() => setPasswordDialogOpen(true)}>
-              {t.security.change}
+            <Button
+              variant="secondary"
+              onPress={() => auth.profile?.has_password === false ? void requestPasswordSetup() : setPasswordDialogOpen(true)}
+            >
+              {auth.profile.has_password === false ? t.security.setPassword : t.security.change}
             </Button>
           </div>
           {linkedAccountsError ? (

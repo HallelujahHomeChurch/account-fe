@@ -18,7 +18,7 @@ Mock credentials:
 - username: `admin`
 - password: `admin123`
 
-Mock mode covers login, profile editing, password change, MFA setup/disable, devices, and linked accounts. It does not perform real social provider redirects.
+Mock mode covers login, registration, social onboarding, profile editing, password change, MFA setup/disable, devices, and linked accounts. It does not perform real provider redirects.
 
 ## Real API mode
 
@@ -27,3 +27,7 @@ corepack pnpm dev
 ```
 
 The Vite dev server proxies `/api/account/*` to `http://127.0.0.1:8080`.
+
+Set `VITE_TURNSTILE_SITE_KEY` when public registration is enabled. Without it,
+the widget stays hidden for local development and registration remains governed
+by the API feature flag.

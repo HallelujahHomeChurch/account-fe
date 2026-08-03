@@ -400,6 +400,42 @@ describe('AccountApi', () => {
     await expect(api.getOAuthProviders()).resolves.toEqual(['google', 'line'])
   })
 
+  it('reads public registration capability', async () => {
+	const api = new AccountApi({
+	  baseUrl: '/api/account/v1',
+	  fetcher: async () => jsonResponse({ providers: ['google'], registration_enabled: true }),
+	})
+
+	await expect(api.getAuthCapabilities()).resolves.toEqual({
+	  providers: ['google'],
+	  registrationEnabled: true,
+	})
+  })
+
+  it('runs the social onboarding API sequence', async () => {
+	const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
+	const api = new AccountApi({
+	  baseUrl: '/api/account/v1',
+	  fetcher: async (input, init) => {
+		calls.push({ input, init })
+		if (String(input).endsWith('/csrf-token')) return jsonResponse({ csrf_token: 'csrf-123' })
+		if (String(input).endsWith('/verify')) return jsonResponse({ provider: 'line', masked_email: 'u***@example.com', existing_account: true, requires_link_confirmation: true })
+		return jsonResponse({ success: true, redirect_type: 'profile' })
+	  },
+	})
+
+	await api.sendOAuthOnboardingCode('token', 'user@example.com')
+	await expect(api.verifyOAuthOnboardingCode('token', '123456')).resolves.toMatchObject({ existing_account: true })
+	await api.completeOAuthOnboarding('token', true)
+
+	expect(calls.map((call) => String(call.input))).toEqual([
+	  '/api/account/v1/csrf-token',
+	  '/api/account/v1/oauth/onboarding/email',
+	  '/api/account/v1/oauth/onboarding/verify',
+	  '/api/account/v1/oauth/onboarding/confirm',
+	])
+  })
+
   it('confirms OAuth account links with CSRF-protected POST', async () => {
     const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
     const api = new AccountApi({

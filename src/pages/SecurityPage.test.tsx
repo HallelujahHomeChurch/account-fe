@@ -100,6 +100,34 @@ describe('SecurityPage', () => {
     expect(await screen.findByText('11111111')).toBeInTheDocument()
   })
 
+  it('sends an email setup link for an OAuth-only account', async () => {
+    let resetEmail = ''
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }),
+      refreshAccessToken: async () => 'token',
+      me: async () => ({ id: 'u1', email: 'ray@example.com', has_password: false, mfa: { enabled: false } }),
+      logout: async () => ({}),
+      listLinkedAccounts: async () => [{ provider: 'line' }],
+      forgotPassword: async (email) => {
+        resetEmail = email
+        return {}
+      },
+    }
+
+    render(
+      <MemoryRouter>
+        <AuthProvider api={api}>
+          <SecurityPage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    await userEvent.click(await screen.findByRole('button', { name: /set password/i }))
+    expect(screen.queryByLabelText('Current password')).not.toBeInTheDocument()
+    expect(resetEmail).toBe('ray@example.com')
+    expect(await screen.findByText('A password setup link was sent to your email.')).toBeInTheDocument()
+  })
+
   it('manages linked sign-in methods from settings rows', async () => {
     const calls: string[] = []
     const api: AuthApi = {

@@ -17,6 +17,7 @@ export type RuntimeConfig = {
   allowedRedirectOrigins: string[]
   allowedRedirectSchemes: string[]
   publicSiteUrl: string
+  turnstileSiteKey?: string
 }
 
 type EnvLike = Record<string, string | boolean | undefined>
@@ -58,6 +59,7 @@ export function readRuntimeConfig(
     allowedRedirectOrigins: splitCsv(env.VITE_ALLOWED_REDIRECT_ORIGINS, defaultAllowedOrigins),
     allowedRedirectSchemes: splitCsv(env.VITE_ALLOWED_REDIRECT_SCHEMES, ['hhc']),
     publicSiteUrl: stringEnv(env.VITE_PUBLIC_SITE_URL, 'https://www.alive.org.tw').replace(/\/$/, ''),
+    turnstileSiteKey: stringEnv(env.VITE_TURNSTILE_SITE_KEY, ''),
   }
 }
 

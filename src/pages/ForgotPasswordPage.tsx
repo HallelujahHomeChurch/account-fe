@@ -1,10 +1,11 @@
-import { Button, Card, FieldError, Form, Input, Label, TextField } from '@hallelujahhomechurch/ui'
+import { Button, FieldError, Form, Input, Label, TextField } from '@hallelujahhomechurch/ui'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import { ApiError } from '../lib/api'
+import { LanguageSelector } from '../components/LanguageSelector'
 
 export function ForgotPasswordPage() {
   const auth = useAuth()
@@ -33,17 +34,14 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <section className="auth-grid">
-      <div className="page-heading">
-        <p className="eyebrow">{t.passwordRecovery.section}</p>
+    <section className="login-shell">
+      <div className="login-card">
+        <div className="login-copy">
+          <img className="login-brand-mark" src="/assets/brand/logo.png" alt="" />
         <h1>{t.passwordRecovery.forgotTitle}</h1>
         <p>{t.passwordRecovery.forgotDescription}</p>
-      </div>
-      <Card className="panel-card">
-        <Card.Header>
-          <Card.Title>{t.passwordRecovery.resetLink}</Card.Title>
-        </Card.Header>
-        <Card.Content>
+        </div>
+        <div className="login-form-panel">
           {message ? <p className="form-notice">{message}</p> : null}
           {error ? <p className="form-error">{error}</p> : null}
           <Form className="form-stack" onSubmit={submit}>
@@ -61,8 +59,9 @@ export function ForgotPasswordPage() {
               </Button>
             </div>
           </Form>
-        </Card.Content>
-      </Card>
+        </div>
+      </div>
+      <div className="login-footer"><LanguageSelector /></div>
     </section>
   )
 }

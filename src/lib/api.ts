@@ -35,6 +35,18 @@ export type LoginResponse = {
   success?: boolean
 }
 
+export type AuthCapabilities = {
+  providers: string[]
+  registrationEnabled: boolean
+}
+
+export type OAuthOnboardingStatus = {
+  provider: string
+  masked_email: string
+  existing_account: boolean
+  requires_link_confirmation: boolean
+}
+
 export type Profile = {
   id: string
   email: string
@@ -211,6 +223,14 @@ export class AccountApi {
     })
   }
 
+  register(body: { email: string; password: string; first_name: string; last_name: string; turnstile_token?: string }) {
+    return this.request<{ message?: string }>('/register', {
+      method: 'POST',
+      auth: false,
+      body,
+    })
+  }
+
   verifyEmail(token: string) {
     return this.request<{ message?: string }>('/verify-email', {
       method: 'POST',
@@ -278,6 +298,30 @@ export class AccountApi {
     })
   }
 
+  sendOAuthOnboardingCode(token: string, email: string) {
+    return this.request<{ message?: string }>('/oauth/onboarding/email', {
+      method: 'POST',
+      auth: false,
+      body: { token, email },
+    })
+  }
+
+  verifyOAuthOnboardingCode(token: string, code: string) {
+    return this.request<OAuthOnboardingStatus>('/oauth/onboarding/verify', {
+      method: 'POST',
+      auth: false,
+      body: { token, code },
+    })
+  }
+
+  completeOAuthOnboarding(token: string, linkExisting: boolean) {
+    return this.request<LoginResponse>('/oauth/onboarding/confirm', {
+      method: 'POST',
+      auth: false,
+      body: { token, link_existing: linkExisting },
+    })
+  }
+
   getLineBinding(token: string) {
     return this.request<LineBindingSummary>(`/line/bindings/${encodeURIComponent(token)}`)
   }
@@ -306,8 +350,18 @@ export class AccountApi {
   }
 
   async getOAuthProviders() {
-    const response = await this.request<{ providers?: string[] }>('/oauth-providers', { auth: false })
-    return response.providers ?? []
+    return (await this.getAuthCapabilities()).providers
+  }
+
+  async getAuthCapabilities(): Promise<AuthCapabilities> {
+    const response = await this.request<{ providers?: string[]; registration_enabled?: boolean }>(
+      '/oauth-providers',
+      { auth: false },
+    )
+    return {
+      providers: response.providers ?? [],
+      registrationEnabled: response.registration_enabled === true,
+    }
   }
 
   private async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
