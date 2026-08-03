@@ -37,6 +37,7 @@ export function LoginPage() {
   const [notice, setNotice] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [enabledProviderIds, setEnabledProviderIds] = useState<string[] | null>(null)
+  const [registrationEnabled, setRegistrationEnabled] = useState(false)
 
   const title = t.login.brandTitle
   const challenge = auth.mfaChallenge
@@ -53,12 +54,16 @@ export function LoginPage() {
 
   useEffect(() => {
     let active = true
-    const request = auth.api.getOAuthProviders
-      ? auth.api.getOAuthProviders()
-      : Promise.resolve(socialProviders.map(({ id }) => id))
+    const request = auth.api.getAuthCapabilities
+      ? auth.api.getAuthCapabilities()
+      : auth.api.getOAuthProviders
+        ? auth.api.getOAuthProviders().then((providers) => ({ providers, registrationEnabled: false }))
+        : Promise.resolve({ providers: socialProviders.map(({ id }) => id), registrationEnabled: false })
     request
-      .then((providers) => {
-        if (active) setEnabledProviderIds(providers)
+      .then((capabilities) => {
+        if (!active) return
+        setEnabledProviderIds(capabilities.providers)
+        setRegistrationEnabled(capabilities.registrationEnabled)
       })
       .catch(() => {
         if (active) setEnabledProviderIds([])
@@ -179,6 +184,9 @@ export function LoginPage() {
                 />
               </div>
               <div className="login-actions">
+                {registrationEnabled ? (
+                  <Link className="muted-link" to="/register">{t.login.createAccount}</Link>
+                ) : null}
                 <Button isPending={isSubmitting} type="submit">
                   {t.login.next}
                 </Button>

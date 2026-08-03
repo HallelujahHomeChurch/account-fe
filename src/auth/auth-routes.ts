@@ -1,6 +1,6 @@
 import { safeReturnTo as sharedSafeReturnTo } from '@hallelujahhomechurch/account-client'
 
-const authRoutePaths = new Set(['/login', '/forgot-password', '/reset-password', '/verify-email', '/oauth/callback', '/oauth/link'])
+const authRoutePaths = new Set(['/login', '/register', '/forgot-password', '/reset-password', '/verify-email', '/oauth/callback', '/oauth/link', '/oauth/onboarding'])
 
 export function isAuthRoutePath(pathname: string) {
   return authRoutePaths.has(pathname)

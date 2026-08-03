@@ -107,7 +107,9 @@ jobs:
           az acr login --name "$ACR_NAME"
           printf '@hallelujahhomechurch:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=%s\n' "$GITHUB_TOKEN" > "$RUNNER_TEMP/npmrc"
           image_ref="${ACR_LOGIN_SERVER}/${IMAGE_REPOSITORY}:${IMAGE_TAG}"
-          docker build --secret id=npmrc,src="$RUNNER_TEMP/npmrc" -t "$image_ref" .
+          docker build --secret id=npmrc,src="$RUNNER_TEMP/npmrc" \
+            --build-arg VITE_TURNSTILE_SITE_KEY="${{ vars.TURNSTILE_SITE_KEY }}" \
+            -t "$image_ref" .
           docker push "$image_ref"
       - name: Resolve immutable image
         run: |

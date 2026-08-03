@@ -361,6 +361,28 @@ textarea::selection {
   gap: 16px;
 }
 
+.auth-actions-between {
+  justify-content: space-between;
+}
+
+.auth-name-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.auth-back-link {
+  display: inline-block;
+  margin-top: 20px;
+}
+
+.oauth-account-summary {
+  margin: 0;
+  color: var(--color-ink);
+  font-weight: 650;
+  text-align: center;
+}
+
 .line-binding-card {
   gap: 26px;
 }
@@ -1068,6 +1090,10 @@ textarea::selection {
     background: transparent;
     box-shadow: none;
     padding: 28px 8px;
+  }
+
+  .auth-name-fields {
+    grid-template-columns: 1fr;
   }
 
   .login-footer {

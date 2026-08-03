@@ -158,6 +158,28 @@ export class MockAccountApi {
     return { message: 'Mock reset email accepted.' }
   }
 
+  async register() {
+    return { message: 'Mock registration accepted.' }
+  }
+
+  async sendOAuthOnboardingCode() {
+    return { message: 'Mock verification code accepted.' }
+  }
+
+  async verifyOAuthOnboardingCode() {
+    return {
+      provider: 'line',
+      masked_email: 'u***@example.com',
+      existing_account: false,
+      requires_link_confirmation: false,
+    }
+  }
+
+  async completeOAuthOnboarding() {
+    this.authenticated = true
+    return { success: true, redirect_type: 'profile' as const }
+  }
+
   async resetPassword() {
     return { message: 'Mock password reset accepted.' }
   }
@@ -182,5 +204,9 @@ export class MockAccountApi {
 
   async getOAuthProviders() {
     return ['google', 'line', 'microsoft']
+  }
+
+  async getAuthCapabilities() {
+    return { providers: ['google', 'line', 'microsoft'], registrationEnabled: true }
   }
 }

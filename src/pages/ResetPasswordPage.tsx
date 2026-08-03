@@ -1,9 +1,10 @@
-import { Button, Card, FieldError, Form, Input, Label, TextField } from '@hallelujahhomechurch/ui'
+import { Button, FieldError, Form, Input, Label, TextField } from '@hallelujahhomechurch/ui'
 import { useEffect, useState, type FormEvent } from 'react'
 
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import { ApiError } from '../lib/api'
+import { LanguageSelector } from '../components/LanguageSelector'
 
 export function ResetPasswordPage() {
   const auth = useAuth()
@@ -44,17 +45,14 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <section className="auth-grid">
-      <div className="page-heading">
-        <p className="eyebrow">{t.passwordRecovery.section}</p>
+    <section className="login-shell">
+      <div className="login-card">
+        <div className="login-copy">
+          <img className="login-brand-mark" src="/assets/brand/logo.png" alt="" />
         <h1>{t.passwordRecovery.resetTitle}</h1>
         <p>{t.passwordRecovery.resetDescription}</p>
-      </div>
-      <Card className="panel-card">
-        <Card.Header>
-          <Card.Title>{t.passwordRecovery.newPassword}</Card.Title>
-        </Card.Header>
-        <Card.Content>
+        </div>
+        <div className="login-form-panel">
           {message ? <p className="form-notice">{message}</p> : null}
           {error ? <p className="form-error">{error}</p> : null}
           <Form className="form-stack" onSubmit={submit}>
@@ -70,8 +68,9 @@ export function ResetPasswordPage() {
             </TextField>
             <Button type="submit">{t.passwordRecovery.resetPassword}</Button>
           </Form>
-        </Card.Content>
-      </Card>
+        </div>
+      </div>
+      <div className="login-footer"><LanguageSelector /></div>
     </section>
   )
 }
