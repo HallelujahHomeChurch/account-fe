@@ -56,7 +56,8 @@ describe('LoginPage', () => {
       </MemoryRouter>,
     )
 
-    expect(await screen.findByText('Verification email sent. Verify your email to sign in.')).toBeInTheDocument()
+    const notice = await screen.findByText('Verification email sent. Verify your email to sign in.')
+    expect(notice).toHaveClass('form-success')
     expect(screen.getByLabelText('Email')).toHaveValue('user@example.com')
     expect(document.querySelector('.hhc-toast')).not.toBeInTheDocument()
   })

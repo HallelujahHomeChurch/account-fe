@@ -42,6 +42,7 @@ export function LoginPage() {
   const [notice, setNotice] = useState(() =>
     registrationState?.registrationComplete ? t.registration.verificationSent : '',
   )
+  const [isRegistrationNotice] = useState(Boolean(registrationState?.registrationComplete))
   const [initialEmail] = useState(registrationState?.registrationEmail ?? '')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [enabledProviderIds, setEnabledProviderIds] = useState<string[] | null>(null)
@@ -183,7 +184,11 @@ export function LoginPage() {
           ) : null}
 
           {error || auth.bootstrapError ? <p className="form-error" role="alert">{error || auth.bootstrapError}</p> : null}
-          {notice ? <p className="form-notice" role="status">{notice}</p> : null}
+          {notice ? (
+            <p className={isRegistrationNotice ? 'form-success' : 'form-notice'} role="status">
+              {notice}
+            </p>
+          ) : null}
 
           {challenge ? (
             <Form className="form-stack" onSubmit={submitMfa}>

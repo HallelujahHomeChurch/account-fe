@@ -22,6 +22,7 @@
   --color-danger: var(--hhc-danger);
   --color-danger-soft: rgb(180 58 45 / 10%);
   --color-success: var(--hhc-success);
+  --color-success-soft: color-mix(in srgb, var(--color-success) 14%, transparent);
   --color-warning: var(--hhc-warning);
   --color-scrim: var(--hhc-scrim);
   --shadow-warm: 0 20px 50px rgb(76 50 28 / 12%);
@@ -797,6 +798,7 @@ textarea::selection {
 }
 
 .form-error,
+.form-success,
 .form-notice,
 .inline-status {
   margin: 0 0 16px;
@@ -811,10 +813,43 @@ textarea::selection {
   color: var(--color-danger);
 }
 
+.form-success {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
 .form-notice,
 .inline-status {
   background: var(--color-primary-soft);
   color: var(--color-primary-hover);
+}
+
+.auth-completion {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.auth-completion p {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.7;
+}
+
+.auth-success-mark {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.auth-success-mark svg {
+  width: 28px;
+  height: 28px;
 }
 
 .setup-code,
