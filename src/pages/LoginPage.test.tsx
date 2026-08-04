@@ -398,6 +398,29 @@ describe('LoginPage', () => {
     )
   })
 
+  it('shows account registration on the regular login flow when enabled', async () => {
+    document.cookie = 'hhc_locale=en; Path=/'
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }),
+      me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken: async () => null,
+      logout: async () => ({}),
+      getAuthCapabilities: async () => ({ providers: [], registrationEnabled: true }),
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <LocaleProvider>
+          <AuthProvider api={api} restoreSession={false}>
+            <LoginPage />
+          </AuthProvider>
+        </LocaleProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('link', { name: 'Create account' })).toHaveAttribute('href', '/register')
+  })
+
   it('only renders OAuth providers enabled by the API', async () => {
     const api: AuthApi = {
       login: async () => ({ access_token: 'token' }),
