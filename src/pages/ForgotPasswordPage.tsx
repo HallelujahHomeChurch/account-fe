@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom'
 
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
-import { ApiError } from '../lib/api'
 import { LanguageSelector } from '../components/LanguageSelector'
+import { authErrorMessage } from '../auth/auth-form'
 
 export function ForgotPasswordPage() {
   const auth = useAuth()
@@ -27,7 +27,9 @@ export function ForgotPasswordPage() {
       await auth.api.forgotPassword(email)
       setMessage(t.passwordRecovery.sent)
     } catch (caught) {
-      setError(errorMessage(caught, t.passwordRecovery.requestFailed))
+      setError(authErrorMessage(caught, t.passwordRecovery.requestFailed, {
+        ACC_REQUEST_INVALID: t.passwordRecovery.invalidEmail,
+      }))
     } finally {
       setIsSubmitting(false)
     }
@@ -66,9 +68,4 @@ export function ForgotPasswordPage() {
       <div className="login-footer"><LanguageSelector /></div>
     </section>
   )
-}
-
-function errorMessage(caught: unknown, fallback: string) {
-  if (caught instanceof ApiError || caught instanceof Error) return caught.message
-  return fallback
 }

@@ -38,6 +38,7 @@ describe('ResetPasswordPage', () => {
     expect(window.location.hash).toBe('')
 
     await userEvent.type(screen.getByLabelText('New password'), 'Secret123!')
+    await userEvent.type(screen.getByLabelText('Confirm new password'), 'Secret123!')
     await userEvent.click(screen.getByRole('button', { name: 'Reset password' }))
 
     expect(request).toEqual({
@@ -48,5 +49,27 @@ describe('ResetPasswordPage', () => {
     expect(await screen.findByText('Password reset.')).toBeInTheDocument()
     expect(screen.queryByLabelText('New password')).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Back to sign in' })).toBeInTheDocument()
+  })
+
+  it('does not submit when the passwords do not match', async () => {
+    window.history.replaceState(null, '', '/reset-password#email=user%40example.com&token=reset-token')
+    let calls = 0
+    const api: AuthApi = {
+      login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken: async () => null, logout: async () => ({}),
+      resetPassword: async () => { calls += 1; return {} },
+    }
+    render(
+      <MemoryRouter initialEntries={['/reset-password']}>
+        <AuthProvider api={api}><ResetPasswordPage /></AuthProvider>
+      </MemoryRouter>,
+    )
+
+    await userEvent.type(screen.getByLabelText('New password'), 'Secret123!')
+    await userEvent.type(screen.getByLabelText('Confirm new password'), 'Different123!')
+    await userEvent.click(screen.getByRole('button', { name: 'Reset password' }))
+
+    expect(calls).toBe(0)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Passwords do not match.')
   })
 })

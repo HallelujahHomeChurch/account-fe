@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/auth-context'
 import { LanguageSelector } from '../components/LanguageSelector'
 import { useLocale } from '../i18n/locale-context'
-import { ApiError } from '../lib/api'
+import { authErrorMessage } from '../auth/auth-form'
 
 export function VerifyEmailPage() {
   const auth = useAuth()
@@ -32,7 +32,7 @@ export function VerifyEmailPage() {
 
     auth.api.verifyEmail(token)
       .then(() => setVerified(true))
-      .catch((caught: unknown) => setError(errorMessage(caught, t.emailVerification.requestFailed)))
+      .catch((caught: unknown) => setError(authErrorMessage(caught, t.emailVerification.requestFailed)))
   }, [auth.api, t.emailVerification.requestFailed, t.emailVerification.tokenRequired, token])
 
   return (
@@ -63,9 +63,4 @@ export function VerifyEmailPage() {
       <div className="login-footer"><LanguageSelector /></div>
     </section>
   )
-}
-
-function errorMessage(caught: unknown, fallback: string) {
-  if (caught instanceof ApiError || caught instanceof Error) return caught.message
-  return fallback
 }

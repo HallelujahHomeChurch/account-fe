@@ -6,8 +6,31 @@ import { describe, expect, it, vi } from 'vitest'
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
 import { LoginPage } from './LoginPage'
+import { ApiError } from '../lib/api'
 
 describe('LoginPage', () => {
+  it('shows a localized credential error instead of the backend message', async () => {
+    document.cookie = 'hhc_locale=en; Path=/'
+    const api: AuthApi = {
+      login: async () => { throw new ApiError(401, 'Login failed', 'ACC_AUTH_INVALID_CREDENTIALS') },
+      me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken: async () => null,
+      logout: async () => ({}),
+    }
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <LocaleProvider><AuthProvider api={api} restoreSession={false}><LoginPage /></AuthProvider></LocaleProvider>
+      </MemoryRouter>,
+    )
+
+    await userEvent.type(screen.getByLabelText('Email'), 'user@example.com')
+    await userEvent.type(screen.getByLabelText('Password'), 'wrong')
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Email or password is incorrect.')
+    expect(screen.queryByText('Login failed')).not.toBeInTheDocument()
+  })
+
   it('shows a one-time signed-out notice without refreshing the session', async () => {
     document.cookie = 'hhc_locale=en; Path=/'
     const refreshAccessToken = vi.fn(async () => null)

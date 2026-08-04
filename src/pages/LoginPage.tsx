@@ -13,9 +13,9 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 
 import { LanguageSelector } from '../components/LanguageSelector'
 import { safeReturnTo } from '../auth/auth-routes'
-import { ApiError } from '../lib/api'
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
+import { authErrorMessage } from '../auth/auth-form'
 
 const socialProviders = [
   { id: 'google', label: 'Google' },
@@ -141,7 +141,10 @@ export function LoginPage() {
         setNotice(t.login.signedIn)
       }
     } catch (caught) {
-      setError(errorMessage(caught))
+      setError(authErrorMessage(caught, t.login.failed, {
+        ACC_AUTH_INVALID_CREDENTIALS: t.login.invalidCredentials,
+        ACC_AUTH_RATE_LIMITED: t.login.rateLimited,
+      }))
     } finally {
       setIsSubmitting(false)
     }
@@ -161,7 +164,7 @@ export function LoginPage() {
         navigate(returnTo, { replace: true })
       }
     } catch (caught) {
-      setError(errorMessage(caught))
+      setError(authErrorMessage(caught, t.login.mfaFailed))
     } finally {
       setIsSubmitting(false)
     }
@@ -263,11 +266,6 @@ export function LoginPage() {
       </div>
     </section>
   )
-}
-
-function errorMessage(caught: unknown) {
-  if (caught instanceof ApiError || caught instanceof Error) return caught.message
-  return 'Request failed.'
 }
 
 function socialLabel(prefix: string, provider: string, suffix: string) {
