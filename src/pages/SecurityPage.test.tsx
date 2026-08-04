@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { SecurityPage } from './SecurityPage'
+import { ApiError } from '../lib/api'
 
 describe('SecurityPage', () => {
   it('opens password fields only after the user chooses to change password', async () => {
@@ -41,6 +42,7 @@ describe('SecurityPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /^change$/i }))
     await userEvent.type(screen.getByLabelText('Current password'), 'oldSecret1')
     await userEvent.type(screen.getByLabelText('New password'), 'newSecret1')
+    await userEvent.type(screen.getByLabelText('Confirm new password'), 'newSecret1')
     await userEvent.click(screen.getByRole('button', { name: /change password/i }))
 
     expect(passwordBody).toMatchObject({
@@ -50,6 +52,25 @@ describe('SecurityPage', () => {
     await waitFor(() => expect(navigateAfterLogout).toHaveBeenCalledWith('/login?password_changed=1'))
   })
 
+  it('keeps mismatched password confirmation inside the dialog without calling the API', async () => {
+    const changePassword = vi.fn(async () => ({}))
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }), refreshAccessToken: async () => 'token',
+      me: async () => ({ id: 'u1', email: 'ray@example.com', has_password: true }),
+      logout: async () => ({}), listLinkedAccounts: async () => [], changePassword,
+    }
+    render(<MemoryRouter><AuthProvider api={api}><SecurityPage /></AuthProvider></MemoryRouter>)
+
+    await userEvent.click(await screen.findByRole('button', { name: /^change$/i }))
+    await userEvent.type(screen.getByLabelText('Current password'), 'OldSecret1')
+    await userEvent.type(screen.getByLabelText('New password'), 'NewSecret1')
+    await userEvent.type(screen.getByLabelText('Confirm new password'), 'Different1')
+    await userEvent.click(screen.getByRole('button', { name: /change password/i }))
+
+    expect(changePassword).not.toHaveBeenCalled()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Passwords do not match.')
+  })
+
   it('keeps password errors inside the open dialog', async () => {
     const api: AuthApi = {
       login: async () => ({ access_token: 'token' }),
@@ -57,7 +78,7 @@ describe('SecurityPage', () => {
       me: async () => ({ id: 'u1', email: 'ray@example.com', has_password: true }),
       logout: async () => ({}),
       listLinkedAccounts: async () => [],
-      changePassword: async () => { throw new Error('Current password is incorrect') },
+      changePassword: async () => { throw new ApiError(400, 'Failed to change password', 'ACC_AUTH_INVALID_CREDENTIALS') },
     }
 
     render(
@@ -71,6 +92,7 @@ describe('SecurityPage', () => {
     await userEvent.click(await screen.findByRole('button', { name: /^change$/i }))
     await userEvent.type(screen.getByLabelText('Current password'), 'wrong')
     await userEvent.type(screen.getByLabelText('New password'), 'newSecret1')
+    await userEvent.type(screen.getByLabelText('Confirm new password'), 'newSecret1')
     await userEvent.click(screen.getByRole('button', { name: /change password/i }))
 
     const alert = await screen.findByRole('alert')

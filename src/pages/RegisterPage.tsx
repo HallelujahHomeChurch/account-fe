@@ -5,9 +5,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { LanguageSelector } from '../components/LanguageSelector'
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
-import { ApiError } from '../lib/api'
 import { readRuntimeConfig } from '../lib/redirects'
 import { Turnstile } from '../components/Turnstile'
+import { authErrorMessage, isStrongPassword } from '../auth/auth-form'
 
 export function RegisterPage() {
   const auth = useAuth()
@@ -24,6 +24,10 @@ export function RegisterPage() {
     if (!auth.api.register) return
     const form = new FormData(event.currentTarget)
     const password = String(form.get('password') ?? '')
+    if (!isStrongPassword(password)) {
+      setError(t.registration.passwordPolicy)
+      return
+    }
     if (password !== String(form.get('confirm_password') ?? '')) {
       setError(t.registration.passwordMismatch)
       return
@@ -44,7 +48,9 @@ export function RegisterPage() {
         state: { registrationComplete: true, registrationEmail: email },
       })
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : t.registration.failed)
+      setError(authErrorMessage(caught, t.registration.failed, {
+        ACC_REQUEST_INVALID: t.registration.invalidDetails,
+      }))
     } finally {
       setIsSubmitting(false)
     }

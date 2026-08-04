@@ -16,6 +16,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import { ApiError, type LinkedAccount, type MfaSetup } from '../lib/api'
+import { authErrorMessage, isStrongPassword } from '../auth/auth-form'
 
 type MfaDialog = 'setup' | 'manage' | null
 
@@ -63,20 +64,33 @@ export function SecurityPage() {
 
     const formElement = event.currentTarget
     const form = new FormData(formElement)
+    const newPassword = String(form.get('new_password') ?? '')
     setError('')
     setMessage('')
     setPasswordDialogError('')
 
+    if (!isStrongPassword(newPassword)) {
+      setPasswordDialogError(t.security.passwordPolicy)
+      return
+    }
+    if (newPassword !== String(form.get('confirm_password') ?? '')) {
+      setPasswordDialogError(t.security.passwordMismatch)
+      return
+    }
+
     try {
       await auth.api.changePassword({
         old_password: String(form.get('old_password') ?? ''),
-        new_password: String(form.get('new_password') ?? ''),
+        new_password: newPassword,
       })
       formElement.reset()
       setPasswordDialogOpen(false)
       auth.clearLocalSession('/login?password_changed=1')
     } catch (caught) {
-      setPasswordDialogError(errorMessage(caught))
+      setPasswordDialogError(authErrorMessage(caught, t.security.passwordChangeFailed, {
+        ACC_REQUEST_INVALID: t.security.passwordPolicy,
+        ACC_AUTH_INVALID_CREDENTIALS: t.security.currentPasswordIncorrect,
+      }))
     }
   }
 
@@ -326,6 +340,10 @@ function PasswordDialog({
                 </TextField>
                 <TextField isRequired name="new_password" type="password">
                   <Label>{labels.newPassword}</Label>
+                  <Input autoComplete="new-password" />
+                </TextField>
+                <TextField isRequired name="confirm_password" type="password">
+                  <Label>{labels.confirmPassword}</Label>
                   <Input autoComplete="new-password" />
                 </TextField>
               </Modal.Body>

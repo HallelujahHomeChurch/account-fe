@@ -38,3 +38,29 @@ it('submits a new account and shows the verification next step', async () => {
   expect(await screen.findByText('Registration complete')).toBeInTheDocument()
   expect(screen.queryByText(/Unable to create/)).not.toBeInTheDocument()
 })
+
+it('does not submit a weak password', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  const register = vi.fn(async () => ({}))
+  const api: AuthApi = {
+    login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+    refreshAccessToken: async () => null, logout: async () => ({}), register,
+  }
+  render(
+    <MemoryRouter initialEntries={['/register']}>
+      <LocaleProvider>
+        <AuthProvider api={api} restoreSession={false}><RegisterPage /></AuthProvider>
+      </LocaleProvider>
+    </MemoryRouter>,
+  )
+
+  await userEvent.type(screen.getByLabelText('First name'), 'Test')
+  await userEvent.type(screen.getByLabelText('Last name'), 'User')
+  await userEvent.type(screen.getByLabelText('Email'), 'user@example.com')
+  await userEvent.type(screen.getByLabelText('Password'), 'password')
+  await userEvent.type(screen.getByLabelText('Confirm password'), 'password')
+  await userEvent.click(screen.getByRole('button', { name: 'Create account' }))
+
+  expect(register).not.toHaveBeenCalled()
+  expect(await screen.findByRole('alert')).toHaveTextContent('Use at least 8 characters with uppercase, lowercase, and a number.')
+})

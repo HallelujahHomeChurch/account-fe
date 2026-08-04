@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom'
 
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
-import { ApiError } from '../lib/api'
 import { LanguageSelector } from '../components/LanguageSelector'
+import { authErrorMessage, isStrongPassword } from '../auth/auth-form'
 
 export function ResetPasswordPage() {
   const auth = useAuth()
@@ -31,19 +31,31 @@ export function ResetPasswordPage() {
     if (!auth.api.resetPassword) return
 
     const form = new FormData(event.currentTarget)
+    const password = String(form.get('new_password') ?? '')
     setMessage('')
     setError('')
+    if (!isStrongPassword(password)) {
+      setError(t.passwordRecovery.passwordPolicy)
+      return
+    }
+    if (password !== String(form.get('confirm_password') ?? '')) {
+      setError(t.passwordRecovery.passwordMismatch)
+      return
+    }
     setIsSubmitting(true)
 
     try {
       await auth.api.resetPassword({
         email: String(form.get('email') ?? ''),
         token: resetLink.token,
-        new_password: String(form.get('new_password') ?? ''),
+        new_password: password,
       })
       setMessage(t.passwordRecovery.resetSuccess)
     } catch (caught) {
-      setError(errorMessage(caught, t.passwordRecovery.requestFailed))
+      setError(authErrorMessage(caught, t.passwordRecovery.requestFailed, {
+        ACC_REQUEST_INVALID: t.passwordRecovery.passwordPolicy,
+        ACC_AUTH_TOKEN_INVALID: t.passwordRecovery.invalidLink,
+      }))
     } finally {
       setIsSubmitting(false)
     }
@@ -77,6 +89,11 @@ export function ResetPasswordPage() {
                   <Input autoComplete="new-password" />
                   <FieldError />
                 </TextField>
+                <TextField isRequired name="confirm_password" type="password">
+                  <Label>{t.passwordRecovery.confirmPassword}</Label>
+                  <Input autoComplete="new-password" />
+                  <FieldError />
+                </TextField>
                 <div className="login-actions">
                   <Button isPending={isSubmitting} type="submit">{t.passwordRecovery.resetPassword}</Button>
                 </div>
@@ -88,9 +105,4 @@ export function ResetPasswordPage() {
       <div className="login-footer"><LanguageSelector /></div>
     </section>
   )
-}
-
-function errorMessage(caught: unknown, fallback: string) {
-  if (caught instanceof ApiError || caught instanceof Error) return caught.message
-  return fallback
 }
