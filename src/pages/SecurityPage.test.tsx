@@ -50,6 +50,34 @@ describe('SecurityPage', () => {
     await waitFor(() => expect(navigateAfterLogout).toHaveBeenCalledWith('/login?password_changed=1'))
   })
 
+  it('keeps password errors inside the open dialog', async () => {
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }),
+      refreshAccessToken: async () => 'token',
+      me: async () => ({ id: 'u1', email: 'ray@example.com', has_password: true }),
+      logout: async () => ({}),
+      listLinkedAccounts: async () => [],
+      changePassword: async () => { throw new Error('Current password is incorrect') },
+    }
+
+    render(
+      <MemoryRouter>
+        <AuthProvider api={api}>
+          <SecurityPage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    await userEvent.click(await screen.findByRole('button', { name: /^change$/i }))
+    await userEvent.type(screen.getByLabelText('Current password'), 'wrong')
+    await userEvent.type(screen.getByLabelText('New password'), 'newSecret1')
+    await userEvent.click(screen.getByRole('button', { name: /change password/i }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Current password is incorrect')
+    expect(alert.closest('[role="dialog"]')).toBeInTheDocument()
+  })
+
   it('keeps MFA setup fields in a dialog flow', async () => {
     const calls: string[] = []
     const api: AuthApi = {

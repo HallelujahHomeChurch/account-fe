@@ -8,6 +8,7 @@ import {
   Modal,
   OTP,
   REGEXP_ONLY_DIGITS,
+  Skeleton,
   TextField,
 } from '@hallelujahhomechurch/ui'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
@@ -23,21 +24,27 @@ const supportedProviders = ['google', 'line', 'microsoft']
 export function SecurityPage() {
   const auth = useAuth()
   const { messages: t } = useLocale()
-  const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[]>([])
+  const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[] | null>(null)
   const [linkedAccountsError, setLinkedAccountsError] = useState(false)
   const [mfaSetup, setMfaSetup] = useState<MfaSetup | null>(null)
   const [mfaDialog, setMfaDialog] = useState<MfaDialog>(null)
   const [isMfaSetupVerified, setMfaSetupVerified] = useState(false)
   const [isPasswordDialogOpen, setPasswordDialogOpen] = useState(false)
+  const [passwordDialogError, setPasswordDialogError] = useState('')
+  const [mfaDialogError, setMfaDialogError] = useState('')
   const [isMfaEnabled, setIsMfaEnabled] = useState<boolean | null>(null)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const mfaEnabled = isMfaEnabled ?? Boolean(auth.profile?.mfa?.enabled)
-  const visibleLinkedAccounts = linkedAccounts.filter((account) => supportedProviders.includes(account.provider))
+  const visibleLinkedAccounts = (linkedAccounts ?? []).filter((account) => supportedProviders.includes(account.provider))
 
   const loadLinkedAccounts = useCallback(async () => {
-    if (!auth.api.listLinkedAccounts) return
+    if (!auth.api.listLinkedAccounts) {
+      setLinkedAccounts([])
+      return
+    }
     setLinkedAccountsError(false)
+    setLinkedAccounts(null)
     try {
       setLinkedAccounts(await auth.api.listLinkedAccounts())
     } catch {
@@ -58,6 +65,7 @@ export function SecurityPage() {
     const form = new FormData(formElement)
     setError('')
     setMessage('')
+    setPasswordDialogError('')
 
     try {
       await auth.api.changePassword({
@@ -68,7 +76,7 @@ export function SecurityPage() {
       setPasswordDialogOpen(false)
       auth.clearLocalSession('/login?password_changed=1')
     } catch (caught) {
-      setError(errorMessage(caught))
+      setPasswordDialogError(errorMessage(caught))
     }
   }
 
@@ -88,6 +96,7 @@ export function SecurityPage() {
     if (!auth.api.setupMfa) return
     setError('')
     setMessage('')
+    setMfaDialogError('')
     setMfaSetupVerified(false)
 
     try {
@@ -105,6 +114,7 @@ export function SecurityPage() {
     const code = String(new FormData(event.currentTarget).get('code') ?? '')
     setError('')
     setMessage('')
+    setMfaDialogError('')
 
     try {
       await auth.api.verifyMfaSetup(code)
@@ -113,7 +123,7 @@ export function SecurityPage() {
       await auth.refreshProfile().catch(() => undefined)
       setMessage(t.security.mfaEnabledNotice)
     } catch (caught) {
-      setError(errorMessage(caught))
+      setMfaDialogError(errorMessage(caught))
     }
   }
 
@@ -139,6 +149,7 @@ export function SecurityPage() {
     if (!auth.api.regenerateBackupCodes) return
     setError('')
     setMessage('')
+    setMfaDialogError('')
 
     try {
       const response = await auth.api.regenerateBackupCodes()
@@ -146,7 +157,7 @@ export function SecurityPage() {
       setMfaSetupVerified(true)
       setMessage(t.security.backupCodesRegenerated)
     } catch (caught) {
-      setError(errorMessage(caught))
+      setMfaDialogError(errorMessage(caught))
     }
   }
 
@@ -155,7 +166,7 @@ export function SecurityPage() {
     setMessage('')
     try {
       await auth.api.unlinkAccount?.(provider)
-      setLinkedAccounts((current) => current.filter((account) => account.provider !== provider))
+      setLinkedAccounts((current) => (current ?? []).filter((account) => account.provider !== provider))
       setMessage(t.security.providerRemoved)
     } catch (caught) {
       setError(errorMessage(caught))
@@ -163,7 +174,7 @@ export function SecurityPage() {
     }
   }
 
-  if (auth.isBootstrapping || !auth.profile) return <p className="inline-status">{t.security.loading}</p>
+  if (auth.isBootstrapping || !auth.profile) return <Skeleton className="account-page-skeleton" label={t.security.loading} />
 
   return (
     <section className="account-document">
@@ -171,8 +182,8 @@ export function SecurityPage() {
         <h1>{t.nav.security}</h1>
       </div>
 
-      {message ? <p className="form-notice">{message}</p> : null}
-      {error ? <p className="form-error">{error}</p> : null}
+      {message ? <p className="form-notice" role="status">{message}</p> : null}
+      {error ? <p className="form-error" role="alert">{error}</p> : null}
 
       <Card className="panel-card settings-card">
         <Card.Header>
@@ -191,7 +202,9 @@ export function SecurityPage() {
               {auth.profile.has_password === false ? t.security.setPassword : t.security.change}
             </Button>
           </div>
-          {linkedAccountsError ? (
+          {linkedAccounts === null && !linkedAccountsError ? (
+            <Skeleton className="settings-list-skeleton" label={t.security.loading} />
+          ) : linkedAccountsError ? (
             <div className="settings-row">
               <p className="muted-copy">{t.security.linkedAccountsLoadFailed}</p>
               <Button variant="secondary" onPress={() => void loadLinkedAccounts()}>
@@ -257,17 +270,25 @@ export function SecurityPage() {
 
       <PasswordDialog
         isOpen={isPasswordDialogOpen}
+        error={passwordDialogError}
         labels={t.security}
-        onOpenChange={setPasswordDialogOpen}
+        onOpenChange={(open) => {
+          setPasswordDialogOpen(open)
+          if (!open) setPasswordDialogError('')
+        }}
         onSubmit={submitPassword}
       />
       <MfaDialogContent
         dialog={mfaDialog}
         labels={t.security}
+        error={mfaDialogError}
         mfaSetup={mfaSetup}
         setupVerified={isMfaSetupVerified}
         onDisable={disableMfa}
-        onOpenChange={(open) => setMfaDialog(open ? mfaDialog : null)}
+        onOpenChange={(open) => {
+          setMfaDialog(open ? mfaDialog : null)
+          if (!open) setMfaDialogError('')
+        }}
         onRegenerate={() => void regenerateBackupCodes()}
         onSubmitSetup={submitMfaSetup}
       />
@@ -276,11 +297,13 @@ export function SecurityPage() {
 }
 
 function PasswordDialog({
+  error,
   isOpen,
   labels,
   onOpenChange,
   onSubmit,
 }: {
+  error: string
   isOpen: boolean
   labels: Record<string, string>
   onOpenChange: (isOpen: boolean) => void
@@ -296,6 +319,7 @@ function PasswordDialog({
             </Modal.Header>
             <Form onSubmit={onSubmit}>
               <Modal.Body>
+                {error ? <p className="form-error" role="alert">{error}</p> : null}
                 <TextField isRequired name="old_password" type="password">
                   <Label>{labels.currentPassword}</Label>
                   <Input autoComplete="current-password" />
@@ -321,6 +345,7 @@ function PasswordDialog({
 
 function MfaDialogContent({
   dialog,
+  error,
   labels,
   mfaSetup,
   setupVerified,
@@ -330,6 +355,7 @@ function MfaDialogContent({
   onSubmitSetup,
 }: {
   dialog: MfaDialog
+  error: string
   labels: Record<string, string>
   mfaSetup: MfaSetup | null
   setupVerified: boolean
@@ -351,6 +377,7 @@ function MfaDialogContent({
             {isSetup ? (
               <Form onSubmit={onSubmitSetup}>
                 <Modal.Body>
+                  {error ? <p className="form-error" role="alert">{error}</p> : null}
                   {mfaSetup?.qr_code_url ? (
                     <img className="mfa-qr-code" src={mfaSetup.qr_code_url} alt={labels.mfa} />
                   ) : mfaSetup?.otpauth_url ? (
@@ -383,6 +410,7 @@ function MfaDialogContent({
             ) : (
               <>
                 <Modal.Body>
+                  {error ? <p className="form-error" role="alert">{error}</p> : null}
                   {setupVerified && mfaSetup?.backup_codes?.length ? (
                     <BackupCodes codes={mfaSetup.backup_codes} label={labels.backupCodes} />
                   ) : null}

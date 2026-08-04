@@ -157,6 +157,31 @@ describe('ProfilePage', () => {
     })
   })
 
+  it('keeps profile update errors inside the open dialog', async () => {
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }),
+      refreshAccessToken: async () => 'token',
+      me: async () => ({ id: 'u1', email: 'ray@example.com', first_name: 'Ray' }),
+      logout: async () => ({}),
+      updateProfile: async () => { throw new Error('Unable to update profile') },
+    }
+
+    render(
+      <MemoryRouter>
+        <AuthProvider api={api}>
+          <ProfilePage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    await userEvent.click(await screen.findByRole('button', { name: /edit name/i }))
+    await userEvent.click(screen.getByRole('button', { name: /save changes/i }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Unable to update profile')
+    expect(alert.closest('[role="dialog"]')).toBeInTheDocument()
+  })
+
   it('opens avatar management and removes the current custom avatar', async () => {
     let removed = false
     const api: AuthApi = {

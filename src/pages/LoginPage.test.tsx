@@ -34,6 +34,33 @@ describe('LoginPage', () => {
     await vi.waitFor(() => expect(screen.getByTestId('location-search')).toBeEmptyDOMElement())
   })
 
+  it('shows the registration next step and prefills the email without a toast', async () => {
+    document.cookie = 'hhc_locale=en; Path=/'
+    const api: AuthApi = {
+      login: async () => ({}),
+      me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken: async () => null,
+      logout: async () => ({}),
+    }
+
+    render(
+      <MemoryRouter initialEntries={[{
+        pathname: '/login',
+        state: { registrationEmail: 'user@example.com', registrationComplete: true },
+      }]}>
+        <LocaleProvider>
+          <AuthProvider api={api} restoreSession={false}>
+            <LoginPage />
+          </AuthProvider>
+        </LocaleProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Verification email sent. Verify your email to sign in.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Email')).toHaveValue('user@example.com')
+    expect(document.querySelector('.hhc-toast')).not.toBeInTheDocument()
+  })
+
   it('shows a localized OAuth cancellation and removes the callback detail', async () => {
     document.cookie = 'hhc_locale=en; Path=/'
     const api: AuthApi = {

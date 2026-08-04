@@ -1,6 +1,6 @@
 import { Button, FieldError, Form, Input, Label, TextField } from '@hallelujahhomechurch/ui'
 import { useCallback, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { LanguageSelector } from '../components/LanguageSelector'
 import { useAuth } from '../auth/auth-context'
@@ -12,8 +12,8 @@ import { Turnstile } from '../components/Turnstile'
 export function RegisterPage() {
   const auth = useAuth()
   const { messages: t } = useLocale()
+  const navigate = useNavigate()
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState('')
   const [turnstileSiteKey] = useState(() => readRuntimeConfig().turnstileSiteKey ?? '')
@@ -22,28 +22,28 @@ export function RegisterPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!auth.api.register) return
-    const formElement = event.currentTarget
-    const form = new FormData(formElement)
+    const form = new FormData(event.currentTarget)
     const password = String(form.get('password') ?? '')
     if (password !== String(form.get('confirm_password') ?? '')) {
       setError(t.registration.passwordMismatch)
       return
     }
     setError('')
-    setNotice('')
     setIsSubmitting(true)
+    const email = String(form.get('email') ?? '')
     try {
       await auth.api.register({
-        email: String(form.get('email') ?? ''),
+        email,
         password,
         first_name: String(form.get('first_name') ?? ''),
         last_name: String(form.get('last_name') ?? ''),
         turnstile_token: turnstileToken || undefined,
       })
-      formElement.reset()
-      setNotice(t.registration.success)
+      navigate('/login', {
+        replace: true,
+        state: { registrationComplete: true, registrationEmail: email },
+      })
     } catch (caught) {
-      setNotice('')
       setError(caught instanceof ApiError ? caught.message : t.registration.failed)
     } finally {
       setIsSubmitting(false)
@@ -59,8 +59,7 @@ export function RegisterPage() {
           <p>{t.registration.description}</p>
         </div>
         <div className="login-form-panel">
-          {notice ? <p className="form-notice">{notice}</p> : null}
-          {error ? <p className="form-error">{error}</p> : null}
+          {error ? <p className="form-error" role="alert">{error}</p> : null}
           <Form className="form-stack" onSubmit={submit}>
             <div className="auth-name-fields">
               <TextField isRequired name="first_name">

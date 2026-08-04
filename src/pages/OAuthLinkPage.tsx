@@ -1,8 +1,9 @@
-import { Button, Card } from '@hallelujahhomechurch/ui'
+import { Button } from '@hallelujahhomechurch/ui'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
 import { useAuth } from '../auth/auth-context'
+import { LanguageSelector } from '../components/LanguageSelector'
 import { useLocale } from '../i18n/locale-context'
 import { ApiError } from '../lib/api'
 
@@ -36,25 +37,29 @@ export function OAuthLinkPage() {
   }
 
   return (
-    <section className="auth-grid">
-      <div className="page-heading">
-        <h1>{t.oauthLink.title}</h1>
-        {token && !message ? <p>{t.oauthLink.description}</p> : null}
-      </div>
-      <Card className="panel-card">
-        <Card.Content>
-          {message ? <p className="form-notice">{message}</p> : null}
-          {error ? <p className="form-error">{error}</p> : null}
+    <section className="login-shell" aria-labelledby="oauth-link-title">
+      <div className="login-card">
+        <div className="login-copy">
+          <img className="login-brand-mark" src="/assets/brand/logo.png" alt="" />
+          <h1 id="oauth-link-title">{t.oauthLink.title}</h1>
+          {token && !message ? <p>{t.oauthLink.description}</p> : null}
+        </div>
+        <div className="login-form-panel auth-result-state">
+          {message ? <p className="form-notice" role="status">{message}</p> : null}
+          {error ? <p className="form-error" role="alert">{error}</p> : null}
           {token && !message ? (
-            <Button isPending={isSubmitting} onPress={() => void confirm()}>
-              {t.oauthLink.confirm}
-            </Button>
+            <div className="login-actions">
+              <Button isPending={isSubmitting} onPress={() => void confirm()}>
+                {t.oauthLink.confirm}
+              </Button>
+            </div>
           ) : null}
           <Link className="muted-link" to="/login">
             {t.oauthLink.backToLogin}
           </Link>
-        </Card.Content>
-      </Card>
+        </div>
+      </div>
+      <div className="login-footer"><LanguageSelector /></div>
     </section>
   )
 }

@@ -45,7 +45,7 @@ export const messages = {
       title: '建立 HHC 帳戶', description: '使用 Email 建立帳戶。完成後請至信箱驗證。',
       firstName: '名字', lastName: '姓氏', email: 'Email', password: '密碼',
       confirmPassword: '確認密碼', submit: '建立帳戶', backToLogin: '返回登入',
-      success: '帳戶已建立，請開啟驗證信完成 Email 驗證。',
+      verificationSent: '驗證信已寄出，完成驗證後即可登入。',
       passwordMismatch: '兩次輸入的密碼不一致。', failed: '目前無法建立帳戶，請稍後再試。',
     },
     oauthOnboarding: {
@@ -108,8 +108,7 @@ export const messages = {
     emailVerification: {
       title: '驗證 Email',
       description: '確認此 Email 為您的 HHC 帳戶所有。',
-      cardTitle: 'Email 驗證',
-      verify: '驗證 Email',
+      verifying: '正在驗證 Email...',
       success: 'Email 已驗證。',
       tokenRequired: '驗證連結無效或已過期。',
       backToLogin: '返回登入',
@@ -245,7 +244,7 @@ export const messages = {
       title: '建立 HHC 帐户', description: '使用 Email 建立帐户。完成后请前往邮箱验证。',
       firstName: '名字', lastName: '姓氏', email: 'Email', password: '密码',
       confirmPassword: '确认密码', submit: '建立帐户', backToLogin: '返回登录',
-      success: '帐户已建立，请打开验证邮件完成 Email 验证。',
+      verificationSent: '验证邮件已发送，完成验证后即可登录。',
       passwordMismatch: '两次输入的密码不一致。', failed: '目前无法建立帐户，请稍后重试。',
     },
     oauthOnboarding: {
@@ -308,8 +307,7 @@ export const messages = {
     emailVerification: {
       title: '验证 Email',
       description: '确认此 Email 属于您的 HHC 帐户。',
-      cardTitle: 'Email 验证',
-      verify: '验证 Email',
+      verifying: '正在验证 Email...',
       success: 'Email 已验证。',
       tokenRequired: '验证链接无效或已过期。',
       backToLogin: '返回登录',
@@ -445,7 +443,7 @@ export const messages = {
       title: 'Create your HHC account', description: 'Create an account with email, then verify it from your inbox.',
       firstName: 'First name', lastName: 'Last name', email: 'Email', password: 'Password',
       confirmPassword: 'Confirm password', submit: 'Create account', backToLogin: 'Back to sign in',
-      success: 'Account created. Open the verification email to verify your address.',
+      verificationSent: 'Verification email sent. Verify your email to sign in.',
       passwordMismatch: 'Passwords do not match.', failed: 'Unable to create the account. Try again later.',
     },
     oauthOnboarding: {
@@ -508,8 +506,7 @@ export const messages = {
     emailVerification: {
       title: 'Verify email',
       description: 'Confirm this email address for your HHC account.',
-      cardTitle: 'Email verification',
-      verify: 'Verify email',
+      verifying: 'Verifying email...',
       success: 'Email verified successfully',
       tokenRequired: 'This verification link is invalid or has expired.',
       backToLogin: 'Back to sign in',

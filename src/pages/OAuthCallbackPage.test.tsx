@@ -63,6 +63,7 @@ describe('OAuthCallbackPage', () => {
     )
 
     expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(document.querySelector('.login-card')).toBeInTheDocument()
     await waitFor(() => expect(exchangeCode).not.toHaveBeenCalled())
   })
 })
