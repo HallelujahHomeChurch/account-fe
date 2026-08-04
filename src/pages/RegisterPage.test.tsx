@@ -25,4 +25,6 @@ it('submits a new account and shows the verification next step', async () => {
 
   expect(register).toHaveBeenCalledWith({ email: 'user@example.com', password: 'Password1!', first_name: 'Test', last_name: 'User', turnstile_token: undefined })
   expect(await screen.findByText(/Account created/)).toBeInTheDocument()
+  expect(screen.queryByText(/Unable to create/)).not.toBeInTheDocument()
+  expect(screen.getByLabelText('Email')).toHaveValue('')
 })
