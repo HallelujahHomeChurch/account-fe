@@ -37,6 +37,8 @@ describe('OAuthLinkPage', () => {
       </MemoryRouter>,
     )
 
+    expect(document.querySelector('.login-card')).toBeInTheDocument()
+
     expect(submittedToken).toBe('')
     await user.click(screen.getByRole('button', { name: 'Confirm' }))
     expect(await screen.findByText('Social sign-in method linked.')).toBeInTheDocument()

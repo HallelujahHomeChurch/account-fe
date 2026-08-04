@@ -1,4 +1,4 @@
-import { Button, Card, Form, Input, Label, Modal, TextField } from '@hallelujahhomechurch/ui'
+import { Button, Card, Form, Input, Label, Modal, Skeleton, TextField } from '@hallelujahhomechurch/ui'
 import { useEffect, useState, type FormEvent } from 'react'
 
 import { useAuth } from '../auth/auth-context'
@@ -13,6 +13,7 @@ export function ProfilePage() {
   const auth = useAuth()
   const { messages: t } = useLocale()
   const [isNameDialogOpen, setNameDialogOpen] = useState(false)
+  const [nameDialogError, setNameDialogError] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const profile = auth.profile
@@ -30,6 +31,7 @@ export function ProfilePage() {
     const form = new FormData(event.currentTarget)
     setError('')
     setMessage('')
+    setNameDialogError('')
 
     try {
       await auth.api.updateProfile({
@@ -40,11 +42,11 @@ export function ProfilePage() {
       setMessage(t.profile.updated)
       setNameDialogOpen(false)
     } catch (caught) {
-      setError(errorMessage(caught))
+      setNameDialogError(errorMessage(caught))
     }
   }
 
-  if (auth.isBootstrapping || !profile) return <p className="inline-status">{t.profile.loading}</p>
+  if (auth.isBootstrapping || !profile) return <Skeleton className="account-page-skeleton" label={t.profile.loading} />
 
   const name = displayAccountName(profile, t.profile.fallbackName)
 
@@ -54,8 +56,8 @@ export function ProfilePage() {
         <h1>{t.nav.personalInfo}</h1>
       </div>
 
-      {message ? <p className="form-notice">{message}</p> : null}
-      {error ? <p className="form-error">{error}</p> : null}
+      {message ? <p className="form-notice" role="status">{message}</p> : null}
+      {error ? <p className="form-error" role="alert">{error}</p> : null}
 
       <Card className="panel-card settings-card">
         <Card.Header>
@@ -101,7 +103,13 @@ export function ProfilePage() {
         </Card.Content>
       </Card>
 
-      <Modal isOpen={isNameDialogOpen} onOpenChange={setNameDialogOpen}>
+      <Modal
+        isOpen={isNameDialogOpen}
+        onOpenChange={(open) => {
+          setNameDialogOpen(open)
+          if (!open) setNameDialogError('')
+        }}
+      >
         <Modal.Backdrop>
           <Modal.Container placement="center">
             <Modal.Dialog>
@@ -110,6 +118,7 @@ export function ProfilePage() {
               </Modal.Header>
               <Form key={profile.id} onSubmit={submitName}>
                 <Modal.Body>
+                  {nameDialogError ? <p className="form-error" role="alert">{nameDialogError}</p> : null}
                   <TextField defaultValue={profile.first_name ?? ''} name="first_name">
                     <Label>{t.profile.firstName}</Label>
                     <Input autoComplete="given-name" />

@@ -1,5 +1,6 @@
 import { Button, FieldError, Form, Input, Label, TextField } from '@hallelujahhomechurch/ui'
 import { useEffect, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
@@ -11,6 +12,7 @@ export function ResetPasswordPage() {
   const { messages: t } = useLocale()
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [resetLink] = useState(() => {
     const values = new URLSearchParams(window.location.hash.slice(1))
     return {
@@ -31,6 +33,7 @@ export function ResetPasswordPage() {
     const form = new FormData(event.currentTarget)
     setMessage('')
     setError('')
+    setIsSubmitting(true)
 
     try {
       await auth.api.resetPassword({
@@ -41,6 +44,8 @@ export function ResetPasswordPage() {
       setMessage(t.passwordRecovery.resetSuccess)
     } catch (caught) {
       setError(errorMessage(caught, t.passwordRecovery.requestFailed))
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -53,21 +58,31 @@ export function ResetPasswordPage() {
         <p>{t.passwordRecovery.resetDescription}</p>
         </div>
         <div className="login-form-panel">
-          {message ? <p className="form-notice">{message}</p> : null}
-          {error ? <p className="form-error">{error}</p> : null}
-          <Form className="form-stack" onSubmit={submit}>
-            <TextField isRequired defaultValue={resetLink.email} name="email" type="email">
-              <Label>{t.passwordRecovery.email}</Label>
-              <Input autoComplete="email" />
-              <FieldError />
-            </TextField>
-            <TextField isRequired name="new_password" type="password">
-              <Label>{t.passwordRecovery.newPassword}</Label>
-              <Input autoComplete="new-password" />
-              <FieldError />
-            </TextField>
-            <Button type="submit">{t.passwordRecovery.resetPassword}</Button>
-          </Form>
+          {message ? (
+            <div className="auth-result-state">
+              <p className="form-notice" role="status">{message}</p>
+              <Link className="muted-link" to="/login">{t.passwordRecovery.backToLogin}</Link>
+            </div>
+          ) : (
+            <>
+              {error ? <p className="form-error" role="alert">{error}</p> : null}
+              <Form className="form-stack" onSubmit={submit}>
+                <TextField isReadOnly isRequired defaultValue={resetLink.email} name="email" type="email">
+                  <Label>{t.passwordRecovery.email}</Label>
+                  <Input autoComplete="email" />
+                  <FieldError />
+                </TextField>
+                <TextField isRequired name="new_password" type="password">
+                  <Label>{t.passwordRecovery.newPassword}</Label>
+                  <Input autoComplete="new-password" />
+                  <FieldError />
+                </TextField>
+                <div className="login-actions">
+                  <Button isPending={isSubmitting} type="submit">{t.passwordRecovery.resetPassword}</Button>
+                </div>
+              </Form>
+            </>
+          )}
         </div>
       </div>
       <div className="login-footer"><LanguageSelector /></div>

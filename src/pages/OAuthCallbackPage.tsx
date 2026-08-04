@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { useAuth } from '../auth/auth-context'
 import { loginPath } from '../auth/auth-routes'
+import { LanguageSelector } from '../components/LanguageSelector'
 import { useLocale } from '../i18n/locale-context'
 import {
   clearAccountOAuthTransaction,
@@ -17,6 +18,7 @@ export function OAuthCallbackPage() {
   const navigate = useNavigate()
   const handled = useRef(false)
   const [error, setError] = useState('')
+  const [showPending, setShowPending] = useState(false)
   const returnTo = readAccountOAuthTransaction()?.returnTo ?? '/profile'
 
   useEffect(() => {
@@ -42,22 +44,44 @@ export function OAuthCallbackPage() {
       .catch(() => setError(t.oauthCallback.failed))
   }, [auth, navigate, params, returnTo, t.oauthCallback.failed])
 
-  if (!error) {
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowPending(true), 350)
+    return () => window.clearTimeout(timer)
+  }, [])
+
+  if (!error && !showPending) {
     return <span className="hhc-sr-only" role="status">{t.oauthCallback.completing}</span>
   }
 
   return (
-    <div className="oauth-callback-error">
-      <p role="alert">{error}</p>
-      <Button
-        variant="primary"
-        onPress={() => {
-          clearAccountOAuthTransaction()
-          void auth.startAuthorization(returnTo)
-        }}
-      >
-        {t.oauthCallback.retry}
-      </Button>
-    </div>
+    <section className="login-shell" aria-labelledby="oauth-callback-title">
+      <div className="login-card">
+        <div className="login-copy">
+          <img className="login-brand-mark" src="/assets/brand/logo.png" alt="" />
+          <h1 id="oauth-callback-title">{t.login.brandTitle}</h1>
+        </div>
+        <div className="login-form-panel auth-result-state">
+          {error ? (
+            <>
+              <p className="form-error" role="alert">{error}</p>
+              <div className="login-actions">
+                <Button
+                  variant="primary"
+                  onPress={() => {
+                    clearAccountOAuthTransaction()
+                    void auth.startAuthorization(returnTo)
+                  }}
+                >
+                  {t.oauthCallback.retry}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <p className="inline-status" role="status">{t.oauthCallback.completing}</p>
+          )}
+        </div>
+      </div>
+      <div className="login-footer"><LanguageSelector /></div>
+    </section>
   )
 }

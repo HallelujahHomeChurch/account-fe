@@ -1,4 +1,4 @@
-import { Button, Card } from '@hallelujahhomechurch/ui'
+import { Button, Card, Skeleton } from '@hallelujahhomechurch/ui'
 import { useEffect, useMemo, useState } from 'react'
 
 import { useAuth } from '../auth/auth-context'
@@ -8,17 +8,21 @@ import type { Device } from '../lib/api'
 export function DevicesPage() {
   const auth = useAuth()
   const { locale, messages: t } = useLocale()
-  const [devices, setDevices] = useState<Device[]>([])
+  const [devices, setDevices] = useState<Device[] | null>(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
     if (!auth.accessToken || auth.isBootstrapping) return
-    auth.api.listDevices?.().then(setDevices).catch(() => setError(t.security.devicesLoadFailed))
+    if (!auth.api.listDevices) {
+      setDevices([])
+      return
+    }
+    auth.api.listDevices().then(setDevices).catch(() => setError(t.security.devicesLoadFailed))
   }, [auth.accessToken, auth.api, auth.isBootstrapping, t.security.devicesLoadFailed])
 
   const sortedDevices = useMemo(
     () =>
-      [...devices].sort(
+      [...(devices ?? [])].sort(
         (left, right) =>
           Number(right.is_current) - Number(left.is_current) ||
           Number(right.is_signed_in) - Number(left.is_signed_in) ||
@@ -36,7 +40,7 @@ export function DevicesPage() {
         return
       }
       setDevices((current) =>
-        current.map((item) =>
+        (current ?? []).map((item) =>
           item.id === device.id ? { ...item, is_signed_in: false } : item,
         ),
       )
@@ -45,22 +49,22 @@ export function DevicesPage() {
     }
   }
 
-  if (auth.isBootstrapping || !auth.profile) {
-    return <p className="inline-status">{t.security.loading}</p>
-  }
+  if (auth.isBootstrapping || !auth.profile) return <Skeleton className="account-page-skeleton" label={t.security.loading} />
 
   return (
     <section className="account-document">
       <div className="page-heading">
         <h1>{t.nav.devices}</h1>
       </div>
-      {error ? <p className="form-error">{error}</p> : null}
+      {error ? <p className="form-error" role="alert">{error}</p> : null}
       <Card className="panel-card settings-card">
         <Card.Header>
           <Card.Title>{t.security.devices}</Card.Title>
         </Card.Header>
         <Card.Content className="settings-list">
-          {sortedDevices.length ? (
+          {devices === null && !error ? (
+            <Skeleton className="settings-list-skeleton" label={t.security.loading} />
+          ) : sortedDevices.length ? (
             sortedDevices.map((device) => {
               const deviceName = device.display_name || `${device.browser} on ${device.os}`
               return (

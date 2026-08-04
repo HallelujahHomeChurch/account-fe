@@ -376,6 +376,29 @@ textarea::selection {
   margin-top: 20px;
 }
 
+.auth-result-state {
+  display: grid;
+  gap: 16px;
+}
+
+.auth-shell-skeleton {
+  width: min(100%, 540px);
+  min-height: 420px;
+  border-radius: 26px;
+}
+
+.account-page-skeleton {
+  width: min(100%, 760px);
+  min-height: 360px;
+  margin: 0 auto;
+  border-radius: 16px;
+}
+
+.settings-list-skeleton {
+  min-height: 120px;
+  border-radius: 12px;
+}
+
 .oauth-account-summary {
   margin: 0;
   color: var(--color-ink);
@@ -942,14 +965,6 @@ textarea::selection {
   color: var(--color-on-primary);
   padding: 0 18px;
   font-weight: 750;
-}
-
-.oauth-callback-error {
-  display: grid;
-  width: min(420px, calc(100% - 40px));
-  justify-items: start;
-  gap: 16px;
-  margin: auto;
 }
 
 .fact-list,

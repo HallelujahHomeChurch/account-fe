@@ -42,9 +42,9 @@ export function ForgotPasswordPage() {
         <p>{t.passwordRecovery.forgotDescription}</p>
         </div>
         <div className="login-form-panel">
-          {message ? <p className="form-notice">{message}</p> : null}
-          {error ? <p className="form-error">{error}</p> : null}
-          <Form className="form-stack" onSubmit={submit}>
+          {message ? <p className="form-notice" role="status">{message}</p> : null}
+          {error ? <p className="form-error" role="alert">{error}</p> : null}
+          {!message ? <Form className="form-stack" onSubmit={submit}>
             <TextField isRequired name="email" type="email">
               <Label>{t.passwordRecovery.email}</Label>
               <Input autoComplete="email" />
@@ -58,7 +58,9 @@ export function ForgotPasswordPage() {
                 {t.passwordRecovery.sendResetLink}
               </Button>
             </div>
-          </Form>
+          </Form> : (
+            <Link className="muted-link" to="/login">{t.passwordRecovery.backToLogin}</Link>
+          )}
         </div>
       </div>
       <div className="login-footer"><LanguageSelector /></div>

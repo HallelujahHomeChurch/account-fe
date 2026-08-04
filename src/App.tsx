@@ -1,4 +1,4 @@
-import { AccountMenu, Button, Drawer, Toast } from '@hallelujahhomechurch/ui'
+import { AccountMenu, Button, Drawer, Skeleton, Toast } from '@hallelujahhomechurch/ui'
 import { Menu, MonitorSmartphone, ShieldCheck, UserRound } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
@@ -57,7 +57,7 @@ function Layout() {
     return (
       <div className="app-shell">
         <main className="auth-main-panel">
-          <p className="inline-status">{t.profile.loading}</p>
+          <Skeleton className="auth-shell-skeleton" label={t.profile.loading} />
         </main>
       </div>
     )

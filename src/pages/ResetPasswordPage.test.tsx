@@ -46,5 +46,7 @@ describe('ResetPasswordPage', () => {
       new_password: 'Secret123!',
     })
     expect(await screen.findByText('Password reset.')).toBeInTheDocument()
+    expect(screen.queryByLabelText('New password')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Back to sign in' })).toBeInTheDocument()
   })
 })

@@ -9,7 +9,7 @@ import {
   TextField,
 } from '@hallelujahhomechurch/ui'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { LanguageSelector } from '../components/LanguageSelector'
 import { safeReturnTo } from '../auth/auth-routes'
@@ -27,6 +27,7 @@ export function LoginPage() {
   const auth = useAuth()
   const { messages: t } = useLocale()
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams] = useSearchParams()
   const authRequestId = searchParams.get('auth_request_id') ?? undefined
   const returnTo = safeReturnTo(searchParams.get('return_to'))
@@ -34,7 +35,14 @@ export function LoginPage() {
   const passwordChanged = searchParams.get('password_changed') === '1'
   const oauthError = searchParams.get('oauth_error')
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
+  const registrationState = location.state as {
+    registrationComplete?: boolean
+    registrationEmail?: string
+  } | null
+  const [notice, setNotice] = useState(() =>
+    registrationState?.registrationComplete ? t.registration.verificationSent : '',
+  )
+  const [initialEmail] = useState(registrationState?.registrationEmail ?? '')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [enabledProviderIds, setEnabledProviderIds] = useState<string[] | null>(null)
   const [registrationEnabled, setRegistrationEnabled] = useState(false)
@@ -98,6 +106,14 @@ export function LoginPage() {
     t.login.signedOut,
     t.security.passwordChanged,
   ])
+
+  useEffect(() => {
+    if (!registrationState) return
+    navigate(`${location.pathname}${location.search}${location.hash}`, {
+      replace: true,
+      state: null,
+    })
+  }, [location.hash, location.pathname, location.search, navigate, registrationState])
 
   useEffect(() => {
     if (authRequestId || auth.isBootstrapping || !auth.profile) return
@@ -166,8 +182,8 @@ export function LoginPage() {
             </>
           ) : null}
 
-          {error || auth.bootstrapError ? <p className="form-error">{error || auth.bootstrapError}</p> : null}
-          {notice ? <p className="form-notice">{notice}</p> : null}
+          {error || auth.bootstrapError ? <p className="form-error" role="alert">{error || auth.bootstrapError}</p> : null}
+          {notice ? <p className="form-notice" role="status">{notice}</p> : null}
 
           {challenge ? (
             <Form className="form-stack" onSubmit={submitMfa}>
@@ -191,7 +207,7 @@ export function LoginPage() {
             </Form>
           ) : (
             <Form className="form-stack" onSubmit={submitLogin}>
-              <TextField isRequired name="email">
+              <TextField isRequired defaultValue={initialEmail} name="email">
                 <Label>{t.login.accountLabel}</Label>
                 <Input autoComplete="username" placeholder="you@example.com" type="text" />
                 <FieldError />
