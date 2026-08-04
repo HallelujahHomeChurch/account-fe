@@ -22,7 +22,8 @@ export function RegisterPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!auth.api.register) return
-    const form = new FormData(event.currentTarget)
+    const formElement = event.currentTarget
+    const form = new FormData(formElement)
     const password = String(form.get('password') ?? '')
     if (password !== String(form.get('confirm_password') ?? '')) {
       setError(t.registration.passwordMismatch)
@@ -39,9 +40,10 @@ export function RegisterPage() {
         last_name: String(form.get('last_name') ?? ''),
         turnstile_token: turnstileToken || undefined,
       })
+      formElement.reset()
       setNotice(t.registration.success)
-      event.currentTarget.reset()
     } catch (caught) {
+      setNotice('')
       setError(caught instanceof ApiError ? caught.message : t.registration.failed)
     } finally {
       setIsSubmitting(false)
