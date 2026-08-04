@@ -184,9 +184,6 @@ export function LoginPage() {
                 />
               </div>
               <div className="login-actions">
-                {registrationEnabled ? (
-                  <Link className="muted-link" to="/register">{t.login.createAccount}</Link>
-                ) : null}
                 <Button isPending={isSubmitting} type="submit">
                   {t.login.next}
                 </Button>
@@ -208,6 +205,9 @@ export function LoginPage() {
                 {t.login.forgotPassword}
               </Link>
               <div className="login-actions">
+                {registrationEnabled ? (
+                  <Link className="muted-link" to="/register">{t.login.createAccount}</Link>
+                ) : null}
                 <Button isPending={isSubmitting} type="submit">
                   {t.login.next}
                 </Button>
