@@ -26,7 +26,11 @@ describe('VerifyEmailPage', () => {
     )
 
     expect(window.location.hash).toBe('')
-    expect(await screen.findByText('Email verified successfully')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Email verified' })).toBeInTheDocument()
+    expect(screen.getByText('You can now return to sign in.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Back to sign in' })).toBeInTheDocument()
+    expect(screen.queryByText('Confirm this email address for your HHC account.')).not.toBeInTheDocument()
+    expect(document.querySelector('.form-notice')).not.toBeInTheDocument()
     expect(verifyEmail).toHaveBeenCalledTimes(1)
     expect(verifyEmail).toHaveBeenCalledWith('verify-token')
     expect(screen.queryByRole('button', { name: 'Verify email' })).not.toBeInTheDocument()
