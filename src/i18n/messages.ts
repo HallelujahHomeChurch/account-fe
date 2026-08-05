@@ -5,6 +5,8 @@ export const messages = {
     site: {
       accountName: 'HHC 帳戶',
       language: '語言',
+      notifications: '通知',
+      dismissNotification: '關閉通知',
     },
     nav: {
       accountSections: '帳號區段',
@@ -100,6 +102,8 @@ export const messages = {
       email: 'Email',
       backToLogin: '返回登入',
       sendResetLink: '寄送重設連結',
+      requestAnotherLink: '重新申請連結',
+      sentTitle: '請查看信箱',
       sent: '我們已寄出密碼重設連結。',
       resetTitle: '重設密碼',
       resetDescription: '設定新的帳戶密碼。',
@@ -231,6 +235,8 @@ export const messages = {
     site: {
       accountName: 'HHC 帐户',
       language: '语言',
+      notifications: '通知',
+      dismissNotification: '关闭通知',
     },
     nav: {
       accountSections: '帐号区段',
@@ -326,6 +332,8 @@ export const messages = {
       email: 'Email',
       backToLogin: '返回登录',
       sendResetLink: '发送重设链接',
+      requestAnotherLink: '重新申请链接',
+      sentTitle: '请查看邮箱',
       sent: '如果此 Email 已注册，我们已发送密码重设链接。',
       resetTitle: '重设密码',
       resetDescription: '设置新的帐户密码。',
@@ -457,6 +465,8 @@ export const messages = {
     site: {
       accountName: 'HHC Account',
       language: 'Language',
+      notifications: 'Notifications',
+      dismissNotification: 'Dismiss notification',
     },
     nav: {
       accountSections: 'Account sections',
@@ -552,6 +562,8 @@ export const messages = {
       email: 'Email',
       backToLogin: 'Back to sign in',
       sendResetLink: 'Send reset link',
+      requestAnotherLink: 'Request another link',
+      sentTitle: 'Check your inbox',
       sent: 'If this email is registered, we sent a password reset link.',
       resetTitle: 'Reset password',
       resetDescription: 'Set a new password for your account.',

@@ -74,4 +74,23 @@ describe('ResetPasswordPage', () => {
     expect(calls).toBe(0)
     expect(await screen.findByRole('alert')).toHaveTextContent('Passwords do not match.')
   })
+
+  it('shows recovery actions instead of the form for an invalid reset link', () => {
+    window.history.replaceState(null, '', '/reset-password')
+    const api: AuthApi = {
+      login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken: async () => null, logout: async () => ({}),
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/reset-password']}>
+        <AuthProvider api={api}><ResetPasswordPage /></AuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('alert')).toHaveTextContent('This reset link is invalid or has expired.')
+    expect(screen.queryByLabelText('New password')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Request another link' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Back to sign in' })).toBeInTheDocument()
+  })
 })

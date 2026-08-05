@@ -41,7 +41,9 @@ describe('OAuthLinkPage', () => {
 
     expect(submittedToken).toBe('')
     await user.click(screen.getByRole('button', { name: 'Confirm' }))
-    expect(await screen.findByText('Social sign-in method linked.')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Social sign-in method linked.')
+    expect(screen.getByRole('button', { name: 'Back to sign in' })).toBeInTheDocument()
+    expect(document.querySelector('.form-notice')).not.toBeInTheDocument()
     expect(submittedToken).toBe('link-token')
   })
 })
