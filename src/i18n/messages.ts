@@ -8,6 +8,7 @@ export const messages = {
       notifications: '通知',
       dismissNotification: '關閉通知',
     },
+    validation: { invalidEmail: '請輸入有效的 Email。' },
     nav: {
       accountSections: '帳號區段',
       accountNavigation: '帳號導覽',
@@ -238,6 +239,7 @@ export const messages = {
       notifications: '通知',
       dismissNotification: '关闭通知',
     },
+    validation: { invalidEmail: '请输入有效的 Email。' },
     nav: {
       accountSections: '帐号区段',
       accountNavigation: '帐号导航',
@@ -468,6 +470,7 @@ export const messages = {
       notifications: 'Notifications',
       dismissNotification: 'Dismiss notification',
     },
+    validation: { invalidEmail: 'Enter a valid email.' },
     nav: {
       accountSections: 'Account sections',
       accountNavigation: 'Account navigation',

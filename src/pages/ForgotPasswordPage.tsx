@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import { LanguageSelector } from '../components/LanguageSelector'
-import { authErrorMessage } from '../auth/auth-form'
+import { authErrorMessage, validateEmail } from '../auth/auth-form'
 import { AuthResultState } from '../components/AuthResultState'
 
 export function ForgotPasswordPage() {
@@ -48,7 +48,7 @@ export function ForgotPasswordPage() {
         <div className={`login-form-panel${message ? ' auth-result-state' : ''}`}>
           {error ? <p className="form-error" role="alert">{error}</p> : null}
           {!message ? <Form className="form-stack" onSubmit={submit}>
-            <TextField isRequired name="email" type="email">
+            <TextField isRequired name="email" type="email" validate={(value) => validateEmail(value, t.validation.invalidEmail)}>
               <Label>{t.passwordRecovery.email}</Label>
               <Input autoComplete="email" />
               <FieldError />

@@ -7,7 +7,7 @@ import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import { readRuntimeConfig } from '../lib/redirects'
 import { Turnstile } from '../components/Turnstile'
-import { authErrorMessage, isStrongPassword } from '../auth/auth-form'
+import { authErrorMessage, isStrongPassword, validateEmail } from '../auth/auth-form'
 
 export function RegisterPage() {
   const auth = useAuth()
@@ -79,7 +79,7 @@ export function RegisterPage() {
                 <FieldError />
               </TextField>
             </div>
-            <TextField isRequired name="email" type="email">
+            <TextField isRequired name="email" type="email" validate={(value) => validateEmail(value, t.validation.invalidEmail)}>
               <Label>{t.registration.email}</Label>
               <Input autoComplete="email" />
               <FieldError />
