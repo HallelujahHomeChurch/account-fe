@@ -1,4 +1,5 @@
-import { Button, Card, Skeleton } from '@hallelujahhomechurch/ui'
+import { AlertDialog, Button, Card, Skeleton } from '@hallelujahhomechurch/ui'
+import { Monitor, Smartphone, Tablet } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
 import { useAuth } from '../auth/auth-context'
@@ -17,7 +18,12 @@ export function DevicesPage() {
       setDevices([])
       return
     }
-    auth.api.listDevices().then(setDevices).catch(() => setError(t.security.devicesLoadFailed))
+    let active = true
+    setError('')
+    auth.api.listDevices()
+      .then((result) => { if (active) setDevices(result) })
+      .catch(() => { if (active) setError(t.security.devicesLoadFailed) })
+    return () => { active = false }
   }, [auth.accessToken, auth.api, auth.isBootstrapping, t.security.devicesLoadFailed])
 
   const sortedDevices = useMemo(
@@ -62,54 +68,81 @@ export function DevicesPage() {
           <Card.Title>{t.security.devices}</Card.Title>
         </Card.Header>
         <Card.Content className="settings-list">
-          {devices === null && !error ? (
-            <Skeleton className="settings-list-skeleton" label={t.security.loading} />
+          {devices === null ? (
+            error ? null : <Skeleton className="settings-list-skeleton" label={t.security.loading} />
           ) : sortedDevices.length ? (
             sortedDevices.map((device) => {
-              const deviceName = device.display_name || `${device.browser} on ${device.os}`
+              const generatedName = `${device.browser} on ${device.os}`
+              const hasCustomName = Boolean(device.display_name && device.display_name !== generatedName)
+              const deviceName = hasCustomName ? device.display_name : `${device.browser} · ${device.os}`
+              const DeviceIcon = device.device_type === 'mobile'
+                ? Smartphone
+                : device.device_type === 'tablet'
+                  ? Tablet
+                  : Monitor
               return (
-                <div key={device.id} className="settings-row device-row">
+                <div
+                  key={device.id}
+                  className={`settings-row device-row${device.is_signed_in ? '' : ' is-signed-out'}`}
+                >
+                  <span className="device-icon" aria-hidden="true">
+                    <DeviceIcon />
+                  </span>
                   <div className="settings-row-copy device-row-copy">
                     <div className="device-heading">
                       <strong>{deviceName}</strong>
                       {device.is_current ? (
                         <span className="device-status">{t.security.currentDevice}</span>
-                      ) : null}
-                      {!device.is_signed_in ? (
+                      ) : device.is_signed_in ? (
+                        <span className="device-status is-active">{t.security.activeDevice}</span>
+                      ) : (
                         <span className="device-status is-signed-out">{t.security.signedOut}</span>
-                      ) : null}
+                      )}
                     </div>
-                    <span className="device-platform">
-                      {device.browser} · {device.os}
-                    </span>
+                    {hasCustomName ? <span className="device-platform">{device.browser} · {device.os}</span> : null}
                     <div className="device-metadata">
-                      <span>
-                        {t.security.lastActive}:{' '}
+                      <span className="device-metadata-item">
+                        <span className="device-metadata-label">{t.security.lastActive}</span>
                         <time dateTime={device.last_active_at}>
                           {relativeTime(device.last_active_at, locale)}
                         </time>
                       </span>
-                      <span>
-                        {t.security.lastSignIn}:{' '}
+                      <span className="device-metadata-item">
+                        <span className="device-metadata-label">{t.security.lastSignIn}</span>
                         <time dateTime={device.last_login_at}>
                           {relativeTime(device.last_login_at, locale)}
                         </time>
                       </span>
                       {device.ip_address ? (
-                        <span>{t.security.ipAddress}: {device.ip_address}</span>
+                        <span className="device-metadata-item">
+                          <span className="device-metadata-label">{t.security.ipAddress}</span>
+                          <span>{device.ip_address}</span>
+                        </span>
                       ) : null}
                     </div>
                   </div>
                   {device.is_signed_in ? (
-                    <Button
-                      aria-label={formatMessage(t.security.signOutDeviceLabel, {
-                        device: deviceName,
-                      })}
-                      variant="ghost"
-                      onPress={() => void signOut(device)}
-                    >
-                      {t.security.signOutDevice}
-                    </Button>
+                    <AlertDialog
+                      cancelLabel={t.security.cancel}
+                      confirmLabel={t.security.signOutDevice}
+                      description={device.is_current
+                        ? t.security.signOutCurrentDeviceDescription
+                        : t.security.signOutOtherDeviceDescription}
+                      title={device.is_current
+                        ? t.security.signOutCurrentDeviceTitle
+                        : formatMessage(t.security.signOutOtherDeviceTitle, { device: deviceName })}
+                      trigger={
+                        <Button
+                          aria-label={formatMessage(t.security.signOutDeviceLabel, {
+                            device: deviceName,
+                          })}
+                          variant="ghost"
+                        >
+                          {t.security.signOutDevice}
+                        </Button>
+                      }
+                      onConfirm={() => signOut(device)}
+                    />
                   ) : null}
                 </div>
               )

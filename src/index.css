@@ -531,6 +531,40 @@ textarea::selection {
   display: grid;
   min-width: 0;
   gap: 6px;
+  margin-right: auto;
+}
+
+.settings-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.settings-icon svg {
+  width: 19px;
+  height: 19px;
+  stroke-width: 1.8;
+}
+
+.social-provider-icon {
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+}
+
+.social-provider-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.social-provider-icon--line {
+  background: #06c755;
+  border-color: #06c755;
+  color: #fff;
 }
 
 .settings-row-label {
@@ -549,7 +583,26 @@ textarea::selection {
 }
 
 .device-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
   min-height: 108px;
+}
+
+.device-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  align-self: start;
+  border-radius: 12px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.device-icon svg {
+  width: 21px;
+  height: 21px;
+  stroke-width: 1.8;
 }
 
 .device-row-copy {
@@ -576,8 +629,32 @@ textarea::selection {
   font-weight: 700;
 }
 
+.device-status.is-active {
+  color: var(--color-success);
+}
+
 .device-status.is-signed-out {
   color: var(--color-muted);
+}
+
+.device-row.is-signed-out .device-icon {
+  background: var(--color-paper);
+  color: var(--color-muted);
+}
+
+.device-row.is-signed-out .device-heading strong {
+  color: var(--color-muted);
+}
+
+.device-metadata-item {
+  display: inline-grid;
+  gap: 2px;
+}
+
+.device-metadata-label {
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .profile-avatar-row {
@@ -1156,6 +1233,17 @@ textarea::selection {
 
   .login-form-panel .input-otp {
     gap: 8px;
+  }
+
+  .device-row {
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .device-row > .hhc-button,
+  .device-row > [data-rac] {
+    grid-column: 2;
+    justify-self: end;
   }
 
   .login-form-panel .input-otp__group {

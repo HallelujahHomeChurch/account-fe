@@ -46,9 +46,11 @@ describe('ResetPasswordPage', () => {
       token: 'reset-token',
       new_password: 'Secret123!',
     })
-    expect(await screen.findByText('Password reset.')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Password reset' })).toBeInTheDocument()
+    expect(screen.getByText('You can now sign in with your new password.')).toBeInTheDocument()
     expect(screen.queryByLabelText('New password')).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Back to sign in' })).toBeInTheDocument()
+    expect(document.querySelector('.form-notice')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Back to sign in' })).toBeInTheDocument()
   })
 
   it('does not submit when the passwords do not match', async () => {

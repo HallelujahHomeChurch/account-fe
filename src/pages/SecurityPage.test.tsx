@@ -214,4 +214,123 @@ describe('SecurityPage', () => {
     expect(calls).toContain('unlink:google')
 
   })
+
+  it('shows every enabled provider and starts linking an unlinked provider', async () => {
+    const calls: string[] = []
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }),
+      refreshAccessToken: async () => 'token',
+      me: async () => ({ id: 'u1', email: 'ray@example.com', has_password: true }),
+      logout: async () => ({}),
+      getOAuthProviders: async () => ['google', 'microsoft', 'line'],
+      listLinkedAccounts: async () => [{ provider: 'google' }],
+      startLinkedAccountAuthorization: async (provider) => {
+        calls.push(provider)
+        return { authorization_url: `https://provider.example/${provider}` }
+      },
+    }
+
+    render(
+      <MemoryRouter>
+        <AuthProvider api={api} navigateExternal={(url) => calls.push(url)}>
+          <SecurityPage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Google')).toBeInTheDocument()
+    expect(screen.getAllByText('Not linked')).toHaveLength(2)
+
+    await userEvent.click(screen.getByRole('button', { name: /connect microsoft/i }))
+    expect(screen.getByRole('alertdialog', { name: /connect microsoft/i })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /^continue$/i }))
+
+    expect(calls).toEqual(['microsoft', 'https://provider.example/microsoft'])
+  })
+
+  it('keeps a linked provider visible when new sign-ins with it are disabled', async () => {
+    render(
+      <MemoryRouter>
+        <AuthProvider api={{
+          login: async () => ({ access_token: 'token' }),
+          refreshAccessToken: async () => 'token',
+          me: async () => ({ id: 'u1', email: 'ray@example.com' }),
+          logout: async () => ({}),
+          getOAuthProviders: async () => [],
+          listLinkedAccounts: async () => [{ provider: 'google' }],
+        }}>
+          <SecurityPage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Google')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /remove google/i })).toBeInTheDocument()
+  })
+
+  it('closes the confirmation and shows a localized provider error', async () => {
+    render(
+      <MemoryRouter>
+        <AuthProvider api={{
+          login: async () => ({ access_token: 'token' }),
+          refreshAccessToken: async () => 'token',
+          me: async () => ({ id: 'u1', email: 'ray@example.com' }),
+          logout: async () => ({}),
+          getOAuthProviders: async () => ['google'],
+          listLinkedAccounts: async () => [],
+          startLinkedAccountAuthorization: async () => { throw new Error('internal provider error') },
+        }}>
+          <SecurityPage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    await userEvent.click(await screen.findByRole('button', { name: /connect google/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^continue$/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to link this sign-in method')
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(screen.queryByText('internal provider error')).not.toBeInTheDocument()
+  })
+
+  it('shows the provider-link callback result', async () => {
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }),
+      refreshAccessToken: async () => 'token',
+      me: async () => ({ id: 'u1', email: 'ray@example.com' }),
+      logout: async () => ({}),
+      getOAuthProviders: async () => ['google'],
+      listLinkedAccounts: async () => [{ provider: 'google' }],
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/security?linked=google']}>
+        <AuthProvider api={api}>
+          <SecurityPage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Google sign-in method linked.')).toBeInTheDocument()
+  })
+
+  it('does not trust a forged provider-link success query', async () => {
+    render(
+      <MemoryRouter initialEntries={['/security?linked=google']}>
+        <AuthProvider api={{
+          login: async () => ({ access_token: 'token' }),
+          refreshAccessToken: async () => 'token',
+          me: async () => ({ id: 'u1', email: 'ray@example.com' }),
+          logout: async () => ({}),
+          getOAuthProviders: async () => ['google'],
+          listLinkedAccounts: async () => [],
+        }}>
+          <SecurityPage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    await screen.findByText('Google')
+    expect(screen.queryByText('Google sign-in method linked.')).not.toBeInTheDocument()
+  })
 })
