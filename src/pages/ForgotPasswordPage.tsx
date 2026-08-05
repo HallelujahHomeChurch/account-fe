@@ -40,11 +40,11 @@ export function ForgotPasswordPage() {
       <div className="login-card">
         <div className="login-copy">
           <img className="login-brand-mark" src="/assets/brand/logo.png" alt="" />
-        <h1>{t.passwordRecovery.forgotTitle}</h1>
-        <p>{t.passwordRecovery.forgotDescription}</p>
+          <h1>{t.passwordRecovery.forgotTitle}</h1>
+          <p>{t.passwordRecovery.forgotDescription}</p>
         </div>
         <div className="login-form-panel">
-          {message ? <p className="form-notice" role="status">{message}</p> : null}
+          {message ? <p className="form-success" role="status">{message}</p> : null}
           {error ? <p className="form-error" role="alert">{error}</p> : null}
           {!message ? <Form className="form-stack" onSubmit={submit}>
             <TextField isRequired name="email" type="email">

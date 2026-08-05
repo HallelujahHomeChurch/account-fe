@@ -290,6 +290,13 @@ export class AccountApi {
     return this.request<void>(`/linked-accounts/${encodeURIComponent(provider)}`, { method: 'DELETE' })
   }
 
+  startLinkedAccountAuthorization(provider: string) {
+    return this.request<{ authorization_url: string }>(
+      `/linked-accounts/${encodeURIComponent(provider)}/authorize`,
+      { method: 'POST', body: {} },
+    )
+  }
+
   confirmOAuthLink(token: string) {
     return this.request<{ message?: string }>('/oauth/confirm-link', {
       method: 'POST',

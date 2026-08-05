@@ -382,6 +382,26 @@ describe('AccountApi', () => {
     expect(calls[1]?.init?.body).toBe(JSON.stringify({ token: 'verify-token' }))
   })
 
+  it('starts an authenticated linked-account authorization', async () => {
+    const calls: string[] = []
+    const api = new AccountApi({
+      baseUrl: '/api/account/v1',
+      getAccessToken: () => 'access-token',
+      fetcher: async (input, init) => {
+        calls.push(`${init?.method ?? 'GET'} ${String(input)}`)
+        if (String(input).endsWith('/csrf-token')) {
+          return jsonResponse({ csrf_token: 'csrf-123' })
+        }
+        return jsonResponse({ authorization_url: 'https://provider.example/google' })
+      },
+    })
+
+    await expect(api.startLinkedAccountAuthorization('google')).resolves.toEqual({
+      authorization_url: 'https://provider.example/google',
+    })
+    expect(calls).toContain('POST /api/account/v1/linked-accounts/google/authorize')
+  })
+
   it('builds direct and client-authorized social login URLs', () => {
     const api = new AccountApi({ baseUrl: '/api/account/v1' })
 

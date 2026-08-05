@@ -70,6 +70,7 @@ type AuthContextValue = {
   logout: () => Promise<void>
   retrySession: () => Promise<void>
   clearLocalSession: (redirectTo?: string) => void
+  navigateExternal: (url: string) => void
 }
 
 export type AuthStatus = 'loading' | 'authenticated' | 'anonymous' | 'mfa' | 'unavailable'
@@ -514,8 +515,9 @@ export function AuthProvider({
       logout,
       retrySession: revalidateSession,
       clearLocalSession,
+      navigateExternal,
     }),
-    [api, beginAuthorization, clearLocalSession, completeLogin, completeOAuthCallback, login, logout, refreshProfile, revalidateSession, state, verifyMfa],
+    [api, beginAuthorization, clearLocalSession, completeLogin, completeOAuthCallback, login, logout, navigateExternal, refreshProfile, revalidateSession, state, verifyMfa],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

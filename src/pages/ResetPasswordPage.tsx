@@ -1,6 +1,7 @@
 import { Button, FieldError, Form, Input, Label, TextField } from '@hallelujahhomechurch/ui'
+import { CheckCircle2 } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
@@ -10,7 +11,8 @@ import { authErrorMessage, isStrongPassword } from '../auth/auth-form'
 export function ResetPasswordPage() {
   const auth = useAuth()
   const { messages: t } = useLocale()
-  const [message, setMessage] = useState('')
+  const navigate = useNavigate()
+  const [isComplete, setComplete] = useState(false)
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [resetLink] = useState(() => {
@@ -32,7 +34,6 @@ export function ResetPasswordPage() {
 
     const form = new FormData(event.currentTarget)
     const password = String(form.get('new_password') ?? '')
-    setMessage('')
     setError('')
     if (!isStrongPassword(password)) {
       setError(t.passwordRecovery.passwordPolicy)
@@ -50,7 +51,7 @@ export function ResetPasswordPage() {
         token: resetLink.token,
         new_password: password,
       })
-      setMessage(t.passwordRecovery.resetSuccess)
+      setComplete(true)
     } catch (caught) {
       setError(authErrorMessage(caught, t.passwordRecovery.requestFailed, {
         ACC_REQUEST_INVALID: t.passwordRecovery.passwordPolicy,
@@ -66,15 +67,22 @@ export function ResetPasswordPage() {
       <div className="login-card">
         <div className="login-copy">
           <img className="login-brand-mark" src="/assets/brand/logo.png" alt="" />
-        <h1>{t.passwordRecovery.resetTitle}</h1>
-        <p>{t.passwordRecovery.resetDescription}</p>
+          <h1>{isComplete ? t.passwordRecovery.resetSuccess : t.passwordRecovery.resetTitle}</h1>
+          {!isComplete ? <p>{t.passwordRecovery.resetDescription}</p> : null}
         </div>
-        <div className="login-form-panel">
-          {message ? (
-            <div className="auth-result-state">
-              <p className="form-notice" role="status">{message}</p>
-              <Link className="muted-link" to="/login">{t.passwordRecovery.backToLogin}</Link>
-            </div>
+        <div className={`login-form-panel${isComplete ? ' auth-result-state' : ''}`}>
+          {isComplete ? (
+            <>
+              <div className="auth-completion" role="status">
+                <span className="auth-success-mark" aria-hidden="true">
+                  <CheckCircle2 />
+                </span>
+                <p>{t.passwordRecovery.resetSuccessDescription}</p>
+              </div>
+              <Button onPress={() => navigate('/login', { replace: true })}>
+                {t.passwordRecovery.backToLogin}
+              </Button>
+            </>
           ) : (
             <>
               {error ? <p className="form-error" role="alert">{error}</p> : null}

@@ -11,12 +11,15 @@ import {
   Skeleton,
   TextField,
 } from '@hallelujahhomechurch/ui'
+import { KeyRound, ShieldCheck } from 'lucide-react'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import { ApiError, type LinkedAccount, type MfaSetup } from '../lib/api'
 import { authErrorMessage, isStrongPassword } from '../auth/auth-form'
+import { SocialIcon } from '../components/SocialIcon'
 
 type MfaDialog = 'setup' | 'manage' | null
 
@@ -25,8 +28,15 @@ const supportedProviders = ['google', 'line', 'microsoft']
 export function SecurityPage() {
   const auth = useAuth()
   const { messages: t } = useLocale()
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const [callbackResult] = useState(() => ({
+    linkedProvider: searchParams.get('linked'),
+    linkError: searchParams.get('link_error'),
+  }))
   const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[] | null>(null)
   const [linkedAccountsError, setLinkedAccountsError] = useState(false)
+  const [enabledProviders, setEnabledProviders] = useState<string[] | null>(null)
   const [mfaSetup, setMfaSetup] = useState<MfaSetup | null>(null)
   const [mfaDialog, setMfaDialog] = useState<MfaDialog>(null)
   const [isMfaSetupVerified, setMfaSetupVerified] = useState(false)
@@ -38,6 +48,16 @@ export function SecurityPage() {
   const [error, setError] = useState('')
   const mfaEnabled = isMfaEnabled ?? Boolean(auth.profile?.mfa?.enabled)
   const visibleLinkedAccounts = (linkedAccounts ?? []).filter((account) => supportedProviders.includes(account.provider))
+  const linkedProviderIDs = visibleLinkedAccounts.map((account) => account.provider)
+  const visibleProviders = supportedProviders.filter((provider) =>
+    linkedProviderIDs.includes(provider) || (enabledProviders ?? linkedProviderIDs).includes(provider),
+  )
+  const callbackMessage = callbackResult.linkedProvider && linkedProviderIDs.includes(callbackResult.linkedProvider)
+    ? formatMessage(t.security.providerLinked, { provider: providerLabel(callbackResult.linkedProvider, t.security) })
+    : ''
+  const callbackError = callbackResult.linkError
+    ? callbackResult.linkError === 'conflict' ? t.security.providerLinkConflict : t.security.providerLinkFailed
+    : ''
 
   const loadLinkedAccounts = useCallback(async () => {
     if (!auth.api.listLinkedAccounts) {
@@ -56,7 +76,28 @@ export function SecurityPage() {
   useEffect(() => {
     if (!auth.accessToken || auth.isBootstrapping) return
     void loadLinkedAccounts()
-  }, [auth.accessToken, auth.isBootstrapping, loadLinkedAccounts])
+    if (auth.api.getOAuthProviders) {
+      void auth.api.getOAuthProviders().then(setEnabledProviders).catch(() => undefined)
+    }
+  }, [auth.accessToken, auth.api, auth.isBootstrapping, loadLinkedAccounts])
+
+  useEffect(() => {
+    if (callbackResult.linkedProvider || callbackResult.linkError) {
+      navigate('/security', { replace: true })
+    }
+  }, [callbackResult, navigate])
+
+  async function connect(provider: string) {
+    if (!auth.api.startLinkedAccountAuthorization) return
+    setError('')
+    setMessage('')
+    try {
+      const response = await auth.api.startLinkedAccountAuthorization(provider)
+      auth.navigateExternal(response.authorization_url)
+    } catch {
+      setError(t.security.providerLinkFailed)
+    }
+  }
 
   async function submitPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -153,9 +194,8 @@ export function SecurityPage() {
       setMfaDialog(null)
       await auth.refreshProfile().catch(() => undefined)
       setMessage(t.security.mfaDisabledNotice)
-    } catch (caught) {
-      setError(errorMessage(caught))
-      throw caught
+    } catch {
+      setError(t.security.providerRemoveFailed)
     }
   }
 
@@ -196,8 +236,8 @@ export function SecurityPage() {
         <h1>{t.nav.security}</h1>
       </div>
 
-      {message ? <p className="form-notice" role="status">{message}</p> : null}
-      {error ? <p className="form-error" role="alert">{error}</p> : null}
+      {message || callbackMessage ? <p className="form-notice" role="status">{message || callbackMessage}</p> : null}
+      {error || callbackError ? <p className="form-error" role="alert">{error || callbackError}</p> : null}
 
       <Card className="panel-card settings-card">
         <Card.Header>
@@ -205,9 +245,10 @@ export function SecurityPage() {
         </Card.Header>
         <Card.Content className="settings-list">
           <div className="settings-row">
+            <span className="settings-icon" aria-hidden="true"><KeyRound /></span>
             <div className="settings-row-copy">
-              <span className="settings-row-label">{t.security.password}</span>
-              <strong>{auth.profile.has_password === false ? t.security.passwordNotSet : t.security.passwordSet}</strong>
+              <strong>{t.security.password}</strong>
+              <span className="settings-row-label">{auth.profile.has_password === false ? t.security.passwordNotSet : t.security.passwordSet}</span>
             </div>
             <Button
               variant="secondary"
@@ -225,31 +266,40 @@ export function SecurityPage() {
                 {t.security.retry}
               </Button>
             </div>
-          ) : visibleLinkedAccounts.length ? (
-            visibleLinkedAccounts.map((account) => {
-              const provider = providerLabel(account.provider, t.security)
+          ) : visibleProviders.length ? (
+            visibleProviders.map((providerID) => {
+              const provider = providerLabel(providerID, t.security)
+              const isLinked = visibleLinkedAccounts.some((account) => account.provider === providerID)
 
               return (
-                <div key={account.provider} className="settings-row">
+                <div key={providerID} className="settings-row">
+                  <span className={`settings-icon social-provider-icon social-provider-icon--${providerID}`} aria-hidden="true">
+                    <SocialIcon provider={providerID} />
+                  </span>
                   <div className="settings-row-copy">
-                    <span className="settings-row-label">{provider}</span>
-                    <strong>{t.security.linked}</strong>
+                    <strong>{provider}</strong>
+                    <span className="settings-row-label">{isLinked ? t.security.linked : t.security.notLinked}</span>
                   </div>
-                  <AlertDialog
-                    cancelLabel={t.security.cancel}
-                    confirmLabel={t.security.removeProvider}
-                    description={formatMessage(t.security.removeProviderDescription, { provider })}
-                    title={formatMessage(t.security.removeProviderTitle, { provider })}
-                    trigger={
-                      <Button
-                        aria-label={formatMessage(t.security.removeProviderLabel, { provider })}
-                        variant="ghost"
-                      >
-                        {t.security.removeProvider}
-                      </Button>
-                    }
-                    onConfirm={() => unlink(account.provider)}
-                  />
+                  {isLinked ? (
+                    <AlertDialog
+                      cancelLabel={t.security.cancel}
+                      confirmLabel={t.security.removeProvider}
+                      description={formatMessage(t.security.removeProviderDescription, { provider })}
+                      title={formatMessage(t.security.removeProviderTitle, { provider })}
+                      trigger={<Button aria-label={formatMessage(t.security.removeProviderLabel, { provider })} variant="ghost">{t.security.removeProvider}</Button>}
+                      onConfirm={() => unlink(providerID)}
+                    />
+                  ) : (
+                    <AlertDialog
+                      cancelLabel={t.security.cancel}
+                      confirmLabel={t.security.continue}
+                      confirmVariant="primary"
+                      description={formatMessage(t.security.connectProviderDescription, { provider })}
+                      title={formatMessage(t.security.connectProviderTitle, { provider })}
+                      trigger={<Button aria-label={formatMessage(t.security.connectProviderLabel, { provider })} variant="secondary">{t.security.connectProvider}</Button>}
+                      onConfirm={() => connect(providerID)}
+                    />
+                  )}
                 </div>
               )
             })
@@ -265,9 +315,10 @@ export function SecurityPage() {
         </Card.Header>
         <Card.Content className="settings-list">
           <div className="settings-row">
+            <span className="settings-icon" aria-hidden="true"><ShieldCheck /></span>
             <div className="settings-row-copy">
-              <span className="settings-row-label">{t.security.mfa}</span>
-              <strong>{mfaEnabled ? t.security.mfaEnabled : t.security.mfaNotEnabled}</strong>
+              <strong>{t.security.authenticatorApp}</strong>
+              <span className="settings-row-label">{mfaEnabled ? t.security.mfaEnabled : t.security.mfaNotEnabled}</span>
             </div>
             {mfaEnabled ? (
               <Button variant="secondary" onPress={() => setMfaDialog('manage')}>

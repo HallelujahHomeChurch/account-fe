@@ -137,6 +137,13 @@ export class MockAccountApi {
     this.linkedAccounts = this.linkedAccounts.filter((account) => account.provider !== provider)
   }
 
+  async startLinkedAccountAuthorization(provider: string) {
+    if (!this.linkedAccounts.some((account) => account.provider === provider)) {
+      this.linkedAccounts = [...this.linkedAccounts, { provider, provider_id: `mock-${provider}` }]
+    }
+    return { authorization_url: `/security?linked=${encodeURIComponent(provider)}` }
+  }
+
   async getLineBinding(token: string): Promise<LineBindingSummary> {
     if (token === 'expired') {
       throw new ApiError(410, 'This link has expired.', 'ACC_LINE_BINDING_INVALID')
