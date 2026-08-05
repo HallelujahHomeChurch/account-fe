@@ -52,7 +52,7 @@ describe('LoginPage', () => {
       </MemoryRouter>,
     )
 
-    expect(await screen.findByText('Signed out.')).toBeInTheDocument()
+    expect(await screen.findByText('Signed out.')).toHaveClass('form-success')
     expect(refreshAccessToken).not.toHaveBeenCalled()
     await vi.waitFor(() => expect(screen.getByTestId('location-search')).toBeEmptyDOMElement())
   })

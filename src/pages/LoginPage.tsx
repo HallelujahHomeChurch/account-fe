@@ -43,7 +43,7 @@ export function LoginPage() {
   const [notice, setNotice] = useState(() =>
     registrationState?.registrationComplete ? t.registration.verificationSent : '',
   )
-  const [isRegistrationNotice] = useState(Boolean(registrationState?.registrationComplete))
+  const [isSuccessNotice, setIsSuccessNotice] = useState(Boolean(registrationState?.registrationComplete))
   const [initialEmail] = useState(registrationState?.registrationEmail ?? '')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [enabledProviderIds, setEnabledProviderIds] = useState<string[] | null>(null)
@@ -86,8 +86,14 @@ export function LoginPage() {
   useEffect(() => {
     if (!signedOut && !passwordChanged && !oauthError) return
 
-    if (signedOut) setNotice(t.login.signedOut)
-    if (passwordChanged) setNotice(t.security.passwordChanged)
+    if (signedOut) {
+      setNotice(t.login.signedOut)
+      setIsSuccessNotice(true)
+    }
+    if (passwordChanged) {
+      setNotice(t.security.passwordChanged)
+      setIsSuccessNotice(true)
+    }
     if (oauthError) {
       setError(oauthError === 'cancelled' ? t.login.oauthCancelled : t.login.oauthFailed)
     }
@@ -126,6 +132,7 @@ export function LoginPage() {
     event.preventDefault()
     setError('')
     setNotice('')
+    setIsSuccessNotice(false)
     setIsSubmitting(true)
 
     const form = new FormData(event.currentTarget)
@@ -140,6 +147,7 @@ export function LoginPage() {
         navigate(returnTo, { replace: true })
       } else if (!response.mfa_type) {
         setNotice(t.login.signedIn)
+        setIsSuccessNotice(true)
       }
     } catch (caught) {
       setError(authErrorMessage(caught, t.login.failed, {
@@ -189,7 +197,7 @@ export function LoginPage() {
 
           {error || auth.bootstrapError ? <p className="form-error" role="alert">{error || auth.bootstrapError}</p> : null}
           {notice ? (
-            <p className={isRegistrationNotice ? 'form-success' : 'form-notice'} role="status">
+            <p className={isSuccessNotice ? 'form-success' : 'form-notice'} role="status">
               {notice}
             </p>
           ) : null}

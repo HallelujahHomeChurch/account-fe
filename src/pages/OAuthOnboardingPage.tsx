@@ -6,6 +6,7 @@ import { LanguageSelector } from '../components/LanguageSelector'
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import { ApiError, type OAuthOnboardingStatus } from '../lib/api'
+import { validateEmail } from '../auth/auth-form'
 
 type Step = 'email' | 'code' | 'link'
 
@@ -98,7 +99,7 @@ export function OAuthOnboardingPage() {
           {error || !token ? <p className="form-error">{error || t.oauthOnboarding.invalid}</p> : null}
           {step === 'email' && token ? (
             <Form className="form-stack" onSubmit={sendCode}>
-              <TextField isRequired name="email" type="email">
+              <TextField isRequired name="email" type="email" validate={(value) => validateEmail(value, t.validation.invalidEmail)}>
                 <Label>{t.oauthOnboarding.email}</Label>
                 <Input autoComplete="email" autoFocus />
                 <FieldError />

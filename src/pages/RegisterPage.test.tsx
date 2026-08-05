@@ -64,3 +64,29 @@ it('does not submit a weak password', async () => {
   expect(register).not.toHaveBeenCalled()
   expect(await screen.findByRole('alert')).toHaveTextContent('Use at least 8 characters with uppercase, lowercase, and a number.')
 })
+
+it('shows a localized invalid email message', async () => {
+  document.cookie = 'hhc_locale=zh-Hant; Path=/'
+  const register = vi.fn(async () => ({}))
+  const api: AuthApi = {
+    login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+    refreshAccessToken: async () => null, logout: async () => ({}), register,
+  }
+  render(
+    <MemoryRouter initialEntries={['/register']}>
+      <LocaleProvider>
+        <AuthProvider api={api} restoreSession={false}><RegisterPage /></AuthProvider>
+      </LocaleProvider>
+    </MemoryRouter>,
+  )
+
+  await userEvent.type(screen.getByLabelText('名字'), 'Test')
+  await userEvent.type(screen.getByLabelText('姓氏'), 'User')
+  await userEvent.type(screen.getByLabelText('Email'), 'rayselfs')
+  await userEvent.type(screen.getByLabelText('密碼'), 'Password1!')
+  await userEvent.type(screen.getByLabelText('確認密碼'), 'Password1!')
+  await userEvent.click(screen.getByRole('button', { name: '建立帳戶' }))
+
+  expect(register).not.toHaveBeenCalled()
+  expect(await screen.findByText('請輸入有效的 Email。')).toBeInTheDocument()
+})
