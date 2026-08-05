@@ -1,5 +1,4 @@
 import { Button, FieldError, Form, Input, Label, TextField } from '@hallelujahhomechurch/ui'
-import { CheckCircle2 } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -7,6 +6,7 @@ import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import { LanguageSelector } from '../components/LanguageSelector'
 import { authErrorMessage, isStrongPassword } from '../auth/auth-form'
+import { AuthResultState } from '../components/AuthResultState'
 
 export function ResetPasswordPage() {
   const auth = useAuth()
@@ -22,6 +22,7 @@ export function ResetPasswordPage() {
       token: values.get('token') ?? '',
     }
   })
+  const isInvalidLink = !resetLink.email || !resetLink.token
 
   useEffect(() => {
     if (!window.location.hash) return
@@ -70,18 +71,25 @@ export function ResetPasswordPage() {
           <h1>{isComplete ? t.passwordRecovery.resetSuccess : t.passwordRecovery.resetTitle}</h1>
           {!isComplete ? <p>{t.passwordRecovery.resetDescription}</p> : null}
         </div>
-        <div className={`login-form-panel${isComplete ? ' auth-result-state' : ''}`}>
+        <div className={`login-form-panel${isComplete || isInvalidLink ? ' auth-result-state' : ''}`}>
           {isComplete ? (
             <>
-              <div className="auth-completion" role="status">
-                <span className="auth-success-mark" aria-hidden="true">
-                  <CheckCircle2 />
-                </span>
-                <p>{t.passwordRecovery.resetSuccessDescription}</p>
-              </div>
+              <AuthResultState>{t.passwordRecovery.resetSuccessDescription}</AuthResultState>
               <Button onPress={() => navigate('/login', { replace: true })}>
                 {t.passwordRecovery.backToLogin}
               </Button>
+            </>
+          ) : isInvalidLink ? (
+            <>
+              <AuthResultState tone="danger">{t.passwordRecovery.invalidLink}</AuthResultState>
+              <div className="auth-result-actions">
+                <Button onPress={() => navigate('/forgot-password', { replace: true })}>
+                  {t.passwordRecovery.requestAnotherLink}
+                </Button>
+                <Button variant="secondary" onPress={() => navigate('/login', { replace: true })}>
+                  {t.passwordRecovery.backToLogin}
+                </Button>
+              </div>
             </>
           ) : (
             <>

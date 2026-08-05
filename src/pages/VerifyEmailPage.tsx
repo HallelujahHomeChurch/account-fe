@@ -1,5 +1,4 @@
 import { Button } from '@hallelujahhomechurch/ui'
-import { CheckCircle2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -7,6 +6,7 @@ import { useAuth } from '../auth/auth-context'
 import { LanguageSelector } from '../components/LanguageSelector'
 import { useLocale } from '../i18n/locale-context'
 import { authErrorMessage } from '../auth/auth-form'
+import { AuthResultState } from '../components/AuthResultState'
 
 export function VerifyEmailPage() {
   const auth = useAuth()
@@ -47,12 +47,7 @@ export function VerifyEmailPage() {
         <div className="login-form-panel auth-result-state">
           {!verified && !error ? <p className="inline-status" role="status">{t.emailVerification.verifying}</p> : null}
           {verified ? (
-            <div className="auth-completion" role="status">
-              <span className="auth-success-mark" aria-hidden="true">
-                <CheckCircle2 />
-              </span>
-              <p>{t.emailVerification.successDescription}</p>
-            </div>
+            <AuthResultState>{t.emailVerification.successDescription}</AuthResultState>
           ) : null}
           {error ? <p className="form-error" role="alert">{error}</p> : null}
           {(verified || error) ? <Button onPress={() => navigate('/login', { replace: true })}>

@@ -1,4 +1,4 @@
-import { AccountMenu, Button, Drawer, Skeleton, Toast } from '@hallelujahhomechurch/ui'
+import { AccountMenu, Button, Drawer, Skeleton, Toast, ToastProvider } from '@hallelujahhomechurch/ui'
 import { Menu, MonitorSmartphone, ShieldCheck, UserRound } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
@@ -20,7 +20,7 @@ import { SecurityPage } from './pages/SecurityPage'
 import { DevicesPage } from './pages/DevicesPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
 
-function Layout() {
+function LayoutContent() {
   const auth = useAuth()
   const { locale, messages: t } = useLocale()
   const location = useLocation()
@@ -229,4 +229,11 @@ function Layout() {
   )
 }
 
-export default Layout
+export default function Layout() {
+  const { messages: t } = useLocale()
+  return (
+    <ToastProvider dismissLabel={t.site.dismissNotification} regionLabel={t.site.notifications}>
+      <LayoutContent />
+    </ToastProvider>
+  )
+}

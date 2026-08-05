@@ -1,15 +1,17 @@
 import { Button } from '@hallelujahhomechurch/ui'
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { useAuth } from '../auth/auth-context'
 import { LanguageSelector } from '../components/LanguageSelector'
 import { useLocale } from '../i18n/locale-context'
 import { ApiError } from '../lib/api'
+import { AuthResultState } from '../components/AuthResultState'
 
 export function OAuthLinkPage() {
   const auth = useAuth()
   const { messages: t } = useLocale()
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [token] = useState(() => new URLSearchParams(window.location.hash.slice(1)).get('token') ?? '')
   const [message, setMessage] = useState(searchParams.get('status') === 'pending' ? t.oauthLink.pending : '')
@@ -45,18 +47,20 @@ export function OAuthLinkPage() {
           {token && !message ? <p>{t.oauthLink.description}</p> : null}
         </div>
         <div className="login-form-panel auth-result-state">
-          {message ? <p className="form-notice" role="status">{message}</p> : null}
-          {error ? <p className="form-error" role="alert">{error}</p> : null}
-          {token && !message ? (
+          {message ? <AuthResultState>{message}</AuthResultState> : null}
+          {error ? <AuthResultState tone="danger">{error}</AuthResultState> : null}
+          {token && !message && !error ? (
             <div className="login-actions">
               <Button isPending={isSubmitting} onPress={() => void confirm()}>
                 {t.oauthLink.confirm}
               </Button>
             </div>
           ) : null}
-          <Link className="muted-link" to="/login">
-            {t.oauthLink.backToLogin}
-          </Link>
+          {message || error ? (
+            <Button onPress={() => navigate('/login', { replace: true })}>{t.oauthLink.backToLogin}</Button>
+          ) : (
+            <Link className="muted-link" to="/login">{t.oauthLink.backToLogin}</Link>
+          )}
         </div>
       </div>
       <div className="login-footer"><LanguageSelector /></div>

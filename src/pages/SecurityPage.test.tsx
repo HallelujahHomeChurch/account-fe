@@ -1,11 +1,17 @@
+import { ToastProvider } from '@hallelujahhomechurch/ui'
 import { MemoryRouter } from 'react-router-dom'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render as testingRender, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ReactElement } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { SecurityPage } from './SecurityPage'
 import { ApiError } from '../lib/api'
+
+function render(element: ReactElement) {
+  return testingRender(<ToastProvider dismissLabel="Dismiss">{element}</ToastProvider>)
+}
 
 describe('SecurityPage', () => {
   it('opens password fields only after the user chooses to change password', async () => {
@@ -212,7 +218,7 @@ describe('SecurityPage', () => {
     expect(screen.getByRole('alertdialog', { name: /remove google sign-in/i })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /^remove$/i }))
     expect(calls).toContain('unlink:google')
-
+    expect((await screen.findByText('Sign-in method removed.')).closest('.hhc-toast')).toBeInTheDocument()
   })
 
   it('shows every enabled provider and starts linking an unlinked provider', async () => {
@@ -289,6 +295,7 @@ describe('SecurityPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /^continue$/i }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Unable to link this sign-in method')
+    expect(screen.getByRole('alert')).toHaveClass('hhc-toast')
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
     expect(screen.queryByText('internal provider error')).not.toBeInTheDocument()
   })
@@ -311,7 +318,7 @@ describe('SecurityPage', () => {
       </MemoryRouter>,
     )
 
-    expect(await screen.findByText('Google sign-in method linked.')).toBeInTheDocument()
+    expect((await screen.findByText('Google sign-in method linked.')).closest('.hhc-toast')).toBeInTheDocument()
   })
 
   it('does not trust a forged provider-link success query', async () => {

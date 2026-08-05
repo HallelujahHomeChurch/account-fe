@@ -39,12 +39,16 @@ describe('ForgotPasswordPage', () => {
     expect(submittedEmail).toBe('user@example.com')
     const success = await screen.findByRole('status')
     expect(success).toHaveTextContent('我們已寄出密碼重設連結。')
-    expect(success).toHaveClass('form-success')
-    expect(success).not.toHaveClass('form-error')
+    expect(success).toHaveClass('auth-completion')
+    expect(screen.getByRole('heading', { name: '請查看信箱' })).toBeInTheDocument()
+    expect(screen.queryByText('輸入 Email，我們會寄送密碼重設連結。')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '返回登入' })).toBeInTheDocument()
+    expect(document.querySelector('.form-success')).not.toBeInTheDocument()
   })
 
   it('provides localized recovery completion copy', () => {
     expect(messages['zh-Hant'].passwordRecovery).toMatchObject({
+      sentTitle: '請查看信箱',
       sent: '我們已寄出密碼重設連結。',
       resetSuccess: '密碼已重設',
       resetSuccessDescription: '現在可以使用新密碼登入。',

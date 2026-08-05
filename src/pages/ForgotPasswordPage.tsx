@@ -1,15 +1,17 @@
 import { Button, FieldError, Form, Input, Label, TextField } from '@hallelujahhomechurch/ui'
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import { LanguageSelector } from '../components/LanguageSelector'
 import { authErrorMessage } from '../auth/auth-form'
+import { AuthResultState } from '../components/AuthResultState'
 
 export function ForgotPasswordPage() {
   const auth = useAuth()
   const { messages: t } = useLocale()
+  const navigate = useNavigate()
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -40,11 +42,10 @@ export function ForgotPasswordPage() {
       <div className="login-card">
         <div className="login-copy">
           <img className="login-brand-mark" src="/assets/brand/logo.png" alt="" />
-          <h1>{t.passwordRecovery.forgotTitle}</h1>
-          <p>{t.passwordRecovery.forgotDescription}</p>
+          <h1>{message ? t.passwordRecovery.sentTitle : t.passwordRecovery.forgotTitle}</h1>
+          {!message ? <p>{t.passwordRecovery.forgotDescription}</p> : null}
         </div>
-        <div className="login-form-panel">
-          {message ? <p className="form-success" role="status">{message}</p> : null}
+        <div className={`login-form-panel${message ? ' auth-result-state' : ''}`}>
           {error ? <p className="form-error" role="alert">{error}</p> : null}
           {!message ? <Form className="form-stack" onSubmit={submit}>
             <TextField isRequired name="email" type="email">
@@ -61,7 +62,12 @@ export function ForgotPasswordPage() {
               </Button>
             </div>
           </Form> : (
-            <Link className="muted-link" to="/login">{t.passwordRecovery.backToLogin}</Link>
+            <>
+              <AuthResultState>{message}</AuthResultState>
+              <Button onPress={() => navigate('/login', { replace: true })}>
+                {t.passwordRecovery.backToLogin}
+              </Button>
+            </>
           )}
         </div>
       </div>

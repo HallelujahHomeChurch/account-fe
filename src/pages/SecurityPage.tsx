@@ -10,9 +10,10 @@ import {
   REGEXP_ONLY_DIGITS,
   Skeleton,
   TextField,
+  useToast,
 } from '@hallelujahhomechurch/ui'
 import { KeyRound, ShieldCheck } from 'lucide-react'
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { useAuth } from '../auth/auth-context'
@@ -28,6 +29,8 @@ const supportedProviders = ['google', 'line', 'microsoft']
 export function SecurityPage() {
   const auth = useAuth()
   const { messages: t } = useLocale()
+  const toast = useToast()
+  const callbackToastShown = useRef(false)
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const [callbackResult] = useState(() => ({
@@ -87,15 +90,22 @@ export function SecurityPage() {
     }
   }, [callbackResult, navigate])
 
+  useEffect(() => {
+    if (callbackToastShown.current || (!callbackMessage && !callbackError)) return
+    callbackToastShown.current = true
+    toast.add({
+      message: callbackMessage || callbackError,
+      tone: callbackMessage ? 'success' : 'danger',
+    })
+  }, [callbackError, callbackMessage, toast])
+
   async function connect(provider: string) {
     if (!auth.api.startLinkedAccountAuthorization) return
-    setError('')
-    setMessage('')
     try {
       const response = await auth.api.startLinkedAccountAuthorization(provider)
       auth.navigateExternal(response.authorization_url)
     } catch {
-      setError(t.security.providerLinkFailed)
+      toast.add({ message: t.security.providerLinkFailed, tone: 'danger' })
     }
   }
 
@@ -216,14 +226,12 @@ export function SecurityPage() {
   }
 
   async function unlink(provider: string) {
-    setError('')
-    setMessage('')
     try {
       await auth.api.unlinkAccount?.(provider)
       setLinkedAccounts((current) => (current ?? []).filter((account) => account.provider !== provider))
-      setMessage(t.security.providerRemoved)
+      toast.add({ message: t.security.providerRemoved, tone: 'success' })
     } catch (caught) {
-      setError(errorMessage(caught))
+      toast.add({ message: errorMessage(caught), tone: 'danger' })
       throw caught
     }
   }
@@ -236,8 +244,8 @@ export function SecurityPage() {
         <h1>{t.nav.security}</h1>
       </div>
 
-      {message || callbackMessage ? <p className="form-notice" role="status">{message || callbackMessage}</p> : null}
-      {error || callbackError ? <p className="form-error" role="alert">{error || callbackError}</p> : null}
+      {message ? <p className="form-notice" role="status">{message}</p> : null}
+      {error ? <p className="form-error" role="alert">{error}</p> : null}
 
       <Card className="panel-card settings-card">
         <Card.Header>

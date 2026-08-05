@@ -914,19 +914,32 @@ textarea::selection {
   line-height: 1.7;
 }
 
-.auth-success-mark {
+.auth-result-mark {
   display: grid;
   width: 52px;
   height: 52px;
   place-items: center;
   border-radius: 50%;
+}
+
+.auth-result-mark--success {
   background: var(--color-success-soft);
   color: var(--color-success);
 }
 
-.auth-success-mark svg {
+.auth-result-mark--danger {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.auth-result-mark svg {
   width: 28px;
   height: 28px;
+}
+
+.auth-result-actions {
+  display: grid;
+  gap: 10px;
 }
 
 .setup-code,
