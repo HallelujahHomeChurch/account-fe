@@ -95,12 +95,28 @@ export function LoginPage() {
       setIsSuccessNotice(true)
     }
     if (oauthError) {
-      setError(oauthError === 'cancelled' ? t.login.oauthCancelled : t.login.oauthFailed)
+      const message = {
+        account_conflict: t.login.oauthAccountConflict,
+        cancelled: t.login.oauthCancelled,
+        organization_not_allowed: t.login.oauthOrganizationNotAllowed,
+        registration_unavailable: t.login.oauthRegistrationUnavailable,
+        state_expired: t.login.oauthStateExpired,
+        workspace_not_allowed: t.login.oauthWorkspaceNotAllowed,
+      }[oauthError] ?? t.login.oauthFailed
+
+      if (oauthError === 'cancelled') {
+        setNotice(message)
+        setIsSuccessNotice(false)
+      } else {
+        setError(message)
+      }
     }
     const nextSearchParams = new URLSearchParams(searchParams)
     nextSearchParams.delete('signed_out')
     nextSearchParams.delete('password_changed')
     nextSearchParams.delete('oauth_error')
+    nextSearchParams.delete('oauth_provider')
+    nextSearchParams.delete('locale')
     const search = nextSearchParams.toString()
     navigate({ pathname: '/login', search: search ? `?${search}` : '' }, { replace: true })
   }, [
@@ -110,7 +126,12 @@ export function LoginPage() {
     searchParams,
     signedOut,
     t.login.oauthCancelled,
+    t.login.oauthAccountConflict,
     t.login.oauthFailed,
+    t.login.oauthOrganizationNotAllowed,
+    t.login.oauthRegistrationUnavailable,
+    t.login.oauthStateExpired,
+    t.login.oauthWorkspaceNotAllowed,
     t.login.signedOut,
     t.security.passwordChanged,
   ])

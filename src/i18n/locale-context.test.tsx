@@ -20,6 +20,20 @@ describe('LocaleProvider', () => {
     expect(document.body).toHaveTextContent('zh-Hant')
     await waitFor(() => expect(document.cookie).toContain('hhc_locale=zh-Hant'))
   })
+
+  it('prefers a valid OAuth callback locale', async () => {
+    Object.defineProperty(navigator, 'languages', { configurable: true, value: ['en-US'] })
+    window.history.replaceState(null, '', '/login?locale=zh-Hant&oauth_error=cancelled')
+
+    render(
+      <LocaleProvider>
+        <CurrentLocale />
+      </LocaleProvider>,
+    )
+
+    expect(document.body).toHaveTextContent('zh-Hant')
+    await waitFor(() => expect(document.cookie).toContain('hhc_locale=zh-Hant'))
+  })
 })
 
 function CurrentLocale() {

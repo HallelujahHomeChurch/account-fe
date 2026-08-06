@@ -85,8 +85,8 @@ describe('LoginPage', () => {
     expect(document.querySelector('.hhc-toast')).not.toBeInTheDocument()
   })
 
-  it('shows a localized OAuth cancellation and removes the callback detail', async () => {
-    document.cookie = 'hhc_locale=en; Path=/'
+  it('shows a neutral localized OAuth cancellation and removes callback details', async () => {
+    document.cookie = 'hhc_locale=zh-Hant; Path=/'
     const api: AuthApi = {
       login: async () => ({}),
       me: async () => ({ id: 'u1', email: 'user@example.com' }),
@@ -95,7 +95,7 @@ describe('LoginPage', () => {
     }
 
     render(
-      <MemoryRouter initialEntries={['/login?oauth_error=cancelled']}>
+      <MemoryRouter initialEntries={['/login?locale=zh-Hant&oauth_error=cancelled&oauth_provider=google']}>
         <LocaleProvider>
           <AuthProvider api={api} restoreSession={false}>
             <LoginPage />
@@ -105,8 +105,32 @@ describe('LoginPage', () => {
       </MemoryRouter>,
     )
 
-    expect(await screen.findByText('Social sign-in was cancelled.')).toBeInTheDocument()
+    expect(await screen.findByText('登入尚未完成，你可以重新選擇帳號。')).toHaveClass('form-notice')
     await vi.waitFor(() => expect(screen.getByTestId('location-search')).toBeEmptyDOMElement())
+  })
+
+  it('shows a localized consumer-account requirement', async () => {
+    document.cookie = 'hhc_locale=zh-Hant; Path=/'
+    const api: AuthApi = {
+      login: async () => ({}),
+      me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken: async () => null,
+      logout: async () => ({}),
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/login?oauth_error=workspace_not_allowed&oauth_provider=google']}>
+        <LocaleProvider>
+          <AuthProvider api={api} restoreSession={false}>
+            <LoginPage />
+          </AuthProvider>
+        </LocaleProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '此 Google Workspace 帳戶無法使用，請改用個人 Google 帳戶。',
+    )
   })
 
   it('keeps the login card copy minimal', () => {
