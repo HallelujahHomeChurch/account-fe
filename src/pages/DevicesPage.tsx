@@ -58,7 +58,12 @@ export function DevicesPage() {
   function renderDevice(device: Device) {
     const generatedName = `${device.browser} on ${device.os}`
     const hasCustomName = Boolean(device.display_name && device.display_name !== generatedName)
-    const deviceName = hasCustomName ? device.display_name : `${device.browser} · ${device.os}`
+    const friendlyPlatform = formatPlatform(device.os)
+    const platform = formatPlatformDetail(device.os)
+    const deviceName = hasCustomName ? device.display_name : `${device.browser} · ${friendlyPlatform}`
+    const platformDetail = hasCustomName
+      ? `${device.browser} · ${platform}`
+      : friendlyPlatform === device.os ? '' : platform
     const DeviceIcon = device.device_type === 'mobile'
       ? Smartphone
       : device.device_type === 'tablet'
@@ -82,7 +87,7 @@ export function DevicesPage() {
               <span className="device-status is-signed-out">{t.security.signedOut}</span>
             ) : null}
           </div>
-          {hasCustomName ? <span className="device-platform">{device.browser} · {device.os}</span> : null}
+          {platformDetail ? <span className="device-platform" title={platformDetail}>{platformDetail}</span> : null}
         </div>
         <div className="device-metadata">
           <span className="device-metadata-item">
@@ -138,7 +143,7 @@ export function DevicesPage() {
           {currentDevice ? (
             <Card className="panel-card settings-card device-section-card device-current-section">
               <Card.Header><Card.Title>{t.security.currentDevice}</Card.Title></Card.Header>
-              <Card.Content className="settings-list device-section-list">{renderDevice(currentDevice)}</Card.Content>
+              <Card.Content isFlush className="settings-list device-section-list">{renderDevice(currentDevice)}</Card.Content>
             </Card>
           ) : null}
           {otherDevices.length ? (
@@ -147,7 +152,7 @@ export function DevicesPage() {
                 <Card.Title>{t.security.otherDevices}</Card.Title>
                 <span className="device-count" aria-hidden="true">{otherDevices.length}</span>
               </Card.Header>
-              <Card.Content className="settings-list device-section-list">
+              <Card.Content isFlush className="settings-list device-section-list">
                 {otherDevices.map(renderDevice)}
               </Card.Content>
             </Card>
@@ -160,6 +165,25 @@ export function DevicesPage() {
       )}
     </section>
   )
+}
+
+function formatPlatform(os: string) {
+  if (/iphone/i.test(os)) return 'iPhone'
+  if (/ipad/i.test(os)) return 'iPad'
+  if (/mac os|macos/i.test(os)) return 'Mac'
+  if (/android/i.test(os)) return 'Android'
+  if (/windows/i.test(os)) return 'Windows'
+  return os
+}
+
+function formatPlatformDetail(os: string) {
+  const iosVersion = os.match(/(?:iphone )?os ([\d_]+)/i)?.[1]
+  if (iosVersion) return `iOS ${iosVersion.replaceAll('_', '.')}`
+
+  const macVersion = os.match(/mac os x ([\d_]+)/i)?.[1]
+  if (macVersion) return `macOS ${macVersion.replaceAll('_', '.')}`
+
+  return os
 }
 
 function relativeTime(value: string, locale: string) {
