@@ -584,31 +584,36 @@ textarea::selection {
 
 .device-row {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
-  min-height: 108px;
+  grid-template-columns: 44px minmax(160px, 1fr) minmax(260px, auto) auto;
+  min-height: 92px;
+  align-items: center;
 }
 
-.device-groups {
+.device-sections {
   display: grid;
-  gap: 24px;
+  gap: 18px;
 }
 
-.device-group {
-  display: grid;
-  gap: 10px;
-}
-
-.device-group h3 {
-  margin: 0;
-  color: var(--color-muted);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.device-group-list {
+.device-section-card {
   overflow: hidden;
-  border: 1px solid var(--color-border);
   border-radius: 8px;
+}
+
+.device-current-section .hhc-card__content {
+  background: color-mix(in srgb, var(--color-primary) 4%, var(--color-paper-raised));
+}
+
+.device-count {
+  display: grid;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--color-paper);
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .device-icon {
@@ -634,10 +639,14 @@ textarea::selection {
 
 .device-heading,
 .device-metadata {
-  display: flex;
+  display: grid;
   align-items: center;
+  gap: 6px;
+}
+
+.device-heading {
+  display: flex;
   flex-wrap: wrap;
-  gap: 6px 12px;
 }
 
 .device-platform,
@@ -652,8 +661,19 @@ textarea::selection {
   font-weight: 700;
 }
 
-.device-status.is-active {
+.device-status.is-current {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: var(--color-success);
+}
+
+.device-status.is-current::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  content: '';
 }
 
 .device-status.is-signed-out {
@@ -670,8 +690,21 @@ textarea::selection {
 }
 
 .device-metadata-item {
-  display: inline-grid;
+  display: grid;
+  min-width: 0;
   gap: 2px;
+}
+
+.device-metadata {
+  grid-template-columns: repeat(3, minmax(84px, auto));
+  gap: 12px 24px;
+}
+
+.device-metadata-item > span:last-child,
+.device-metadata-item time {
+  overflow-wrap: anywhere;
+  color: var(--color-ink);
+  font-size: 13px;
 }
 
 .device-metadata-label {
@@ -1272,14 +1305,27 @@ textarea::selection {
   }
 
   .device-row {
-    grid-template-columns: 40px minmax(0, 1fr);
+    grid-template-columns: 40px minmax(0, 1fr) auto;
     gap: 14px;
+    padding-block: 16px;
   }
 
   .device-row > .hhc-button,
   .device-row > [data-rac] {
-    grid-column: 2;
-    justify-self: end;
+    grid-column: 3;
+    grid-row: 1;
+    align-self: start;
+  }
+
+  .device-metadata {
+    grid-column: 2 / 4;
+    grid-row: 2;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .device-metadata-item:last-child {
+    grid-column: 1 / -1;
   }
 
   .login-form-panel .input-otp__group {

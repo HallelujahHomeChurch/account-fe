@@ -36,19 +36,13 @@ export function DevicesPage() {
       ),
     [devices],
   )
-  const deviceGroups = [
-    { title: t.security.signedInDevices, devices: sortedDevices.filter((device) => device.is_signed_in) },
-    { title: t.security.recentDevices, devices: sortedDevices.filter((device) => !device.is_signed_in) },
-  ].filter((group) => group.devices.length > 0)
+  const currentDevice = sortedDevices.find((device) => device.is_current)
+  const otherDevices = sortedDevices.filter((device) => !device.is_current)
 
   async function signOut(device: Device) {
     setError('')
     try {
       await auth.api.logoutDevice?.(device.id)
-      if (device.is_current) {
-        auth.clearLocalSession()
-        return
-      }
       setDevices((current) =>
         (current ?? []).map((item) =>
           item.id === device.id ? { ...item, is_signed_in: false } : item,
@@ -61,108 +55,109 @@ export function DevicesPage() {
 
   if (auth.isBootstrapping || !auth.profile) return <Skeleton className="account-page-skeleton" label={t.security.loading} />
 
+  function renderDevice(device: Device) {
+    const generatedName = `${device.browser} on ${device.os}`
+    const hasCustomName = Boolean(device.display_name && device.display_name !== generatedName)
+    const deviceName = hasCustomName ? device.display_name : `${device.browser} · ${device.os}`
+    const DeviceIcon = device.device_type === 'mobile'
+      ? Smartphone
+      : device.device_type === 'tablet'
+        ? Tablet
+        : Monitor
+
+    return (
+      <div
+        key={device.id}
+        className={`settings-row device-row device-management-row${device.is_current ? ' is-current' : ''}${device.is_signed_in ? '' : ' is-signed-out'}`}
+      >
+        <span className="device-icon" aria-hidden="true">
+          <DeviceIcon />
+        </span>
+        <div className="settings-row-copy device-row-copy">
+          <div className="device-heading">
+            <strong>{deviceName}</strong>
+            {device.is_current ? (
+              <span className="device-status is-current">{t.security.activeDevice}</span>
+            ) : !device.is_signed_in ? (
+              <span className="device-status is-signed-out">{t.security.signedOut}</span>
+            ) : null}
+          </div>
+          {hasCustomName ? <span className="device-platform">{device.browser} · {device.os}</span> : null}
+        </div>
+        <div className="device-metadata">
+          <span className="device-metadata-item">
+            <span className="device-metadata-label">{t.security.lastActive}</span>
+            <time dateTime={device.last_active_at}>{relativeTime(device.last_active_at, locale)}</time>
+          </span>
+          <span className="device-metadata-item">
+            <span className="device-metadata-label">{t.security.lastSignIn}</span>
+            <time dateTime={device.last_login_at}>{relativeTime(device.last_login_at, locale)}</time>
+          </span>
+          {device.ip_address ? (
+            <span className="device-metadata-item">
+              <span className="device-metadata-label">{t.security.ipAddress}</span>
+              <span>{device.ip_address}</span>
+            </span>
+          ) : null}
+        </div>
+        {!device.is_current && device.is_signed_in ? (
+          <AlertDialog
+            cancelLabel={t.security.cancel}
+            confirmLabel={t.security.signOutDevice}
+            description={t.security.signOutOtherDeviceDescription}
+            title={formatMessage(t.security.signOutOtherDeviceTitle, { device: deviceName })}
+            trigger={
+              <Button
+                aria-label={formatMessage(t.security.signOutDeviceLabel, { device: deviceName })}
+                variant="ghost"
+              >
+                {t.security.signOutDevice}
+              </Button>
+            }
+            onConfirm={() => signOut(device)}
+          />
+        ) : null}
+      </div>
+    )
+  }
+
   return (
     <section className="account-document">
       <div className="page-heading">
         <h1>{t.nav.devices}</h1>
       </div>
       {error ? <p className="form-error" role="alert">{error}</p> : null}
-      <Card className="panel-card settings-card">
-        <Card.Header>
-          <Card.Title>{t.security.devices}</Card.Title>
-        </Card.Header>
-        <Card.Content className="device-groups">
-          {devices === null ? (
-            error ? null : <Skeleton className="settings-list-skeleton" label={t.security.loading} />
-          ) : sortedDevices.length ? (
-            deviceGroups.map((group) => (
-              <section key={group.title} className="device-group">
-                <h3>{group.title}</h3>
-                <div className="settings-list device-group-list">
-            {group.devices.map((device) => {
-              const generatedName = `${device.browser} on ${device.os}`
-              const hasCustomName = Boolean(device.display_name && device.display_name !== generatedName)
-              const deviceName = hasCustomName ? device.display_name : `${device.browser} · ${device.os}`
-              const DeviceIcon = device.device_type === 'mobile'
-                ? Smartphone
-                : device.device_type === 'tablet'
-                  ? Tablet
-                  : Monitor
-              return (
-                <div
-                  key={device.id}
-                  className={`settings-row device-row${device.is_signed_in ? '' : ' is-signed-out'}`}
-                >
-                  <span className="device-icon" aria-hidden="true">
-                    <DeviceIcon />
-                  </span>
-                  <div className="settings-row-copy device-row-copy">
-                    <div className="device-heading">
-                      <strong>{deviceName}</strong>
-                      {device.is_current ? (
-                        <span className="device-status">{t.security.currentDevice}</span>
-                      ) : device.is_signed_in ? (
-                        <span className="device-status is-active">{t.security.activeDevice}</span>
-                      ) : (
-                        <span className="device-status is-signed-out">{t.security.signedOut}</span>
-                      )}
-                    </div>
-                    {hasCustomName ? <span className="device-platform">{device.browser} · {device.os}</span> : null}
-                    <div className="device-metadata">
-                      <span className="device-metadata-item">
-                        <span className="device-metadata-label">{t.security.lastActive}</span>
-                        <time dateTime={device.last_active_at}>
-                          {relativeTime(device.last_active_at, locale)}
-                        </time>
-                      </span>
-                      <span className="device-metadata-item">
-                        <span className="device-metadata-label">{t.security.lastSignIn}</span>
-                        <time dateTime={device.last_login_at}>
-                          {relativeTime(device.last_login_at, locale)}
-                        </time>
-                      </span>
-                      {device.ip_address ? (
-                        <span className="device-metadata-item">
-                          <span className="device-metadata-label">{t.security.ipAddress}</span>
-                          <span>{device.ip_address}</span>
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                  {device.is_signed_in ? (
-                    <AlertDialog
-                      cancelLabel={t.security.cancel}
-                      confirmLabel={t.security.signOutDevice}
-                      description={device.is_current
-                        ? t.security.signOutCurrentDeviceDescription
-                        : t.security.signOutOtherDeviceDescription}
-                      title={device.is_current
-                        ? t.security.signOutCurrentDeviceTitle
-                        : formatMessage(t.security.signOutOtherDeviceTitle, { device: deviceName })}
-                      trigger={
-                        <Button
-                          aria-label={formatMessage(t.security.signOutDeviceLabel, {
-                            device: deviceName,
-                          })}
-                          variant="ghost"
-                        >
-                          {t.security.signOutDevice}
-                        </Button>
-                      }
-                      onConfirm={() => signOut(device)}
-                    />
-                  ) : null}
-                </div>
-              )
-            })}
-                </div>
-              </section>
-            ))
-          ) : (
-            <p className="muted-copy">{t.security.noDevices}</p>
-          )}
-        </Card.Content>
-      </Card>
+      {devices === null ? (
+        error ? null : (
+          <Card className="panel-card settings-card">
+            <Card.Content><Skeleton className="settings-list-skeleton" label={t.security.loading} /></Card.Content>
+          </Card>
+        )
+      ) : sortedDevices.length ? (
+        <div className="device-sections">
+          {currentDevice ? (
+            <Card className="panel-card settings-card device-section-card device-current-section">
+              <Card.Header><Card.Title>{t.security.currentDevice}</Card.Title></Card.Header>
+              <Card.Content className="settings-list device-section-list">{renderDevice(currentDevice)}</Card.Content>
+            </Card>
+          ) : null}
+          {otherDevices.length ? (
+            <Card className="panel-card settings-card device-section-card device-other-section">
+              <Card.Header>
+                <Card.Title>{t.security.otherDevices}</Card.Title>
+                <span className="device-count" aria-hidden="true">{otherDevices.length}</span>
+              </Card.Header>
+              <Card.Content className="settings-list device-section-list">
+                {otherDevices.map(renderDevice)}
+              </Card.Content>
+            </Card>
+          ) : null}
+        </div>
+      ) : (
+        <Card className="panel-card settings-card">
+          <Card.Content><p className="muted-copy">{t.security.noDevices}</p></Card.Content>
+        </Card>
+      )}
     </section>
   )
 }

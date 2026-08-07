@@ -30,7 +30,7 @@ describe('DevicesPage', () => {
     expect(screen.queryByText('No recognized devices yet.')).not.toBeInTheDocument()
   })
 
-  it('sorts the current device first and keeps signed-out devices visible', async () => {
+  it('separates the current device from other device rows', async () => {
     render(
       <MemoryRouter>
         <AuthProvider
@@ -48,6 +48,19 @@ describe('DevicesPage', () => {
                 last_active_at: '2026-07-03T00:00:00Z',
                 is_current: false,
                 is_signed_in: false,
+              },
+              {
+                id: 'remote',
+                display_name: 'Work Mac',
+                device_type: 'desktop',
+                browser: 'Chrome',
+                os: 'macOS',
+                ip_address: '203.0.113.30',
+                first_seen_at: '2026-07-01T00:00:00Z',
+                last_login_at: '2026-07-10T00:00:00Z',
+                last_active_at: '2026-07-11T00:00:00Z',
+                is_current: false,
+                is_signed_in: true,
               },
               {
                 id: 'current',
@@ -70,16 +83,18 @@ describe('DevicesPage', () => {
       </MemoryRouter>,
     )
 
-    const rows = await screen.findAllByText(/This Mac|Old iPhone/)
-    expect(rows.map((row) => row.textContent)).toEqual(['This Mac', 'Old iPhone'])
-    expect(screen.getByText('Current device')).toBeInTheDocument()
+    const rows = await screen.findAllByText(/This Mac|Work Mac|Old iPhone/)
+    expect(rows.map((row) => row.textContent)).toEqual(['This Mac', 'Work Mac', 'Old iPhone'])
+    expect(screen.getByRole('heading', { name: 'Current device' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Other devices' })).toBeInTheDocument()
     expect(screen.getByText('Signed out')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Signed-in devices' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Recently used' })).toBeInTheDocument()
-    expect(document.querySelectorAll('.device-icon')).toHaveLength(2)
-    expect(screen.getAllByText('Last active')).toHaveLength(2)
-    expect(screen.getAllByText('Last sign-in')).toHaveLength(2)
-    expect(screen.getAllByText('IP address')).toHaveLength(2)
+    expect(document.querySelectorAll('.device-icon')).toHaveLength(3)
+    expect(document.querySelectorAll('.device-management-row')).toHaveLength(3)
+    expect(screen.getAllByText('Last active')).toHaveLength(3)
+    expect(screen.getAllByText('Last sign-in')).toHaveLength(3)
+    expect(screen.getAllByText('IP address')).toHaveLength(3)
+    expect(screen.queryByRole('button', { name: /sign out this mac/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /sign out work mac/i })).toBeInTheDocument()
   })
 
   it('does not repeat the generated browser and operating system name', async () => {
@@ -148,13 +163,11 @@ describe('DevicesPage', () => {
     expect(screen.getByText('Signed out')).toBeInTheDocument()
   })
 
-  it('revokes the current device without calling global logout', async () => {
-    const calls: string[] = []
+  it('does not expose a row-level sign-out action for the current device', async () => {
     render(
       <MemoryRouter>
         <AuthProvider
           api={deviceApi({
-            logout: async () => { calls.push('global'); return {} },
             listDevices: async () => [{
               id: 'current',
               display_name: 'This Mac',
@@ -168,20 +181,15 @@ describe('DevicesPage', () => {
               is_current: true,
               is_signed_in: true,
             }],
-            logoutDevice: async (id) => { calls.push(id) },
+            logoutDevice: async () => { throw new Error('current device must use account menu logout') },
           })}
-          navigateAfterLogout={(url) => calls.push(url)}
         >
           <DevicesPage />
         </AuthProvider>
       </MemoryRouter>,
     )
 
-    await userEvent.click(await screen.findByRole('button', { name: /sign out this mac/i }))
-    expect(screen.getByRole('alertdialog', { name: 'Sign out this device?' })).toBeInTheDocument()
-    expect(screen.getByText('You will return to the sign-in page.')).toBeInTheDocument()
-    expect(calls).toEqual([])
-    await userEvent.click(screen.getByRole('button', { name: /^sign out$/i }))
-    expect(calls).toEqual(['current', '/login?signed_out=1'])
+    expect(await screen.findByText('This Mac')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /sign out this mac/i })).not.toBeInTheDocument()
   })
 })
