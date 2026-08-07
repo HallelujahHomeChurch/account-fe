@@ -223,7 +223,7 @@ export class AccountApi {
     })
   }
 
-  register(body: { email: string; password: string; first_name: string; last_name: string; turnstile_token?: string }) {
+  register(body: { email: string; password: string; first_name: string; last_name: string; newsletter_opt_in: boolean; turnstile_token?: string }) {
     return this.request<{ message?: string }>('/register', {
       method: 'POST',
       auth: false,

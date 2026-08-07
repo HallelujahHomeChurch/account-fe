@@ -372,6 +372,43 @@ textarea::selection {
   gap: 14px;
 }
 
+.auth-consent {
+	display: grid;
+	grid-template-columns: 20px minmax(0, 1fr);
+	align-items: start;
+	gap: 10px;
+	color: var(--color-ink);
+	cursor: pointer;
+	line-height: 1.45;
+}
+
+.auth-consent input {
+	width: 18px;
+	height: 18px;
+	margin: 2px 0 0;
+	accent-color: var(--color-primary);
+}
+
+.auth-consent input:focus-visible {
+	outline: 2px solid var(--color-primary);
+	outline-offset: 3px;
+}
+
+.auth-consent span {
+	display: grid;
+	gap: 2px;
+}
+
+.auth-consent strong {
+	font-size: 14px;
+	font-weight: 650;
+}
+
+.auth-consent small {
+	color: var(--color-muted);
+	font-size: 13px;
+}
+
 .auth-back-link {
   display: inline-block;
   margin-top: 20px;

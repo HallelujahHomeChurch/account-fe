@@ -34,9 +34,35 @@ it('submits a new account and shows the verification next step', async () => {
   await userEvent.type(screen.getByLabelText('Confirm password'), 'Password1!')
   await userEvent.click(screen.getByRole('button', { name: 'Create account' }))
 
-  expect(register).toHaveBeenCalledWith({ email: 'user@example.com', password: 'Password1!', first_name: 'Test', last_name: 'User', turnstile_token: undefined })
+  expect(register).toHaveBeenCalledWith({ email: 'user@example.com', password: 'Password1!', first_name: 'Test', last_name: 'User', newsletter_opt_in: false, turnstile_token: undefined })
   expect(await screen.findByText('Registration complete')).toBeInTheDocument()
   expect(screen.queryByText(/Unable to create/)).not.toBeInTheDocument()
+})
+
+it('submits newsletter consent only when selected', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  const register = vi.fn(async () => ({}))
+  const api: AuthApi = {
+    login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+    refreshAccessToken: async () => null, logout: async () => ({}), register,
+  }
+  render(
+    <MemoryRouter initialEntries={['/register']}>
+      <LocaleProvider>
+        <AuthProvider api={api} restoreSession={false}><RegisterPage /></AuthProvider>
+      </LocaleProvider>
+    </MemoryRouter>,
+  )
+
+  await userEvent.type(screen.getByLabelText('First name'), 'Test')
+  await userEvent.type(screen.getByLabelText('Last name'), 'User')
+  await userEvent.type(screen.getByLabelText('Email'), 'user@example.com')
+  await userEvent.type(screen.getByLabelText('Password'), 'Password1!')
+  await userEvent.type(screen.getByLabelText('Confirm password'), 'Password1!')
+  await userEvent.click(screen.getByRole('checkbox', { name: /church news/ }))
+  await userEvent.click(screen.getByRole('button', { name: 'Create account' }))
+
+  expect(register).toHaveBeenCalledWith(expect.objectContaining({ newsletter_opt_in: true }))
 })
 
 it('does not submit a weak password', async () => {
