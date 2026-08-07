@@ -86,6 +86,10 @@ export type LinkedAccount = {
   linked_at?: string
 }
 
+export type NewsletterPreference = {
+  status: 'not_subscribed' | 'pending' | 'subscribed' | 'unsubscribed'
+}
+
 export type MfaSetup = {
   otpauth_url?: string
   qr_code_url?: string
@@ -280,6 +284,17 @@ export class AccountApi {
 
   logoutDevice(deviceId: string) {
     return this.request<void>(`/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE' })
+  }
+
+  getNewsletterPreference() {
+    return this.request<NewsletterPreference>('/notification-preferences/newsletter')
+  }
+
+  updateNewsletterPreference(subscribed: boolean) {
+    return this.request<NewsletterPreference>('/notification-preferences/newsletter', {
+      method: 'PUT',
+      body: { subscribed },
+    })
   }
 
   listLinkedAccounts() {

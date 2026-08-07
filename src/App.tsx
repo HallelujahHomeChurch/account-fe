@@ -1,5 +1,5 @@
 import { AccountMenu, Button, Drawer, Skeleton, Toast, ToastProvider } from '@hallelujahhomechurch/ui'
-import { Menu, MonitorSmartphone, ShieldCheck, UserRound } from 'lucide-react'
+import { Bell, Menu, MonitorSmartphone, ShieldCheck, UserRound } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
 import { useAuth } from './auth/auth-context'
@@ -18,6 +18,7 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { SecurityPage } from './pages/SecurityPage'
 import { DevicesPage } from './pages/DevicesPage'
+import { NotificationsPage } from './pages/NotificationsPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
 
 function LayoutContent() {
@@ -31,6 +32,7 @@ function LayoutContent() {
     { icon: UserRound, label: t.nav.personalInfo, path: '/profile' },
     { icon: ShieldCheck, label: t.nav.security, path: '/security' },
     { icon: MonitorSmartphone, label: t.nav.devices, path: '/devices' },
+    { icon: Bell, label: t.nav.notificationSettings, path: '/notifications' },
   ]
 
   if (isAuthRoute) {
@@ -222,6 +224,7 @@ function LayoutContent() {
               <Route element={<ProfilePage />} path="/profile" />
               <Route element={<SecurityPage />} path="/security" />
               <Route element={<DevicesPage />} path="/devices" />
+              <Route element={<NotificationsPage />} path="/notifications" />
               <Route element={<Navigate replace to="/profile" />} path="*" />
             </Routes>
           </main>

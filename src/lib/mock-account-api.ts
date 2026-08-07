@@ -182,6 +182,14 @@ export class MockAccountApi {
     return { message: 'Mock registration accepted.' }
   }
 
+  async getNewsletterPreference() {
+    return { status: 'not_subscribed' as const }
+  }
+
+  async updateNewsletterPreference(subscribed: boolean) {
+    return { status: subscribed ? 'subscribed' as const : 'unsubscribed' as const }
+  }
+
   async sendOAuthOnboardingCode() {
     return { message: 'Mock verification code accepted.' }
   }

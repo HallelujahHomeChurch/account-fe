@@ -15,6 +15,7 @@ export const messages = {
       personalInfo: '個人化',
       security: '安全性',
       devices: '裝置',
+      notificationSettings: '通知',
       signIn: '登入',
       signOut: '登出',
       accountMenu: '帳號選單',
@@ -23,6 +24,11 @@ export const messages = {
       closeNavigation: '關閉導覽',
       privacy: '隱私權',
       terms: '條款',
+    },
+    notificationSettings: {
+      loading: '正在載入通知設定', emailTitle: 'Email 通知', newsletter: '教會電子報',
+      newsletterDescription: '接收教會近況、活動與週報通知。', updated: '通知設定已更新。',
+      loadFailed: '目前無法載入通知設定。', updateFailed: '目前無法更新通知設定。',
     },
     login: {
       brandTitle: '哈利路亞家教會',
@@ -257,6 +263,7 @@ export const messages = {
       personalInfo: '个性化',
       security: '安全性',
       devices: '设备',
+      notificationSettings: '通知',
       signIn: '登录',
       signOut: '退出登录',
       accountMenu: '帐号菜单',
@@ -265,6 +272,11 @@ export const messages = {
       closeNavigation: '关闭导航',
       privacy: '隐私权',
       terms: '条款',
+    },
+    notificationSettings: {
+      loading: '正在载入通知设置', emailTitle: 'Email 通知', newsletter: '教会电子报',
+      newsletterDescription: '接收教会近况、活动与周报通知。', updated: '通知设置已更新。',
+      loadFailed: '目前无法载入通知设置。', updateFailed: '目前无法更新通知设置。',
     },
     login: {
       brandTitle: '哈利路亚家教会',
@@ -499,6 +511,7 @@ export const messages = {
       personalInfo: 'Personal info',
       security: 'Security',
       devices: 'Devices',
+      notificationSettings: 'Notifications',
       signIn: 'Sign in',
       signOut: 'Sign out',
       accountMenu: 'Account menu',
@@ -507,6 +520,11 @@ export const messages = {
       closeNavigation: 'Close navigation',
       privacy: 'Privacy',
       terms: 'Terms',
+    },
+    notificationSettings: {
+      loading: 'Loading notification settings', emailTitle: 'Email notifications', newsletter: 'Email newsletter',
+      newsletterDescription: 'Receive church news, events, and weekly bulletin updates.', updated: 'Notification preference updated.',
+      loadFailed: 'Unable to load notification settings.', updateFailed: 'Unable to update notification settings.',
     },
     login: {
       brandTitle: 'Hallelujah Home Church',
