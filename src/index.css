@@ -584,9 +584,17 @@ textarea::selection {
 
 .device-row {
   display: grid;
-  grid-template-columns: 44px minmax(160px, 1fr) minmax(260px, auto) auto;
-  min-height: 92px;
+  grid-template-columns: 48px minmax(0, 1fr) minmax(250px, auto) auto;
+  min-height: 88px;
   align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--color-line);
+}
+
+.device-section-list .device-row:first-child,
+.device-section-list .device-row:last-child {
+  padding: 16px 20px;
 }
 
 .device-sections {
@@ -634,6 +642,7 @@ textarea::selection {
 }
 
 .device-row-copy {
+  min-width: 0;
   gap: 5px;
 }
 
@@ -646,13 +655,26 @@ textarea::selection {
 
 .device-heading {
   display: flex;
+  min-width: 0;
   flex-wrap: wrap;
+}
+
+.device-heading strong {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .device-platform,
 .device-metadata {
   color: var(--color-muted);
   font-size: 13px;
+}
+
+.device-platform {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .device-status {
@@ -687,6 +709,11 @@ textarea::selection {
 
 .device-row.is-signed-out .device-heading strong {
   color: var(--color-muted);
+}
+
+.device-row > .hhc-button,
+.device-row > [data-rac] {
+  color: var(--color-primary);
 }
 
 .device-metadata-item {
@@ -1307,7 +1334,12 @@ textarea::selection {
   .device-row {
     grid-template-columns: 40px minmax(0, 1fr) auto;
     gap: 14px;
-    padding-block: 16px;
+    padding: 16px;
+  }
+
+  .device-section-list .device-row:first-child,
+  .device-section-list .device-row:last-child {
+    padding: 16px;
   }
 
   .device-row > .hhc-button,

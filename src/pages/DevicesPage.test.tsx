@@ -122,8 +122,39 @@ describe('DevicesPage', () => {
       </MemoryRouter>,
     )
 
-    expect(await screen.findByText('Chrome · macOS')).toBeInTheDocument()
+    expect(await screen.findByText('Chrome · Mac')).toBeInTheDocument()
+    expect(screen.getByText('macOS')).toBeInTheDocument()
     expect(screen.queryByText('Chrome on macOS')).not.toBeInTheDocument()
+  })
+
+  it('presents verbose operating system names without using them as the device heading', async () => {
+    render(
+      <MemoryRouter>
+        <AuthProvider
+          api={deviceApi({
+            listDevices: async () => [{
+              id: 'iphone',
+              display_name: 'Chrome on CPU iPhone OS 26_5_2 like Mac OS X',
+              device_type: 'mobile',
+              browser: 'Chrome',
+              os: 'CPU iPhone OS 26_5_2 like Mac OS X',
+              ip_address: '203.0.113.10',
+              first_seen_at: '2026-07-01T00:00:00Z',
+              last_login_at: '2026-07-11T00:00:00Z',
+              last_active_at: '2026-07-12T00:00:00Z',
+              is_current: false,
+              is_signed_in: true,
+            }],
+          })}
+        >
+          <DevicesPage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Chrome · iPhone')).toBeInTheDocument()
+    expect(screen.getByText('iOS 26.5.2')).toBeInTheDocument()
+    expect(screen.queryByText('Chrome · CPU iPhone OS 26_5_2 like Mac OS X')).not.toBeInTheDocument()
   })
 
   it('revokes a remote device and keeps its activity row', async () => {
