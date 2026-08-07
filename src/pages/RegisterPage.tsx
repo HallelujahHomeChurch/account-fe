@@ -41,6 +41,7 @@ export function RegisterPage() {
         password,
         first_name: String(form.get('first_name') ?? ''),
         last_name: String(form.get('last_name') ?? ''),
+		newsletter_opt_in: form.has('newsletter_opt_in'),
         turnstile_token: turnstileToken || undefined,
       })
       navigate('/login', {
@@ -94,6 +95,13 @@ export function RegisterPage() {
               <Input autoComplete="new-password" />
               <FieldError />
             </TextField>
+			<label className="auth-consent">
+				<input name="newsletter_opt_in" type="checkbox" />
+				<span>
+					<strong>{t.registration.newsletterOptIn}</strong>
+					<small>{t.registration.newsletterOptOut}</small>
+				</span>
+			</label>
             <Turnstile siteKey={turnstileSiteKey} onToken={handleTurnstileToken} />
             <div className="login-actions auth-actions-between">
               <Link className="muted-link" to="/login">{t.registration.backToLogin}</Link>
