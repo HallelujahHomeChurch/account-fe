@@ -74,6 +74,8 @@ describe('DevicesPage', () => {
     expect(rows.map((row) => row.textContent)).toEqual(['This Mac', 'Old iPhone'])
     expect(screen.getByText('Current device')).toBeInTheDocument()
     expect(screen.getByText('Signed out')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Signed-in devices' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Recently used' })).toBeInTheDocument()
     expect(document.querySelectorAll('.device-icon')).toHaveLength(2)
     expect(screen.getAllByText('Last active')).toHaveLength(2)
     expect(screen.getAllByText('Last sign-in')).toHaveLength(2)
