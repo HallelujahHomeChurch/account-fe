@@ -36,6 +36,10 @@ export function DevicesPage() {
       ),
     [devices],
   )
+  const deviceGroups = [
+    { title: t.security.signedInDevices, devices: sortedDevices.filter((device) => device.is_signed_in) },
+    { title: t.security.recentDevices, devices: sortedDevices.filter((device) => !device.is_signed_in) },
+  ].filter((group) => group.devices.length > 0)
 
   async function signOut(device: Device) {
     setError('')
@@ -67,11 +71,15 @@ export function DevicesPage() {
         <Card.Header>
           <Card.Title>{t.security.devices}</Card.Title>
         </Card.Header>
-        <Card.Content className="settings-list">
+        <Card.Content className="device-groups">
           {devices === null ? (
             error ? null : <Skeleton className="settings-list-skeleton" label={t.security.loading} />
           ) : sortedDevices.length ? (
-            sortedDevices.map((device) => {
+            deviceGroups.map((group) => (
+              <section key={group.title} className="device-group">
+                <h3>{group.title}</h3>
+                <div className="settings-list device-group-list">
+            {group.devices.map((device) => {
               const generatedName = `${device.browser} on ${device.os}`
               const hasCustomName = Boolean(device.display_name && device.display_name !== generatedName)
               const deviceName = hasCustomName ? device.display_name : `${device.browser} · ${device.os}`
@@ -146,7 +154,10 @@ export function DevicesPage() {
                   ) : null}
                 </div>
               )
-            })
+            })}
+                </div>
+              </section>
+            ))
           ) : (
             <p className="muted-copy">{t.security.noDevices}</p>
           )}

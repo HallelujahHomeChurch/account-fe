@@ -588,6 +588,29 @@ textarea::selection {
   min-height: 108px;
 }
 
+.device-groups {
+  display: grid;
+  gap: 24px;
+}
+
+.device-group {
+  display: grid;
+  gap: 10px;
+}
+
+.device-group h3 {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.device-group-list {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
 .device-icon {
   display: grid;
   width: 40px;

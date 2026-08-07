@@ -200,8 +200,10 @@ function LayoutContent() {
               labels={{
                 greeting: `Hi ${accountGreetingName(auth.profile)}`,
                 menu: t.nav.accountMenu,
+                manageAccount: t.nav.churchSite,
                 signOut: t.nav.signOut,
               }}
+              manageAccountHref={`${publicSiteUrl}/${locale}`}
               user={{
                 avatarUrl: auth.profile.avatar_url,
                 email: auth.profile.email,

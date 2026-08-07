@@ -125,6 +125,10 @@ describe('App layout', () => {
 
     await user.click(await screen.findByLabelText(/account menu/i))
     expect(await screen.findByText('Hi Ray Self')).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Church website' })).toHaveAttribute(
+      'href',
+      'https://www.alive.org.tw/en',
+    )
 
     await user.keyboard('{Escape}')
     expect(screen.queryByText('Hi Ray Self')).not.toBeInTheDocument()
