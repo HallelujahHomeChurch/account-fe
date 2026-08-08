@@ -10,6 +10,7 @@ import { ApiError } from './lib/api'
 import { clearLineLinkAutoContinue, markLineLinkAutoContinue } from './lib/line-link-intent'
 
 const viewNonce = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+const lineConfirmationNonce = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
 
 const api: AuthApi = {
   login: async () => ({ access_token: 'token' }),
@@ -73,7 +74,7 @@ describe('App layout', () => {
       expires_at: '2026-07-28T10:10:00Z',
     }))
     const prepareLineLinkIntent = vi.fn(async () => ({
-      return_url: `https://line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${viewNonce}`,
+      return_url: `https://line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${lineConfirmationNonce}`,
     }))
     const bindingApi: AuthApi = {
       login: async () => ({ mfa_type: 'verification_required', mfa_token: 'mfa-token' }),
@@ -110,7 +111,7 @@ describe('App layout', () => {
   it('returns a social login callback from profile to the pending LINE intent', async () => {
     markLineLinkAutoContinue()
     const prepareLineLinkIntent = vi.fn(async () => ({
-      return_url: `https://line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${viewNonce}`,
+      return_url: `https://line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${lineConfirmationNonce}`,
     }))
     const bindingApi: AuthApi = {
       ...signedInApi,

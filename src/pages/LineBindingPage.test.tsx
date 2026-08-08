@@ -8,6 +8,7 @@ import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
 import { ApiError } from '../lib/api'
 import * as lineLinkIntent from '../lib/line-link-intent'
+import { MockAccountApi } from '../lib/mock-account-api'
 import {
   captureLineLinkFragment,
   clearLineLinkAutoContinue,
@@ -19,7 +20,8 @@ import {
 import { LineBindingPage } from './LineBindingPage'
 
 const viewNonce = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-const lineReturnUrl = `https://line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${viewNonce}`
+const lineConfirmationNonce = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
+const lineReturnUrl = `https://line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${lineConfirmationNonce}`
 
 function renderPage(api: AuthApi, navigateAfterLogout?: (url: string) => void, strict = false) {
   document.cookie = 'hhc_locale=en; Path=/'
@@ -313,11 +315,25 @@ describe('LineBindingPage', () => {
     expect(prepareLineLinkIntent).not.toHaveBeenCalled()
     await userEvent.click(screen.getByRole('button', { name: 'Confirm link' }))
     expect(prepareLineLinkIntent).toHaveBeenCalledWith(viewNonce)
-    expect(navigateToLine).toHaveBeenCalledTimes(1)
+    expect(navigateToLine).toHaveBeenCalledWith(lineReturnUrl)
+    expect(navigateToLine.mock.calls[0]?.[0]).toContain(lineConfirmationNonce)
+    expect(navigateToLine.mock.calls[0]?.[0]).not.toContain(viewNonce)
     expect(await screen.findByText(
       'Your HHC account is confirmed. Return to LINE and send the prefilled message to finish connecting.',
     )).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Return to LINE to finish' })).toBeInTheDocument()
+  })
+
+  it('keeps the mock LINE confirmation challenge separate from the browser view challenge', async () => {
+    const api = new MockAccountApi()
+    const summary = await api.getLineLinkIntent()
+
+    expect(summary.view_nonce).toBe(viewNonce)
+    await expect(api.prepareLineLinkIntent(summary.view_nonce)).resolves.toEqual({
+      return_url: lineReturnUrl,
+    })
+    expect(lineReturnUrl).toContain(lineConfirmationNonce)
+    expect(lineReturnUrl).not.toContain(viewNonce)
   })
 
   it('ends only the current server session before switching accounts', async () => {
@@ -433,16 +449,16 @@ describe('native LINE redirect validation', () => {
   })
 
   it.each([
-    `http://line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${viewNonce}`,
-    `https://evil.example/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${viewNonce}`,
-    `https://user@line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${viewNonce}`,
-    `https://line.me:444/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${viewNonce}`,
-    `https://line.me/R/oaMessage/%40hhc_official/../attacker/?HHC_ACCOUNT_LINK_V1%3A${viewNonce}`,
-    `https://line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${viewNonce}#fragment`,
-    `https://line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${viewNonce}&redirect=https%3A%2F%2Fevil.example`,
-    `https://line.me/R/oaMessage/@hhc_official/?HHC_ACCOUNT_LINK_V1%3A${viewNonce}`,
+    `http://line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${lineConfirmationNonce}`,
+    `https://evil.example/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${lineConfirmationNonce}`,
+    `https://user@line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${lineConfirmationNonce}`,
+    `https://line.me:444/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${lineConfirmationNonce}`,
+    `https://line.me/R/oaMessage/%40hhc_official/../attacker/?HHC_ACCOUNT_LINK_V1%3A${lineConfirmationNonce}`,
+    `https://line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${lineConfirmationNonce}#fragment`,
+    `https://line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${lineConfirmationNonce}&redirect=https%3A%2F%2Fevil.example`,
+    `https://line.me/R/oaMessage/@hhc_official/?HHC_ACCOUNT_LINK_V1%3A${lineConfirmationNonce}`,
     `${lineReturnUrl}\n`,
-    `https://LINE.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${viewNonce}`,
+    `https://LINE.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${lineConfirmationNonce}`,
     'https://line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3Ashort',
     'https://access.line.me:443/dialog/bot/accountLink?linkToken=token&nonce=nonce',
     'https://access.line.me/dialog/bot/accountLink?linkToken=token&nonce=nonce&redirect=evil',

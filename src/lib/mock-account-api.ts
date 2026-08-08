@@ -1,6 +1,7 @@
 import { ApiError, type Device, type LineBindingSummary, type LinkedAccount, type MfaSetup, type Profile } from './api'
 
 const token = 'mock-access-token'
+const lineConfirmationNonce = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
 const mockTimestamp = (millisecondsAgo: number) => new Date(Date.now() - millisecondsAgo).toISOString()
 
 export class MockAccountApi {
@@ -172,9 +173,9 @@ export class MockAccountApi {
     }
   }
 
-  async prepareLineLinkIntent(viewNonce: string | undefined) {
+  async prepareLineLinkIntent(_viewNonce: string | undefined) {
     return {
-      return_url: `https://line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${viewNonce}`,
+      return_url: `https://line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${lineConfirmationNonce}`,
     }
   }
 
