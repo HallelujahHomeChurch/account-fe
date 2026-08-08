@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
 import { ApiError } from '../lib/api'
+import * as lineLinkIntent from '../lib/line-link-intent'
 import {
   captureLineLinkFragment,
   clearLineLinkAutoContinue,
@@ -55,6 +56,14 @@ function signedInApi(overrides: Partial<AuthApi> = {}): AuthApi {
   })
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((next) => {
+    resolve = next
+  })
+  return { promise, resolve }
+}
+
 beforeEach(() => {
   window.history.replaceState({}, '', '/line/bind')
   sessionStorage.clear()
@@ -62,6 +71,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.restoreAllMocks()
   clearLineLinkAutoContinue()
   discardCapturedLineLinkToken()
 })
@@ -167,6 +177,99 @@ describe('LineBindingPage', () => {
     expect(sessionStorage).toHaveLength(0)
   })
 
+  it('retries an auto-prepare failure without reloading the intent', async () => {
+    markLineLinkAutoContinue()
+    const getLineLinkIntent = vi.fn(async () => ({
+      profile_name: 'main',
+      expires_at: '2026-08-08T10:10:00Z',
+    }))
+    const prepareLineLinkIntent = vi
+      .fn()
+      .mockRejectedValueOnce(new ApiError(503, 'unavailable'))
+      .mockResolvedValueOnce({ redirect_url: 'https://evil.example/link' })
+    renderPage(signedInApi({ getLineLinkIntent, prepareLineLinkIntent }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to connect this account right now. Try again.',
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The LINE connection response was invalid. Try again.',
+    )
+    expect(prepareLineLinkIntent).toHaveBeenCalledTimes(2)
+    expect(getLineLinkIntent).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not navigate when prepare completes after Cancel unmounts the page', async () => {
+    const pending = deferred<{ redirect_url: string }>()
+    const navigateToLine = vi.spyOn(lineLinkIntent, 'navigateToLineAccountLink')
+    renderPage(signedInApi({ prepareLineLinkIntent: () => pending.promise }))
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Continue' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    pending.resolve({
+      redirect_url: 'https://access.line.me/dialog/bot/accountLink?linkToken=token&nonce=nonce',
+    })
+    await Promise.resolve()
+
+    expect(navigateToLine).not.toHaveBeenCalled()
+  })
+
+  it('does not navigate when prepare completes after a plain unmount', async () => {
+    const pending = deferred<{ redirect_url: string }>()
+    const navigateToLine = vi.spyOn(lineLinkIntent, 'navigateToLineAccountLink')
+    const view = renderPage(signedInApi({ prepareLineLinkIntent: () => pending.promise }))
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Continue' }))
+    view.unmount()
+    pending.resolve({
+      redirect_url: 'https://access.line.me/dialog/bot/accountLink?linkToken=token&nonce=nonce',
+    })
+    await Promise.resolve()
+
+    expect(navigateToLine).not.toHaveBeenCalled()
+  })
+
+  it('does not navigate when prepare completes after Switch account starts', async () => {
+    const pending = deferred<{ redirect_url: string }>()
+    const navigateToLine = vi.spyOn(lineLinkIntent, 'navigateToLineAccountLink')
+    const navigateAfterLogout = vi.fn()
+    renderPage(
+      signedInApi({
+        logoutAll: async () => undefined,
+        prepareLineLinkIntent: () => pending.promise,
+      }),
+      navigateAfterLogout,
+    )
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Continue' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Switch account' }))
+    pending.resolve({
+      redirect_url: 'https://access.line.me/dialog/bot/accountLink?linkToken=token&nonce=nonce',
+    })
+    await Promise.resolve()
+
+    expect(navigateAfterLogout).toHaveBeenCalledTimes(1)
+    expect(navigateToLine).not.toHaveBeenCalled()
+  })
+
+  it('does not clear local auth when a switch completes after unmount', async () => {
+    const pending = deferred<void>()
+    const navigateAfterLogout = vi.fn()
+    const view = renderPage(
+      signedInApi({ logoutAll: () => pending.promise }),
+      navigateAfterLogout,
+    )
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Switch account' }))
+    view.unmount()
+    pending.resolve()
+    await Promise.resolve()
+
+    expect(navigateAfterLogout).not.toHaveBeenCalled()
+  })
+
   it('requires an already-authenticated user to explicitly continue', async () => {
     const prepareLineLinkIntent = vi.fn(async () => ({ redirect_url: 'https://evil.example/link' }))
     renderPage(signedInApi({ prepareLineLinkIntent }))
@@ -187,6 +290,50 @@ describe('LineBindingPage', () => {
     expect(logoutAll).toHaveBeenCalledTimes(1)
     expect(navigateAfterLogout).toHaveBeenCalledWith('/login?return_to=%2Fline%2Fbind')
     expect(sessionStorage).toHaveLength(1)
+  })
+
+  it('retries a failed account switch without reloading the intent', async () => {
+    const getLineLinkIntent = vi.fn(async () => ({
+      profile_name: 'main',
+      expires_at: '2026-08-08T10:10:00Z',
+    }))
+    const logoutAll = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('unavailable'))
+      .mockResolvedValueOnce(undefined)
+    const navigateAfterLogout = vi.fn()
+    renderPage(signedInApi({ getLineLinkIntent, logoutAll }), navigateAfterLogout)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Switch account' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to connect this account right now. Try again.',
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+
+    expect(logoutAll).toHaveBeenCalledTimes(2)
+    expect(navigateAfterLogout).toHaveBeenCalledTimes(1)
+    expect(getLineLinkIntent).toHaveBeenCalledTimes(1)
+  })
+
+  it('recovers an unavailable auth check without reloading the LINE intent', async () => {
+    const getLineLinkIntent = vi.fn(async () => ({
+      profile_name: 'main',
+      expires_at: '2026-08-08T10:10:00Z',
+    }))
+    const refreshAccessToken = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('unavailable'))
+      .mockResolvedValueOnce(null)
+    renderPage(anonymousApi({ getLineLinkIntent, refreshAccessToken }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to check your sign-in status.',
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Check sign-in again' }))
+
+    expect(await screen.findByRole('button', { name: 'Sign in to continue' })).toBeInTheDocument()
+    expect(refreshAccessToken).toHaveBeenCalledTimes(2)
+    expect(getLineLinkIntent).toHaveBeenCalledTimes(1)
   })
 
   it('shows expired, conflict, and unavailable states with retry actions', async () => {

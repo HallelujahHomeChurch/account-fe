@@ -25,10 +25,13 @@ export function LineBindingPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isPreparing, setIsPreparing] = useState(false)
   const [isSwitching, setIsSwitching] = useState(false)
+  const [isRetryingAuth, setIsRetryingAuth] = useState(false)
+  const [failedStage, setFailedStage] = useState<'load' | 'prepare' | 'switch' | null>(null)
   const [retryKey, setRetryKey] = useState(0)
+  const operationRef = useRef(0)
   const loadRef = useRef<{
     key: number
-    token: string | null
+    fromFragment: boolean
     request: Promise<LineBindingSummary> | undefined
   } | null>(null)
 
@@ -38,13 +41,13 @@ export function LineBindingPage() {
       const token = getCapturedLineLinkToken()
       loadRef.current = {
         key: retryKey,
-        token,
+        fromFragment: Boolean(token),
         request: token
           ? auth.api.exchangeLineLinkIntent?.(token)
           : auth.api.getLineLinkIntent?.(),
       }
     }
-    const { request, token } = loadRef.current
+    const { fromFragment, request } = loadRef.current
 
     if (!request) {
       setIsLoading(false)
@@ -54,15 +57,19 @@ export function LineBindingPage() {
 
     setIsLoading(true)
     setError('')
+    setFailedStage(null)
     request
       .then((nextSummary) => {
         if (!active) return
-        if (token) discardCapturedLineLinkToken()
+        if (fromFragment) discardCapturedLineLinkToken()
         setSummary(nextSummary)
       })
       .catch((caught: unknown) => {
-        if (token && isTerminalBindingError(caught)) discardCapturedLineLinkToken()
-        if (active) setError(bindingError(caught, t.lineBinding))
+        if (fromFragment && isTerminalBindingError(caught)) discardCapturedLineLinkToken()
+        if (active) {
+          setFailedStage('load')
+          setError(bindingError(caught, t.lineBinding))
+        }
       })
       .finally(() => {
         if (active) setIsLoading(false)
@@ -74,26 +81,34 @@ export function LineBindingPage() {
   }, [auth.api, retryKey, t.lineBinding])
 
   useEffect(() => () => {
+    operationRef.current += 1
     if (window.location.pathname !== '/line/bind') discardCapturedLineLinkToken()
   }, [])
 
   const prepare = useCallback(async () => {
+    const operation = ++operationRef.current
     if (!auth.api.prepareLineLinkIntent) {
       setError(t.lineBinding.unavailable)
+      setFailedStage('prepare')
       return
     }
 
     setIsPreparing(true)
     setError('')
+    setFailedStage(null)
     try {
       const result = await auth.api.prepareLineLinkIntent()
+      if (operation !== operationRef.current) return
       if (!navigateToLineAccountLink(result.redirect_url)) {
         setError(t.lineBinding.redirectInvalid)
+        setFailedStage('prepare')
       }
     } catch (caught) {
+      if (operation !== operationRef.current) return
       setError(bindingError(caught, t.lineBinding))
+      setFailedStage('prepare')
     } finally {
-      setIsPreparing(false)
+      if (operation === operationRef.current) setIsPreparing(false)
     }
   }, [auth.api, t.lineBinding])
 
@@ -108,22 +123,50 @@ export function LineBindingPage() {
   }
 
   async function switchAccount() {
+    const operation = ++operationRef.current
+    setIsPreparing(false)
     setIsSwitching(true)
     setError('')
+    setFailedStage(null)
     try {
       await (auth.api.logoutAll ? auth.api.logoutAll() : auth.api.logout())
+      if (operation !== operationRef.current) return
       markLineLinkAutoContinue()
       auth.clearLocalSession(loginPath('/line/bind'))
     } catch {
+      if (operation !== operationRef.current) return
       setError(t.lineBinding.unavailable)
-      setIsSwitching(false)
+      setFailedStage('switch')
+    } finally {
+      if (operation === operationRef.current) setIsSwitching(false)
     }
   }
 
   function cancel() {
+    operationRef.current += 1
     clearLineLinkAutoContinue()
     discardCapturedLineLinkToken()
     navigate(auth.profile ? '/profile' : '/login', { replace: true })
+  }
+
+  function retry() {
+    if (failedStage === 'prepare') {
+      void prepare()
+    } else if (failedStage === 'switch') {
+      void switchAccount()
+    } else {
+      setRetryKey((value) => value + 1)
+    }
+  }
+
+  async function retryAuth() {
+    const operation = ++operationRef.current
+    setIsRetryingAuth(true)
+    try {
+      await auth.retrySession()
+    } finally {
+      if (operation === operationRef.current) setIsRetryingAuth(false)
+    }
   }
 
   return (
@@ -141,7 +184,7 @@ export function LineBindingPage() {
               <p className="form-error">{error}</p>
               <div className="line-binding-actions">
                 <Button variant="ghost" onPress={cancel}>{t.lineBinding.cancel}</Button>
-                <Button variant="outline" onPress={() => setRetryKey((value) => value + 1)}>
+                <Button variant="outline" onPress={retry}>
                   {t.lineBinding.retry}
                 </Button>
               </div>
@@ -162,21 +205,35 @@ export function LineBindingPage() {
                   </div>
                 ) : null}
               </dl>
-              <div className="line-binding-actions">
-                <Button variant="ghost" onPress={cancel}>{t.lineBinding.cancel}</Button>
-                {auth.status === 'authenticated' ? (
-                  <>
-                    <Button isPending={isSwitching} variant="outline" onPress={() => void switchAccount()}>
-                      {t.lineBinding.switchAccount}
+              {auth.status === 'unavailable' ? (
+                <div className="line-binding-state" role="alert">
+                  <p className="form-error">{t.lineBinding.authUnavailable}</p>
+                  <div className="line-binding-actions">
+                    <Button variant="ghost" onPress={cancel}>{t.lineBinding.cancel}</Button>
+                    <Button isPending={isRetryingAuth} variant="outline" onPress={() => void retryAuth()}>
+                      {t.lineBinding.retryAuth}
                     </Button>
-                    <Button isPending={isPreparing} onPress={() => void prepare()}>
-                      {t.lineBinding.continue}
-                    </Button>
-                  </>
-                ) : auth.status === 'anonymous' ? (
-                  <Button onPress={signIn}>{t.lineBinding.signIn}</Button>
-                ) : null}
-              </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="line-binding-actions">
+                  <Button isDisabled={isSwitching} variant="ghost" onPress={cancel}>
+                    {t.lineBinding.cancel}
+                  </Button>
+                  {auth.status === 'authenticated' ? (
+                    <>
+                      <Button isDisabled={isSwitching} isPending={isSwitching} variant="outline" onPress={() => void switchAccount()}>
+                        {t.lineBinding.switchAccount}
+                      </Button>
+                      <Button isDisabled={isSwitching} isPending={isPreparing} onPress={() => void prepare()}>
+                        {t.lineBinding.continue}
+                      </Button>
+                    </>
+                  ) : auth.status === 'anonymous' ? (
+                    <Button onPress={signIn}>{t.lineBinding.signIn}</Button>
+                  ) : null}
+                </div>
+              )}
             </>
           ) : null}
         </div>
