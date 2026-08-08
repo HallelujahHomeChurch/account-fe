@@ -168,13 +168,31 @@ describe('LineBindingPage', () => {
   it('auto-prepares exactly once after an intentional sign-in return', async () => {
     markLineLinkAutoContinue()
     const prepareLineLinkIntent = vi.fn(async () => ({ redirect_url: 'https://evil.example/link' }))
-    renderPage(signedInApi({ prepareLineLinkIntent }))
+    renderPage(signedInApi({ prepareLineLinkIntent }), undefined, true)
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'The LINE connection response was invalid. Try again.',
     )
     expect(prepareLineLinkIntent).toHaveBeenCalledTimes(1)
     expect(sessionStorage).toHaveLength(0)
+  })
+
+  it('does not auto-prepare a new intent after an abandoned intent fails to load', async () => {
+    markLineLinkAutoContinue()
+    const failedView = renderPage(signedInApi({
+      getLineLinkIntent: vi.fn().mockRejectedValue(new ApiError(503, 'unavailable')),
+    }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to connect this account right now. Try again.',
+    )
+    failedView.unmount()
+
+    const prepareLineLinkIntent = vi.fn(async () => ({ redirect_url: 'https://evil.example/link' }))
+    renderPage(signedInApi({ prepareLineLinkIntent }))
+
+    expect(await screen.findByText('ray@example.com')).toBeInTheDocument()
+    expect(prepareLineLinkIntent).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument()
   })
 
   it('retries an auto-prepare failure without reloading the intent', async () => {

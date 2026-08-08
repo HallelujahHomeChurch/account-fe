@@ -1,4 +1,4 @@
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { AuthProvider, type AuthApi } from './auth/auth-context'
 import { LocaleProvider } from './i18n/locale-context'
+import { ApiError } from './lib/api'
 import { clearLineLinkAutoContinue, markLineLinkAutoContinue } from './lib/line-link-intent'
 
 const api: AuthApi = {
@@ -127,6 +128,32 @@ describe('App layout', () => {
     expect(prepareLineLinkIntent).toHaveBeenCalledTimes(1)
   })
 
+  it.each([
+    new ApiError(409, 'conflict', 'ACC_LINE_IDENTITY_CONFLICT'),
+    new ApiError(410, 'expired', 'ACC_LINE_BINDING_INVALID'),
+    new ApiError(503, 'unavailable'),
+  ])('does not redirect Back to a failed LINE intent after %s', async (failure) => {
+    markLineLinkAutoContinue()
+    const getLineLinkIntent = vi.fn().mockRejectedValue(failure)
+
+    render(
+      <MemoryRouter initialEntries={['/profile', '/line/bind']} initialIndex={1}>
+        <LocaleProvider>
+          <AuthProvider api={{ ...signedInApi, getLineLinkIntent }}>
+            <NavigationProbe />
+            <App />
+          </AuthProvider>
+        </LocaleProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Go back' }))
+
+    await waitFor(() => expect(screen.getByTestId('route-path')).toHaveTextContent('/profile'))
+    expect(getLineLinkIntent).toHaveBeenCalledTimes(1)
+  })
+
   it('shows account navigation and account menu for signed-in account routes', async () => {
     render(
       <MemoryRouter initialEntries={['/profile']}>
@@ -241,3 +268,14 @@ describe('App layout', () => {
     )
   })
 })
+
+function NavigationProbe() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  return (
+    <>
+      <button onClick={() => void navigate(-1)} type="button">Go back</button>
+      <span data-testid="route-path">{location.pathname}</span>
+    </>
+  )
+}

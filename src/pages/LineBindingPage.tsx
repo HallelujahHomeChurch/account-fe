@@ -28,12 +28,20 @@ export function LineBindingPage() {
   const [isRetryingAuth, setIsRetryingAuth] = useState(false)
   const [failedStage, setFailedStage] = useState<'load' | 'prepare' | 'switch' | null>(null)
   const [retryKey, setRetryKey] = useState(0)
+  const [shouldAutoContinue, setShouldAutoContinue] = useState(false)
   const operationRef = useRef(0)
+  const autoContinueCapturedRef = useRef(false)
   const loadRef = useRef<{
     key: number
     fromFragment: boolean
     request: Promise<LineBindingSummary> | undefined
   } | null>(null)
+
+  useEffect(() => {
+    if (autoContinueCapturedRef.current) return
+    autoContinueCapturedRef.current = true
+    setShouldAutoContinue(consumeLineLinkAutoContinue())
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -113,9 +121,10 @@ export function LineBindingPage() {
   }, [auth.api, t.lineBinding])
 
   useEffect(() => {
-    if (!summary || auth.status !== 'authenticated' || !consumeLineLinkAutoContinue()) return
+    if (!shouldAutoContinue || !summary || auth.status !== 'authenticated') return
+    setShouldAutoContinue(false)
     void prepare()
-  }, [auth.status, prepare, summary])
+  }, [auth.status, prepare, shouldAutoContinue, summary])
 
   function signIn() {
     markLineLinkAutoContinue()
