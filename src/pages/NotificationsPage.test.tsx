@@ -36,3 +36,35 @@ it('loads and updates the newsletter preference', async () => {
   expect(toggle).toBeChecked()
   expect(await screen.findByText('Notification preference updated.')).toBeInTheDocument()
 })
+
+it('shows a retry state instead of a switch when loading preferences fails', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  const getNewsletterPreference = vi.fn()
+    .mockRejectedValueOnce(new Error('service unavailable'))
+    .mockResolvedValueOnce({ status: 'not_subscribed' as const })
+  const api: AuthApi = {
+    login: async () => ({ access_token: 'token' }),
+    refreshAccessToken: async () => 'token',
+    me: async () => ({ id: 'u1', email: 'user@example.com' }),
+    logout: async () => ({}),
+    getNewsletterPreference,
+    updateNewsletterPreference: async () => ({ status: 'subscribed' }),
+  }
+  render(
+    <MemoryRouter>
+      <LocaleProvider>
+        <ToastProvider dismissLabel="Dismiss">
+          <AuthProvider api={api}><NotificationsPage /></AuthProvider>
+        </ToastProvider>
+      </LocaleProvider>
+    </MemoryRouter>,
+  )
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load notification settings.')
+  expect(screen.queryByRole('switch')).not.toBeInTheDocument()
+
+  await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+
+  expect(await screen.findByRole('switch', { name: 'Email newsletter' })).not.toBeChecked()
+  expect(getNewsletterPreference).toHaveBeenCalledTimes(2)
+})
