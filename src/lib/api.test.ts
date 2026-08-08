@@ -402,6 +402,43 @@ describe('AccountApi', () => {
     expect(calls).toContain('POST /api/account/v1/linked-accounts/google/authorize')
   })
 
+  it('uses the native LINE intent endpoints without legacy token routes', async () => {
+    const calls: Array<{ input: string; init?: RequestInit }> = []
+    const api = new AccountApi({
+      baseUrl: '/api/account/v1',
+      getAccessToken: () => 'access-token',
+      fetcher: async (input, init) => {
+        calls.push({ input: String(input), init })
+        if (String(input).endsWith('/csrf-token')) return jsonResponse({ csrf_token: 'csrf-123' })
+        if (String(input).endsWith('/prepare')) {
+          return jsonResponse({
+            redirect_url: 'https://access.line.me/dialog/bot/accountLink?linkToken=token&nonce=nonce',
+          })
+        }
+        return jsonResponse({ profile_name: 'main', expires_at: '2026-08-08T10:10:00Z' })
+      },
+    })
+
+    await api.exchangeLineLinkIntent('fragment-bearer')
+    await api.getLineLinkIntent()
+    await api.prepareLineLinkIntent()
+
+    const exchange = calls.find(({ input }) => input.endsWith('/line/link-intents/exchange'))
+    expect(exchange?.init?.method).toBe('POST')
+    expect(exchange?.init?.body).toBe(JSON.stringify({ token: 'fragment-bearer' }))
+    expect(new Headers(exchange?.init?.headers).has('authorization')).toBe(false)
+    const inspect = calls.find(({ input }) => input.endsWith('/line/link-intent'))
+    expect(inspect?.init?.method).toBe('GET')
+    expect(new Headers(inspect?.init?.headers).has('authorization')).toBe(false)
+    const prepare = calls.find(({ input }) => input.endsWith('/line/link-intent/prepare'))
+    expect(prepare?.init?.method).toBe('POST')
+    expect(prepare?.init?.body).toBe(JSON.stringify({}))
+    expect(new Headers(prepare?.init?.headers).get('authorization')).toBe('Bearer access-token')
+    expect(new Headers(prepare?.init?.headers).get('x-csrf-token')).toBe('csrf-123')
+    expect('getLineBinding' in api).toBe(false)
+    expect('confirmLineBinding' in api).toBe(false)
+  })
+
   it('builds direct and client-authorized social login URLs', () => {
     const api = new AccountApi({ baseUrl: '/api/account/v1' })
 

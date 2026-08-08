@@ -6,6 +6,7 @@ import { useAuth } from './auth/auth-context'
 import { isAuthRoutePath, loginPath } from './auth/auth-routes'
 import { useLocale } from './i18n/locale-context'
 import { accountGreetingName } from './lib/account-display'
+import { hasLineLinkAutoContinue } from './lib/line-link-intent'
 import { readRuntimeConfig } from './lib/redirects'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
@@ -26,7 +27,6 @@ function LayoutContent() {
   const { locale, messages: t } = useLocale()
   const location = useLocation()
   const isAuthRoute = isAuthRoutePath(location.pathname)
-  const isLineBindingRoute = location.pathname === '/line/bind'
   const publicSiteUrl = readRuntimeConfig().publicSiteUrl
   const navigation = [
     { icon: UserRound, label: t.nav.personalInfo, path: '/profile' },
@@ -48,6 +48,7 @@ function LayoutContent() {
             <Route element={<OAuthCallbackPage />} path="/oauth/callback" />
             <Route element={<OAuthLinkPage />} path="/oauth/link" />
             <Route element={<OAuthOnboardingPage />} path="/oauth/onboarding" />
+            <Route element={<LineBindingPage />} path="/line/bind" />
             <Route element={<Navigate replace to="/profile" />} path="*" />
           </Routes>
         </main>
@@ -84,14 +85,8 @@ function LayoutContent() {
     return <Navigate replace to={loginPath(`${location.pathname}${location.search}${location.hash}`)} />
   }
 
-  if (isLineBindingRoute) {
-    return (
-      <div className="app-shell">
-        <main className="auth-main-panel">
-          <LineBindingPage />
-        </main>
-      </div>
-    )
+  if (hasLineLinkAutoContinue()) {
+    return <Navigate replace to="/line/bind" />
   }
 
   return (

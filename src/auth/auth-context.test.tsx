@@ -472,6 +472,28 @@ describe('AuthProvider', () => {
     expect(navigateExternal).not.toHaveBeenCalled()
   })
 
+  it('does not start authorization before the public LINE consent page renders', async () => {
+    const navigateExternal = vi.fn()
+    const api: AuthApi = {
+      getSession: async () => ({ authenticated: false as const }),
+      login: async () => ({}),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken: async () => null,
+      logout: async () => ({}),
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/line/bind']}>
+        <RoutedAuthProvider api={api} navigateExternal={navigateExternal}>
+          <BootstrapProbe />
+        </RoutedAuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('ready')).toBeInTheDocument()
+    expect(navigateExternal).not.toHaveBeenCalled()
+  })
+
   it('falls back to authorization when a local session disappears before refresh', async () => {
     const navigateExternal = vi.fn()
     const api: AuthApi = {
