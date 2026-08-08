@@ -28,7 +28,7 @@ export const messages = {
     notificationSettings: {
       loading: '正在載入通知設定', emailTitle: 'Email 通知', newsletter: '教會電子報',
       newsletterDescription: '接收教會近況、活動與週報通知。', updated: '通知設定已更新。',
-      loadFailed: '目前無法載入通知設定。', updateFailed: '目前無法更新通知設定。',
+      loadFailed: '目前無法載入通知設定。', updateFailed: '目前無法更新通知設定。', retry: '重試',
     },
     login: {
       brandTitle: '哈利路亞家教會',
@@ -276,7 +276,7 @@ export const messages = {
     notificationSettings: {
       loading: '正在载入通知设置', emailTitle: 'Email 通知', newsletter: '教会电子报',
       newsletterDescription: '接收教会近况、活动与周报通知。', updated: '通知设置已更新。',
-      loadFailed: '目前无法载入通知设置。', updateFailed: '目前无法更新通知设置。',
+      loadFailed: '目前无法载入通知设置。', updateFailed: '目前无法更新通知设置。', retry: '重试',
     },
     login: {
       brandTitle: '哈利路亚家教会',
@@ -524,7 +524,7 @@ export const messages = {
     notificationSettings: {
       loading: 'Loading notification settings', emailTitle: 'Email notifications', newsletter: 'Email newsletter',
       newsletterDescription: 'Receive church news, events, and weekly bulletin updates.', updated: 'Notification preference updated.',
-      loadFailed: 'Unable to load notification settings.', updateFailed: 'Unable to update notification settings.',
+      loadFailed: 'Unable to load notification settings.', updateFailed: 'Unable to update notification settings.', retry: 'Retry',
     },
     login: {
       brandTitle: 'Hallelujah Home Church',
