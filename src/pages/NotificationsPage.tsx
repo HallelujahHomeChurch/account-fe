@@ -1,4 +1,4 @@
-import { Button, Card, Skeleton, useToast } from '@hallelujahhomechurch/ui'
+import { Button, Card, Skeleton, Switch, useToast } from '@hallelujahhomechurch/ui'
 import { useCallback, useEffect, useState } from 'react'
 
 import { useAuth } from '../auth/auth-context'
@@ -63,23 +63,14 @@ export function NotificationsPage() {
               <p className="form-error" role="alert">{error}</p>
               <Button variant="secondary" onPress={() => void loadPreference()}>{t.notificationSettings.retry}</Button>
             </div>
-          ) : <div className="settings-row">
-            <div className="settings-row-copy">
-              <span className="settings-row-label">{t.notificationSettings.newsletter}</span>
-              <span className="muted-copy">{t.notificationSettings.newsletterDescription}</span>
-            </div>
-            <label className="preference-switch">
-              <input
-                aria-label={t.notificationSettings.newsletter}
-                checked={subscribed}
-                disabled={isSaving}
-                role="switch"
-                type="checkbox"
-                onChange={(event) => void update(event.currentTarget.checked)}
-              />
-              <span aria-hidden="true" />
-            </label>
-          </div>}
+          ) : <Switch
+            className="settings-row settings-row-switch"
+            description={t.notificationSettings.newsletterDescription}
+            isDisabled={isSaving}
+            isSelected={subscribed}
+            label={t.notificationSettings.newsletter}
+            onChange={(selected) => void update(selected)}
+          />}
         </Card.Content>
       </Card>
     </section>

@@ -17,9 +17,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@hallelujahhomechurch/account-client": "0.4.6",
-    "@hallelujahhomechurch/preferences": "0.4.6",
-    "@hallelujahhomechurch/ui": "0.4.6",
+    "@hallelujahhomechurch/account-client": "0.5.0",
+    "@hallelujahhomechurch/preferences": "0.5.0",
+    "@hallelujahhomechurch/ui": "0.5.0",
     "lucide-react": "^1.24.0",
     "react": "19.2.7",
     "react-dom": "19.2.7",
