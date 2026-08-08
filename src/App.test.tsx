@@ -1,11 +1,12 @@
 import { MemoryRouter } from 'react-router-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import App from './App'
 import { AuthProvider, type AuthApi } from './auth/auth-context'
 import { LocaleProvider } from './i18n/locale-context'
+import { clearLineLinkAutoContinue, markLineLinkAutoContinue } from './lib/line-link-intent'
 
 const api: AuthApi = {
   login: async () => ({ access_token: 'token' }),
@@ -18,6 +19,8 @@ const signedInApi: AuthApi = {
   ...api,
   refreshAccessToken: async () => 'token',
 }
+
+afterEach(clearLineLinkAutoContinue)
 
 describe('App layout', () => {
   it('does not show account navigation on the login route', () => {
@@ -61,21 +64,23 @@ describe('App layout', () => {
   })
 
   it('returns to LINE binding after login and MFA verification', async () => {
-    const getLineBinding = vi.fn(async () => ({
+    const getLineLinkIntent = vi.fn(async () => ({
       profile_name: 'LINE_Helper',
       expires_at: '2026-07-28T10:10:00Z',
     }))
+    const prepareLineLinkIntent = vi.fn(async () => ({ redirect_url: 'https://evil.example/link' }))
     const bindingApi: AuthApi = {
       login: async () => ({ mfa_type: 'verification_required', mfa_token: 'mfa-token' }),
       verifyMfa: async () => ({ access_token: 'access-token' }),
       refreshAccessToken: async () => null,
       me: async () => ({ id: 'u1', email: 'ray@example.com' }),
       logout: async () => ({}),
-      getLineBinding,
+      getLineLinkIntent,
+      prepareLineLinkIntent,
     }
 
     render(
-      <MemoryRouter initialEntries={['/line/bind?token=binding-token']}>
+      <MemoryRouter initialEntries={['/line/bind']}>
         <LocaleProvider>
           <AuthProvider api={bindingApi}>
             <App />
@@ -84,14 +89,42 @@ describe('App layout', () => {
       </MemoryRouter>,
     )
 
+    await userEvent.click(await screen.findByRole('button', { name: 'Sign in to continue' }))
     await userEvent.type(await screen.findByLabelText('Email'), 'ray@example.com')
     await userEvent.type(screen.getByLabelText('Password'), 'secret123')
     await userEvent.click(screen.getByRole('button', { name: 'Next' }))
     await userEvent.type(await screen.findByLabelText('Verification code'), '123456')
     await userEvent.click(screen.getByRole('button', { name: 'Next' }))
 
-    expect(await screen.findByText('LINE_Helper')).toBeInTheDocument()
-    expect(getLineBinding).toHaveBeenCalledWith('binding-token')
+    expect(await screen.findByText('The LINE connection response was invalid. Try again.')).toBeInTheDocument()
+    expect(getLineLinkIntent).toHaveBeenCalled()
+    expect(prepareLineLinkIntent).toHaveBeenCalledTimes(1)
+  })
+
+  it('returns a social login callback from profile to the pending LINE intent', async () => {
+    markLineLinkAutoContinue()
+    const prepareLineLinkIntent = vi.fn(async () => ({ redirect_url: 'https://evil.example/link' }))
+    const bindingApi: AuthApi = {
+      ...signedInApi,
+      getLineLinkIntent: async () => ({
+        profile_name: 'main',
+        expires_at: '2026-08-08T10:10:00Z',
+      }),
+      prepareLineLinkIntent,
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/profile']}>
+        <LocaleProvider>
+          <AuthProvider api={bindingApi}>
+            <App />
+          </AuthProvider>
+        </LocaleProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('The LINE connection response was invalid. Try again.')).toBeInTheDocument()
+    expect(prepareLineLinkIntent).toHaveBeenCalledTimes(1)
   })
 
   it('shows account navigation and account menu for signed-in account routes', async () => {

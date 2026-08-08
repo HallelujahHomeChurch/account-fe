@@ -11,4 +11,8 @@ describe('account bootstrap', () => {
     expect(html).toContain("const theme = match?.[1] ?? 'light'")
     expect(html).not.toContain('prefers-color-scheme')
   })
+
+  it('does not send the accountLink URL as a referrer', () => {
+    expect(html).toContain('<meta name="referrer" content="no-referrer" />')
+  })
 })

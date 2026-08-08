@@ -1,81 +1,233 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, useLocation } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { StrictMode } from 'react'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
 import { ApiError } from '../lib/api'
+import {
+  captureLineLinkFragment,
+  clearLineLinkAutoContinue,
+  discardCapturedLineLinkToken,
+  getCapturedLineLinkToken,
+  markLineLinkAutoContinue,
+  navigateToLineAccountLink,
+} from '../lib/line-link-intent'
 import { LineBindingPage } from './LineBindingPage'
 
-function renderPage(api: AuthApi, entry = '/line/bind?token=binding-token') {
+function renderPage(api: AuthApi, navigateAfterLogout?: (url: string) => void, strict = false) {
   document.cookie = 'hhc_locale=en; Path=/'
-  return render(
-    <MemoryRouter initialEntries={[entry]}>
+  const page = (
+    <MemoryRouter initialEntries={['/line/bind']}>
       <LocaleProvider>
-        <AuthProvider api={api}>
-          <LineBindingPage />
-          <LocationSearch />
+        <AuthProvider api={api} navigateAfterLogout={navigateAfterLogout}>
+          <Routes>
+            <Route element={<LineBindingPage />} path="/line/bind" />
+            <Route element={<LocationPath />} path="/login" />
+          </Routes>
         </AuthProvider>
       </LocaleProvider>
-    </MemoryRouter>,
+    </MemoryRouter>
   )
+  return render(strict ? <StrictMode>{page}</StrictMode> : page)
 }
 
-function signedInApi(overrides: Partial<AuthApi> = {}): AuthApi {
+function anonymousApi(overrides: Partial<AuthApi> = {}): AuthApi {
   return {
-    login: async () => ({ access_token: 'access-token' }),
-    refreshAccessToken: async () => 'access-token',
+    login: async () => ({}),
+    refreshAccessToken: async () => null,
     me: async () => ({ id: 'user-1', email: 'ray@example.com' }),
     logout: async () => ({}),
-    getLineBinding: async () => ({
-      profile_name: 'LINE_Helper',
-      expires_at: '2026-07-28T10:10:00Z',
+    getLineLinkIntent: async () => ({
+      profile_name: 'main',
+      expires_at: '2026-08-08T10:10:00Z',
     }),
-    confirmLineBinding: async () => ({ message: 'connected' }),
     ...overrides,
   }
 }
 
+function signedInApi(overrides: Partial<AuthApi> = {}): AuthApi {
+  return anonymousApi({
+    refreshAccessToken: async () => 'access-token',
+    ...overrides,
+  })
+}
+
+beforeEach(() => {
+  window.history.replaceState({}, '', '/line/bind')
+  sessionStorage.clear()
+  discardCapturedLineLinkToken()
+})
+
+afterEach(() => {
+  clearLineLinkAutoContinue()
+  discardCapturedLineLinkToken()
+})
+
 describe('LineBindingPage', () => {
-  it('shows the LINE profile without exposing the LINE user ID', async () => {
-    renderPage(signedInApi())
+  it('removes the fragment before exchanging it and never stores the bearer', async () => {
+    const exchangeLineLinkIntent = vi.fn(async () => {
+      expect(window.location.hash).toBe('')
+      return { profile_name: 'main', expires_at: '2026-08-08T10:10:00Z' }
+    })
+    window.history.replaceState({}, '', '/line/bind#token=fragment-bearer')
+    captureLineLinkFragment()
 
-    expect(await screen.findByRole('heading', { name: 'Connect LINE account' })).toBeInTheDocument()
-    expect(screen.getByText('LINE_Helper')).toBeInTheDocument()
-    expect(screen.getByText('ray@example.com')).toBeInTheDocument()
-    expect(screen.queryByText(/U0123456789abcdef/i)).not.toBeInTheDocument()
+    renderPage(anonymousApi({ exchangeLineLinkIntent }))
+
+    expect(await screen.findByText('main')).toBeInTheDocument()
+    expect(exchangeLineLinkIntent).toHaveBeenCalledWith('fragment-bearer')
+    expect(window.location.href).not.toContain('fragment-bearer')
+    expect(JSON.stringify(sessionStorage)).not.toContain('fragment-bearer')
   })
 
-  it('consumes the token and removes it from the URL after confirmation', async () => {
-    const confirmLineBinding = vi.fn(async () => ({ message: 'connected' }))
-    renderPage(signedInApi({ confirmLineBinding }))
+  it('exchanges the fragment once under the production StrictMode lifecycle', async () => {
+    const exchangeLineLinkIntent = vi.fn(async () => ({
+      profile_name: 'main',
+      expires_at: '2026-08-08T10:10:00Z',
+    }))
+    window.history.replaceState({}, '', '/line/bind#token=strict-bearer')
+    captureLineLinkFragment()
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Connect' }))
+    renderPage(anonymousApi({ exchangeLineLinkIntent }), undefined, true)
 
-    expect(confirmLineBinding).toHaveBeenCalledWith('binding-token')
-    expect(await screen.findByText('LINE account connected.')).toBeInTheDocument()
-    await waitFor(() => expect(screen.getByTestId('location-search')).toBeEmptyDOMElement())
+    expect(await screen.findByText('main')).toBeInTheDocument()
+    expect(exchangeLineLinkIntent).toHaveBeenCalledTimes(1)
   })
 
-  it('allows an expired binding to be retried', async () => {
-    const getLineBinding = vi
+  it('retries a transient exchange in the same page without storage leakage', async () => {
+    const exchangeLineLinkIntent = vi
       .fn()
-      .mockRejectedValueOnce(new ApiError(410, 'expired', 'ACC_LINE_BINDING_INVALID'))
-      .mockResolvedValueOnce({
-        profile_name: 'LINE_Helper',
-        expires_at: '2026-07-28T10:10:00Z',
-      })
-    renderPage(signedInApi({ getLineBinding }))
+      .mockRejectedValueOnce(new ApiError(503, 'unavailable'))
+      .mockResolvedValueOnce({ profile_name: 'main', expires_at: '2026-08-08T10:10:00Z' })
+    window.history.replaceState({}, '', '/line/bind#token=retry-bearer')
+    captureLineLinkFragment()
+    renderPage(anonymousApi({ exchangeLineLinkIntent }))
 
-    expect(await screen.findByText('This link has expired.')).toBeInTheDocument()
+    expect(await screen.findByText('Unable to connect this account right now. Try again.')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
 
-    expect(await screen.findByText('LINE_Helper')).toBeInTheDocument()
-    expect(getLineBinding).toHaveBeenCalledTimes(2)
+    expect(await screen.findByText('main')).toBeInTheDocument()
+    expect(exchangeLineLinkIntent).toHaveBeenCalledTimes(2)
+    expect(window.location.href).not.toContain('retry-bearer')
+    expect(JSON.stringify(sessionStorage)).not.toContain('retry-bearer')
+  })
+
+  it('discards a transient fragment bearer when the user cancels', async () => {
+    const exchangeLineLinkIntent = vi.fn().mockRejectedValue(new ApiError(503, 'unavailable'))
+    window.history.replaceState({}, '', '/line/bind#token=cancelled-bearer')
+    captureLineLinkFragment()
+    renderPage(anonymousApi({ exchangeLineLinkIntent }))
+
+    expect(await screen.findByText('Unable to connect this account right now. Try again.')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(getCapturedLineLinkToken()).toBeNull()
+  })
+
+  it.each([
+    new ApiError(410, 'expired', 'ACC_LINE_BINDING_INVALID'),
+    new ApiError(409, 'conflict', 'ACC_LINE_IDENTITY_CONFLICT'),
+  ])('discards a fragment bearer after a terminal exchange error', async (terminalError) => {
+    window.history.replaceState({}, '', '/line/bind#token=terminal-bearer')
+    captureLineLinkFragment()
+    renderPage(anonymousApi({ exchangeLineLinkIntent: vi.fn().mockRejectedValue(terminalError) }))
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(getCapturedLineLinkToken()).toBeNull()
+  })
+
+  it('inspects the cookie-only intent after reload and asks an anonymous user to sign in', async () => {
+    const getLineLinkIntent = vi.fn(async () => ({
+      profile_name: 'main',
+      expires_at: '2026-08-08T10:10:00Z',
+    }))
+    renderPage(anonymousApi({ getLineLinkIntent }))
+
+    expect(await screen.findByText('main')).toBeInTheDocument()
+    expect(getLineLinkIntent).toHaveBeenCalledWith()
+    await userEvent.click(screen.getByRole('button', { name: 'Sign in to continue' }))
+    expect(await screen.findByTestId('location-path')).toHaveTextContent(
+      '/login?return_to=%2Fline%2Fbind',
+    )
+    expect(sessionStorage).toHaveLength(1)
+  })
+
+  it('auto-prepares exactly once after an intentional sign-in return', async () => {
+    markLineLinkAutoContinue()
+    const prepareLineLinkIntent = vi.fn(async () => ({ redirect_url: 'https://evil.example/link' }))
+    renderPage(signedInApi({ prepareLineLinkIntent }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The LINE connection response was invalid. Try again.',
+    )
+    expect(prepareLineLinkIntent).toHaveBeenCalledTimes(1)
+    expect(sessionStorage).toHaveLength(0)
+  })
+
+  it('requires an already-authenticated user to explicitly continue', async () => {
+    const prepareLineLinkIntent = vi.fn(async () => ({ redirect_url: 'https://evil.example/link' }))
+    renderPage(signedInApi({ prepareLineLinkIntent }))
+
+    expect(await screen.findByText('ray@example.com')).toBeInTheDocument()
+    expect(prepareLineLinkIntent).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    expect(prepareLineLinkIntent).toHaveBeenCalledTimes(1)
+  })
+
+  it('ends the current server session before switching accounts', async () => {
+    const logoutAll = vi.fn(async () => undefined)
+    const navigateAfterLogout = vi.fn()
+    renderPage(signedInApi({ logoutAll }), navigateAfterLogout)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Switch account' }))
+
+    expect(logoutAll).toHaveBeenCalledTimes(1)
+    expect(navigateAfterLogout).toHaveBeenCalledWith('/login?return_to=%2Fline%2Fbind')
+    expect(sessionStorage).toHaveLength(1)
+  })
+
+  it('shows expired, conflict, and unavailable states with retry actions', async () => {
+    const cases = [
+      [new ApiError(410, 'expired', 'ACC_LINE_BINDING_INVALID'), 'This link has expired.'],
+      [new ApiError(409, 'conflict', 'ACC_LINE_IDENTITY_CONFLICT'), 'This LINE account is already connected to another HHC account.'],
+      [new ApiError(503, 'unavailable'), 'Unable to connect this account right now. Try again.'],
+    ] as const
+
+    for (const [error, label] of cases) {
+      const view = renderPage(anonymousApi({ getLineLinkIntent: vi.fn().mockRejectedValue(error) }))
+      expect(await screen.findByText(label)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
+      view.unmount()
+    }
   })
 })
 
-function LocationSearch() {
-  return <span data-testid="location-search">{useLocation().search}</span>
+describe('native LINE redirect validation', () => {
+  it('replaces the document only for the canonical accountLink URL', () => {
+    const replace = vi.fn()
+    const url = 'https://access.line.me/dialog/bot/accountLink?linkToken=token&nonce=nonce'
+
+    expect(navigateToLineAccountLink(url, replace)).toBe(true)
+    expect(replace).toHaveBeenCalledWith(url)
+  })
+
+  it.each([
+    'http://access.line.me/dialog/bot/accountLink?linkToken=token&nonce=nonce',
+    'https://evil.example/dialog/bot/accountLink?linkToken=token&nonce=nonce',
+    'https://access.line.me/dialog/bot/accountLink?linkToken=token',
+    'https://access.line.me/dialog/bot/accountLink?nonce=nonce',
+    'https://access.line.me/dialog/bot/accountLink?linkToken=one&linkToken=two&nonce=nonce',
+  ])('rejects malformed or malicious redirects: %s', (url) => {
+    const replace = vi.fn()
+    expect(navigateToLineAccountLink(url, replace)).toBe(false)
+    expect(replace).not.toHaveBeenCalled()
+  })
+})
+
+function LocationPath() {
+  const location = useLocation()
+  return <span data-testid="location-path">{location.pathname}{location.search}</span>
 }

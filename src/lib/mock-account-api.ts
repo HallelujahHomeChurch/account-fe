@@ -157,21 +157,24 @@ export class MockAccountApi {
     return { authorization_url: `/security?linked=${encodeURIComponent(provider)}` }
   }
 
-  async getLineBinding(token: string): Promise<LineBindingSummary> {
+  async exchangeLineLinkIntent(token: string): Promise<LineBindingSummary> {
     if (token === 'expired') {
       throw new ApiError(410, 'This link has expired.', 'ACC_LINE_BINDING_INVALID')
     }
+    return this.getLineLinkIntent()
+  }
+
+  async getLineLinkIntent(): Promise<LineBindingSummary> {
     return {
-      profile_name: 'HHC_LINE_Helper',
+      profile_name: 'main',
       expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
     }
   }
 
-  async confirmLineBinding(token: string) {
-    if (token === 'conflict') {
-      throw new ApiError(409, 'LINE account already linked.', 'ACC_LINE_IDENTITY_CONFLICT')
+  async prepareLineLinkIntent() {
+    return {
+      redirect_url: 'https://access.line.me/dialog/bot/accountLink?linkToken=mock&nonce=mock',
     }
-    return { message: 'LINE account linked successfully' }
   }
 
   async forgotPassword() {

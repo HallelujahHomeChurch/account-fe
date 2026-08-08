@@ -344,12 +344,20 @@ export class AccountApi {
     })
   }
 
-  getLineBinding(token: string) {
-    return this.request<LineBindingSummary>(`/line/bindings/${encodeURIComponent(token)}`)
+  exchangeLineLinkIntent(token: string) {
+    return this.request<LineBindingSummary>('/line/link-intents/exchange', {
+      method: 'POST',
+      auth: false,
+      body: { token },
+    })
   }
 
-  confirmLineBinding(token: string) {
-    return this.request<{ message?: string }>(`/line/bindings/${encodeURIComponent(token)}/confirm`, {
+  getLineLinkIntent() {
+    return this.request<LineBindingSummary>('/line/link-intent', { auth: false })
+  }
+
+  prepareLineLinkIntent() {
+    return this.request<{ redirect_url: string }>('/line/link-intent/prepare', {
       method: 'POST',
       body: {},
     })
