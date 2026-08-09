@@ -98,8 +98,15 @@ export type MfaSetup = {
 }
 
 export type LineBindingSummary = {
-  profile_name: string
+  line_account_name?: string
+  view_nonce?: string
+  profile_name?: string
   expires_at: string
+}
+
+export type LineBindingPreparation = {
+  return_url?: string
+  redirect_url?: string
 }
 
 type RequestOptions = {
@@ -356,10 +363,10 @@ export class AccountApi {
     return this.request<LineBindingSummary>('/line/link-intent', { auth: false })
   }
 
-  prepareLineLinkIntent() {
-    return this.request<{ redirect_url: string }>('/line/link-intent/prepare', {
+  prepareLineLinkIntent(viewNonce: string | undefined) {
+    return this.request<LineBindingPreparation>('/line/link-intent/prepare', {
       method: 'POST',
-      body: {},
+      body: viewNonce ? { view_nonce: viewNonce } : {},
     })
   }
 

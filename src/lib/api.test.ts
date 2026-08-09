@@ -412,16 +412,20 @@ describe('AccountApi', () => {
         if (String(input).endsWith('/csrf-token')) return jsonResponse({ csrf_token: 'csrf-123' })
         if (String(input).endsWith('/prepare')) {
           return jsonResponse({
-            redirect_url: 'https://access.line.me/dialog/bot/accountLink?linkToken=token&nonce=nonce',
+            return_url: 'https://line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3Aopaque',
           })
         }
-        return jsonResponse({ profile_name: 'main', expires_at: '2026-08-08T10:10:00Z' })
+        return jsonResponse({
+          line_account_name: 'HHC Official LINE',
+          view_nonce: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+          expires_at: '2026-08-08T10:10:00Z',
+        })
       },
     })
 
     await api.exchangeLineLinkIntent('fragment-bearer')
     await api.getLineLinkIntent()
-    await api.prepareLineLinkIntent()
+    await api.prepareLineLinkIntent('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
 
     const exchange = calls.find(({ input }) => input.endsWith('/line/link-intents/exchange'))
     expect(exchange?.init?.method).toBe('POST')
@@ -432,11 +436,32 @@ describe('AccountApi', () => {
     expect(new Headers(inspect?.init?.headers).has('authorization')).toBe(false)
     const prepare = calls.find(({ input }) => input.endsWith('/line/link-intent/prepare'))
     expect(prepare?.init?.method).toBe('POST')
-    expect(prepare?.init?.body).toBe(JSON.stringify({}))
+    expect(prepare?.init?.body).toBe(JSON.stringify({
+      view_nonce: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+    }))
     expect(new Headers(prepare?.init?.headers).get('authorization')).toBe('Bearer access-token')
     expect(new Headers(prepare?.init?.headers).get('x-csrf-token')).toBe('csrf-123')
     expect('getLineBinding' in api).toBe(false)
     expect('confirmLineBinding' in api).toBe(false)
+  })
+
+  it('keeps the rollback request and response fields compatible', async () => {
+    const bodies: Array<BodyInit | null | undefined> = []
+    const api = new AccountApi({
+      baseUrl: '/api/account/v1',
+      fetcher: async (input, init) => {
+        if (String(input).endsWith('/csrf-token')) return jsonResponse({ csrf_token: 'csrf-123' })
+        bodies.push(init?.body)
+        return jsonResponse({
+          redirect_url: 'https://access.line.me/dialog/bot/accountLink?linkToken=token&nonce=nonce',
+        })
+      },
+    })
+
+    await expect(api.prepareLineLinkIntent(undefined)).resolves.toEqual({
+      redirect_url: 'https://access.line.me/dialog/bot/accountLink?linkToken=token&nonce=nonce',
+    })
+    expect(bodies).toEqual([JSON.stringify({})])
   })
 
   it('builds direct and client-authorized social login URLs', () => {

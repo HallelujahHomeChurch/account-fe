@@ -56,9 +56,16 @@ export function navigateToLineAccountLink(
   value: string,
   replace: (url: string) => void = (url) => window.location.replace(url),
 ) {
+  const canonicalReturn = value.match(/^https:\/\/line\.me\/R\/oaMessage\/%40[A-Za-z0-9._-]{1,32}\/\?HHC_ACCOUNT_LINK_V1%3A[A-Za-z0-9_-]{43}$/)?.[0]
+  if (canonicalReturn === value) {
+    replace(value)
+    return true
+  }
+
   try {
     const url = new URL(value)
     const valid = url.protocol === 'https:'
+      && url.href === value
       && url.hostname === 'access.line.me'
       && url.port === ''
       && url.username === ''
@@ -69,6 +76,7 @@ export function navigateToLineAccountLink(
       && Boolean(url.searchParams.get('linkToken'))
       && url.searchParams.getAll('nonce').length === 1
       && Boolean(url.searchParams.get('nonce'))
+      && Array.from(url.searchParams).length === 2
     if (!valid) return false
     replace(value)
     return true

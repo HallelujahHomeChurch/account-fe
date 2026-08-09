@@ -20,7 +20,8 @@ export function LineBindingPage() {
   const auth = useAuth()
   const { messages: t } = useLocale()
   const navigate = useNavigate()
-  const [summary, setSummary] = useState<LineBindingSummary | null>(null)
+  const [summary, setSummary] = useState<{ lineAccountName?: string } | null>(null)
+  const [returnUrl, setReturnUrl] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isPreparing, setIsPreparing] = useState(false)
@@ -28,9 +29,9 @@ export function LineBindingPage() {
   const [isRetryingAuth, setIsRetryingAuth] = useState(false)
   const [failedStage, setFailedStage] = useState<'load' | 'prepare' | 'switch' | null>(null)
   const [retryKey, setRetryKey] = useState(0)
-  const [shouldAutoContinue, setShouldAutoContinue] = useState(false)
   const operationRef = useRef(0)
   const autoContinueCapturedRef = useRef(false)
+  const viewNonceRef = useRef<string | undefined>(undefined)
   const loadRef = useRef<{
     key: number
     fromFragment: boolean
@@ -40,7 +41,7 @@ export function LineBindingPage() {
   useEffect(() => {
     if (autoContinueCapturedRef.current) return
     autoContinueCapturedRef.current = true
-    setShouldAutoContinue(consumeLineLinkAutoContinue())
+    consumeLineLinkAutoContinue()
   }, [])
 
   useEffect(() => {
@@ -66,11 +67,13 @@ export function LineBindingPage() {
     setIsLoading(true)
     setError('')
     setFailedStage(null)
+    setReturnUrl('')
     request
       .then((nextSummary) => {
         if (!active) return
         if (fromFragment) discardCapturedLineLinkToken()
-        setSummary(nextSummary)
+        viewNonceRef.current = nextSummary.view_nonce
+        setSummary({ lineAccountName: nextSummary.line_account_name || undefined })
       })
       .catch((caught: unknown) => {
         if (fromFragment && isTerminalBindingError(caught)) discardCapturedLineLinkToken()
@@ -90,6 +93,7 @@ export function LineBindingPage() {
 
   useEffect(() => () => {
     operationRef.current += 1
+    viewNonceRef.current = undefined
     if (window.location.pathname !== '/line/bind') discardCapturedLineLinkToken()
   }, [])
 
@@ -104,12 +108,16 @@ export function LineBindingPage() {
     setIsPreparing(true)
     setError('')
     setFailedStage(null)
+    setReturnUrl('')
     try {
-      const result = await auth.api.prepareLineLinkIntent()
+      const result = await auth.api.prepareLineLinkIntent(viewNonceRef.current)
       if (operation !== operationRef.current) return
-      if (!navigateToLineAccountLink(result.redirect_url)) {
+      const nextReturnUrl = result.return_url ?? result.redirect_url
+      if (!nextReturnUrl || !navigateToLineAccountLink(nextReturnUrl)) {
         setError(t.lineBinding.redirectInvalid)
         setFailedStage('prepare')
+      } else {
+        setReturnUrl(nextReturnUrl)
       }
     } catch (caught) {
       if (operation !== operationRef.current) return
@@ -119,12 +127,6 @@ export function LineBindingPage() {
       if (operation === operationRef.current) setIsPreparing(false)
     }
   }, [auth.api, t.lineBinding])
-
-  useEffect(() => {
-    if (!shouldAutoContinue || !summary || auth.status !== 'authenticated') return
-    setShouldAutoContinue(false)
-    void prepare()
-  }, [auth.status, prepare, shouldAutoContinue, summary])
 
   function signIn() {
     markLineLinkAutoContinue()
@@ -138,7 +140,7 @@ export function LineBindingPage() {
     setError('')
     setFailedStage(null)
     try {
-      await (auth.api.logoutAll ? auth.api.logoutAll() : auth.api.logout())
+      await auth.api.logout()
       if (operation !== operationRef.current) return
       markLineLinkAutoContinue()
       auth.clearLocalSession(loginPath('/line/bind'))
@@ -155,6 +157,7 @@ export function LineBindingPage() {
     operationRef.current += 1
     clearLineLinkAutoContinue()
     discardCapturedLineLinkToken()
+    viewNonceRef.current = undefined
     navigate(auth.profile ? '/profile' : '/login', { replace: true })
   }
 
@@ -199,13 +202,23 @@ export function LineBindingPage() {
               </div>
             </div>
           ) : null}
-          {summary && !error ? (
+          {returnUrl && !error ? (
+            <div className="line-binding-state" role="status">
+              <p className="inline-status">{t.lineBinding.success}</p>
+              <div className="line-binding-actions">
+                <Button onPress={() => navigateToLineAccountLink(returnUrl)}>
+                  {t.lineBinding.returnToLine}
+                </Button>
+              </div>
+            </div>
+          ) : null}
+          {summary && !error && !returnUrl ? (
             <>
               <p className="auth-subtitle">{t.lineBinding.description}</p>
               <dl className="line-binding-details">
                 <div>
-                  <dt>{t.lineBinding.lineProfile}</dt>
-                  <dd>{summary.profile_name}</dd>
+                  <dt>{t.lineBinding.lineOfficialAccount}</dt>
+                  <dd>{summary.lineAccountName || t.lineBinding.officialAccountFallback}</dd>
                 </div>
                 {auth.profile ? (
                   <div>
@@ -235,7 +248,7 @@ export function LineBindingPage() {
                         {t.lineBinding.switchAccount}
                       </Button>
                       <Button isDisabled={isSwitching} isPending={isPreparing} onPress={() => void prepare()}>
-                        {t.lineBinding.continue}
+                        {t.lineBinding.confirm}
                       </Button>
                     </>
                   ) : auth.status === 'anonymous' ? (

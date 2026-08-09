@@ -9,6 +9,9 @@ import { LocaleProvider } from './i18n/locale-context'
 import { ApiError } from './lib/api'
 import { clearLineLinkAutoContinue, markLineLinkAutoContinue } from './lib/line-link-intent'
 
+const viewNonce = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+const lineConfirmationNonce = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
+
 const api: AuthApi = {
   login: async () => ({ access_token: 'token' }),
   refreshAccessToken: async () => null,
@@ -66,10 +69,13 @@ describe('App layout', () => {
 
   it('returns to LINE binding after login and MFA verification', async () => {
     const getLineLinkIntent = vi.fn(async () => ({
-      profile_name: 'LINE_Helper',
+      line_account_name: 'HHC Official LINE',
+      view_nonce: viewNonce,
       expires_at: '2026-07-28T10:10:00Z',
     }))
-    const prepareLineLinkIntent = vi.fn(async () => ({ redirect_url: 'https://evil.example/link' }))
+    const prepareLineLinkIntent = vi.fn(async () => ({
+      return_url: `https://line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${lineConfirmationNonce}`,
+    }))
     const bindingApi: AuthApi = {
       login: async () => ({ mfa_type: 'verification_required', mfa_token: 'mfa-token' }),
       verifyMfa: async () => ({ access_token: 'access-token' }),
@@ -97,18 +103,21 @@ describe('App layout', () => {
     await userEvent.type(await screen.findByLabelText('Verification code'), '123456')
     await userEvent.click(screen.getByRole('button', { name: 'Next' }))
 
-    expect(await screen.findByText('The LINE connection response was invalid. Try again.')).toBeInTheDocument()
-    expect(getLineLinkIntent).toHaveBeenCalled()
-    expect(prepareLineLinkIntent).toHaveBeenCalledTimes(1)
+    expect(await screen.findByRole('button', { name: 'Confirm link' })).toBeInTheDocument()
+    expect(getLineLinkIntent).toHaveBeenCalledTimes(2)
+    expect(prepareLineLinkIntent).not.toHaveBeenCalled()
   })
 
   it('returns a social login callback from profile to the pending LINE intent', async () => {
     markLineLinkAutoContinue()
-    const prepareLineLinkIntent = vi.fn(async () => ({ redirect_url: 'https://evil.example/link' }))
+    const prepareLineLinkIntent = vi.fn(async () => ({
+      return_url: `https://line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${lineConfirmationNonce}`,
+    }))
     const bindingApi: AuthApi = {
       ...signedInApi,
       getLineLinkIntent: async () => ({
-        profile_name: 'main',
+        line_account_name: 'HHC Official LINE',
+        view_nonce: viewNonce,
         expires_at: '2026-08-08T10:10:00Z',
       }),
       prepareLineLinkIntent,
@@ -124,8 +133,8 @@ describe('App layout', () => {
       </MemoryRouter>,
     )
 
-    expect(await screen.findByText('The LINE connection response was invalid. Try again.')).toBeInTheDocument()
-    expect(prepareLineLinkIntent).toHaveBeenCalledTimes(1)
+    expect(await screen.findByRole('button', { name: 'Confirm link' })).toBeInTheDocument()
+    expect(prepareLineLinkIntent).not.toHaveBeenCalled()
   })
 
   it.each([
