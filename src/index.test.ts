@@ -15,4 +15,8 @@ describe('account bootstrap', () => {
   it('does not send the accountLink URL as a referrer', () => {
     expect(html).toContain('<meta name="referrer" content="no-referrer" />')
   })
+
+  it('uses the English product title before locale bootstrap', () => {
+    expect(html).toContain('<title>Account | Hallelujah Home Church</title>')
+  })
 })

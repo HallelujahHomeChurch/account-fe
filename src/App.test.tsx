@@ -178,7 +178,7 @@ describe('App layout', () => {
     expect(screen.getByLabelText(/account menu/i).closest('.hhc-account-menu')).toBeInTheDocument()
     expect(document.querySelector('.account-header')).toHaveClass('account-header')
     expect(screen.getByRole('link', { name: 'Devices' })).toBeInTheDocument()
-    expect(document.title).toBe('HHC Account')
+    expect(document.title).toBe('Account | Hallelujah Home Church')
   })
 
   it('shows a dismissible avatar account dropdown', async () => {
@@ -194,7 +194,7 @@ describe('App layout', () => {
 
     await user.click(await screen.findByLabelText(/account menu/i))
     expect(await screen.findByText('Hi Ray Self')).toBeInTheDocument()
-    expect(screen.getByRole('menuitem', { name: 'Church website' })).toHaveAttribute(
+    expect(screen.getByRole('menuitem', { name: 'Official site' })).toHaveAttribute(
       'href',
       'https://www.alive.org.tw/en',
     )
