@@ -8,21 +8,15 @@ import {
   REGEXP_ONLY_DIGITS,
   TextField,
 } from '@hallelujahhomechurch/ui'
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { LanguageSelector } from '../components/LanguageSelector'
-import { SocialIcon } from '../components/SocialIcon'
+import { SocialAuthOptions, useAuthCapabilities } from '../components/SocialAuthOptions'
 import { safeReturnTo } from '../auth/auth-routes'
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import { authErrorMessage } from '../auth/auth-form'
-
-const socialProviders = [
-  { id: 'google', label: 'Google' },
-  { id: 'line', label: 'LINE' },
-  { id: 'microsoft', label: 'Microsoft' },
-]
 
 export function LoginPage() {
   const auth = useAuth()
@@ -46,42 +40,12 @@ export function LoginPage() {
   const [isSuccessNotice, setIsSuccessNotice] = useState(Boolean(registrationState?.registrationComplete))
   const [initialEmail] = useState(registrationState?.registrationEmail ?? '')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [enabledProviderIds, setEnabledProviderIds] = useState<string[] | null>(null)
-  const [registrationEnabled, setRegistrationEnabled] = useState(false)
+  const capabilities = useAuthCapabilities()
+  const registrationEnabled = capabilities?.registrationEnabled === true
 
   const title = t.login.brandTitle
   const challenge = auth.mfaChallenge
   const mfaSubtitle = t.login.mfaVerificationSubtitle
-
-  const socialLinks = useMemo(() => {
-    if (!auth.api.getSocialLoginUrl || !enabledProviderIds) return []
-    return socialProviders.flatMap((provider) => {
-      if (!enabledProviderIds.includes(provider.id)) return []
-      const href = auth.api.getSocialLoginUrl?.(provider.id, authRequestId)
-      return href ? [{ ...provider, href }] : []
-    })
-  }, [auth.api, authRequestId, enabledProviderIds])
-
-  useEffect(() => {
-    let active = true
-    const request = auth.api.getAuthCapabilities
-      ? auth.api.getAuthCapabilities()
-      : auth.api.getOAuthProviders
-        ? auth.api.getOAuthProviders().then((providers) => ({ providers, registrationEnabled: false }))
-        : Promise.resolve({ providers: socialProviders.map(({ id }) => id), registrationEnabled: false })
-    request
-      .then((capabilities) => {
-        if (!active) return
-        setEnabledProviderIds(capabilities.providers)
-        setRegistrationEnabled(capabilities.registrationEnabled)
-      })
-      .catch(() => {
-        if (active) setEnabledProviderIds([])
-      })
-    return () => {
-      active = false
-    }
-  }, [auth.api])
 
   useEffect(() => {
     if (!signedOut && !passwordChanged && !oauthError) return
@@ -269,25 +233,12 @@ export function LoginPage() {
             </Form>
           )}
 
-          {!challenge && socialLinks.length ? (
-            <div className="social-login-panel" aria-label={t.login.socialLogin}>
-              <div className="social-divider">
-                <span>{t.login.socialDivider}</span>
-              </div>
-              <div className="social-icon-list">
-                {socialLinks.map((link) => (
-                  <a
-                    key={link.id}
-                    aria-label={socialLabel(t.login.socialPrefix, link.label, t.login.socialSuffix)}
-                    className={`social-icon-button social-icon-button--${link.id}`}
-                    href={link.href}
-                    title={socialLabel(t.login.socialPrefix, link.label, t.login.socialSuffix)}
-                  >
-                    <SocialIcon provider={link.id} />
-                  </a>
-                ))}
-              </div>
-            </div>
+          {!challenge ? (
+            <SocialAuthOptions
+              authRequestId={authRequestId}
+              dividerLabel={t.login.socialDivider}
+              providerIds={capabilities?.providers ?? null}
+            />
           ) : null}
         </div>
       </div>
@@ -296,8 +247,4 @@ export function LoginPage() {
       </div>
     </section>
   )
-}
-
-function socialLabel(prefix: string, provider: string, suffix: string) {
-  return [prefix, provider, suffix].filter(Boolean).join(' ')
 }
