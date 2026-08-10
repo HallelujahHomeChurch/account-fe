@@ -103,12 +103,21 @@ jobs:
       - name: Build and push image
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           az acr login --name "$ACR_NAME"
           printf '@hallelujahhomechurch:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=%s\n' "$GITHUB_TOKEN" > "$RUNNER_TEMP/npmrc"
           image_ref="${ACR_LOGIN_SERVER}/${IMAGE_REPOSITORY}:${IMAGE_TAG}"
-          docker build --secret id=npmrc,src="$RUNNER_TEMP/npmrc" \
+          sentry_args=()
+          if [[ -n "${SENTRY_AUTH_TOKEN:-}" && -n "${{ vars.SENTRY_ORG }}" && -n "${{ vars.SENTRY_PROJECT }}" ]]; then
+            sentry_args+=(--secret id=sentry_auth_token,env=SENTRY_AUTH_TOKEN)
+          fi
+          docker build --secret id=npmrc,src="$RUNNER_TEMP/npmrc" "${sentry_args[@]}" \
             --build-arg VITE_TURNSTILE_SITE_KEY="${{ vars.TURNSTILE_SITE_KEY }}" \
+            --build-arg VITE_SENTRY_DSN="${{ vars.SENTRY_DSN }}" \
+            --build-arg VITE_SENTRY_RELEASE="$GITHUB_SHA" \
+            --build-arg SENTRY_ORG="${{ vars.SENTRY_ORG }}" \
+            --build-arg SENTRY_PROJECT="${{ vars.SENTRY_PROJECT }}" \
             -t "$image_ref" .
           docker push "$image_ref"
       - name: Resolve immutable image

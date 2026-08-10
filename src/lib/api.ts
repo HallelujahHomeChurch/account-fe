@@ -8,6 +8,7 @@ import {
   type OAuthClientConfig,
   type OAuthTransaction,
 } from '@hallelujahhomechurch/account-client'
+import { recordRequestId } from '../observability'
 
 export type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
@@ -432,6 +433,7 @@ export class AccountApi {
       headers,
       body: requestBody,
     })
+    recordRequestId(response)
 
     if (response.status === 403 && options.csrfRetry !== false && this.needsCsrf(method)) {
       const data = await response.clone().json().catch(() => undefined) as { error_code?: string } | undefined
@@ -468,6 +470,7 @@ export class AccountApi {
         credentials: 'include',
         headers: { accept: 'application/json' },
       }).then(async (response) => {
+        recordRequestId(response)
         const data = await this.readResponse<{ csrf_token?: string }>(response)
         if (!data.csrf_token) {
           throw new ApiError(response.status, 'CSRF token missing')
