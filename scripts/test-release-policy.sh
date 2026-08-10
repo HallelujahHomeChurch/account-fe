@@ -14,4 +14,5 @@ grep -q 'IMAGE_REF=.*@${digest}' "$workflow"
 grep -q 'PREVIOUS_IMAGE_REF=' "$workflow"
 grep -q -- '--image "$PREVIOUS_IMAGE_REF"' "$workflow"
 grep -q 'az containerapp revision copy' "$workflow"
+grep -q 'errorHandler: (error) => { throw error }' vite.config.ts
 grep -q '^Disallow: /$' public/robots.txt
