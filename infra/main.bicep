@@ -1,99 +1,64 @@
 targetScope = 'resourceGroup'
 
 param location string = resourceGroup().location
-param containerAppEnvironmentName string = 'alive-env'
-param containerRegistryName string = 'alive'
-@minLength(1)
-param image string
-param provisionPermissions bool = true
-param deployRuntime bool = true
+param storageAccountName string = 'hhcaccountfeprod'
+param provisionPermissions bool = false
+param deployerPrincipalId string = ''
 
-var acrPullRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
+var storageBlobDataContributorRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
 
-resource environment 'Microsoft.App/managedEnvironments@2024-03-01' existing = {
-  name: containerAppEnvironmentName
-}
-
-resource registry 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
-  name: containerRegistryName
-}
-
-resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: 'account-fe-identity'
+resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
+  name: storageAccountName
   location: location
+  sku: {
+    name: 'Standard_LRS'
+  }
+  kind: 'StorageV2'
+  properties: {
+    accessTier: 'Hot'
+    allowBlobPublicAccess: true
+    allowCrossTenantReplication: false
+    allowSharedKeyAccess: false
+    defaultToOAuthAuthentication: true
+    minimumTlsVersion: 'TLS1_2'
+    publicNetworkAccess: 'Enabled'
+    supportsHttpsTrafficOnly: true
+  }
 }
 
-resource acrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (provisionPermissions) {
-  name: guid(registry.id, identity.id, 'acr-pull')
-  scope: registry
+resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = {
+  parent: storage
+  name: 'default'
   properties: {
-    principalId: identity.properties.principalId
+    containerDeleteRetentionPolicy: {
+      enabled: true
+      days: 7
+    }
+    deleteRetentionPolicy: {
+      enabled: true
+      days: 30
+    }
+    isVersioningEnabled: true
+  }
+}
+
+resource site 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+  parent: blobService
+  name: 'site'
+  properties: {
+    publicAccess: 'Blob'
+  }
+}
+
+resource deployerBlobAccess 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (provisionPermissions) {
+  name: guid(storage.id, deployerPrincipalId, 'frontend-publisher')
+  scope: storage
+  properties: {
+    principalId: deployerPrincipalId
     principalType: 'ServicePrincipal'
-    roleDefinitionId: acrPullRole
+    roleDefinitionId: storageBlobDataContributorRole
   }
 }
 
-resource app 'Microsoft.App/containerApps@2025-01-01' = if (deployRuntime) {
-  name: 'account-fe'
-  location: location
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${identity.id}': {}
-    }
-  }
-  properties: {
-    managedEnvironmentId: environment.id
-    configuration: {
-      activeRevisionsMode: 'Single'
-      dapr: {
-        enabled: true
-        appId: 'account-fe'
-        appPort: 10000
-        appProtocol: 'http'
-        logLevel: 'warn'
-      }
-      registries: [
-        {
-          server: registry.properties.loginServer
-          identity: identity.id
-        }
-      ]
-    }
-    template: {
-      containers: [
-        {
-          name: 'account-fe'
-          image: image
-          resources: {
-            cpu: json('0.25')
-            memory: '0.5Gi'
-          }
-          probes: [
-            {
-              type: 'Liveness'
-              httpGet: { path: '/health', port: 10000 }
-              initialDelaySeconds: 5
-              periodSeconds: 30
-            }
-            {
-              type: 'Readiness'
-              httpGet: { path: '/health', port: 10000 }
-              initialDelaySeconds: 5
-              periodSeconds: 10
-            }
-          ]
-        }
-      ]
-      scale: {
-        minReplicas: 1
-        maxReplicas: 3
-      }
-    }
-  }
-  dependsOn: [
-    acrPull
-  ]
-}
-
-output appName string = 'account-fe'
+output storageAccountName string = storage.name
+output siteUrl string = '${storage.properties.primaryEndpoints.blob}site'
