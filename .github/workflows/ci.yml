@@ -25,9 +25,4 @@ jobs:
       - run: corepack pnpm lint
       - run: corepack pnpm build
       - run: ./scripts/test-release-policy.sh
-      - name: Build image
-        run: |
-          printf '@hallelujahhomechurch:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=%s\n' "$GITHUB_TOKEN" > "$RUNNER_TEMP/npmrc"
-          docker build --secret id=npmrc,src="$RUNNER_TEMP/npmrc" .
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: az bicep build --file infra/main.bicep --stdout >/dev/null
