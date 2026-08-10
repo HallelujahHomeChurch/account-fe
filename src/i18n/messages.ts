@@ -4,6 +4,7 @@ export const messages = {
   'zh-Hant': {
     site: {
       accountName: 'HHC 帳戶',
+      pageTitle: '帳戶 | 哈利路亞家教會',
       language: '語言',
       notifications: '通知',
       dismissNotification: '關閉通知',
@@ -19,7 +20,7 @@ export const messages = {
       signIn: '登入',
       signOut: '登出',
       accountMenu: '帳號選單',
-      churchSite: '教會網站',
+      churchSite: '官網',
       openNavigation: '開啟導覽',
       closeNavigation: '關閉導覽',
       privacy: '隱私權',
@@ -258,6 +259,7 @@ export const messages = {
   'zh-Hans': {
     site: {
       accountName: 'HHC 帐户',
+      pageTitle: '帐户 | 哈利路亚家教会',
       language: '语言',
       notifications: '通知',
       dismissNotification: '关闭通知',
@@ -273,7 +275,7 @@ export const messages = {
       signIn: '登录',
       signOut: '退出登录',
       accountMenu: '帐号菜单',
-      churchSite: '教会网站',
+      churchSite: '官网',
       openNavigation: '打开导航',
       closeNavigation: '关闭导航',
       privacy: '隐私权',
@@ -512,6 +514,7 @@ export const messages = {
   en: {
     site: {
       accountName: 'HHC Account',
+      pageTitle: 'Account | Hallelujah Home Church',
       language: 'Language',
       notifications: 'Notifications',
       dismissNotification: 'Dismiss notification',
@@ -527,7 +530,7 @@ export const messages = {
       signIn: 'Sign in',
       signOut: 'Sign out',
       accountMenu: 'Account menu',
-      churchSite: 'Church website',
+      churchSite: 'Official site',
       openNavigation: 'Open navigation',
       closeNavigation: 'Close navigation',
       privacy: 'Privacy',

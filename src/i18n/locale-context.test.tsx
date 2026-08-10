@@ -19,6 +19,7 @@ describe('LocaleProvider', () => {
 
     expect(document.body).toHaveTextContent('zh-Hant')
     await waitFor(() => expect(document.cookie).toContain('hhc_locale=zh-Hant'))
+    expect(document.title).toBe('帳戶 | 哈利路亞家教會')
   })
 
   it('prefers a valid OAuth callback locale', async () => {
