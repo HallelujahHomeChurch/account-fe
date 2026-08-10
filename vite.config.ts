@@ -19,6 +19,7 @@ export default defineConfig({
       project: process.env.SENTRY_PROJECT,
       release: { name: process.env.VITE_SENTRY_RELEASE },
       sourcemaps: { filesToDeleteAfterUpload: ['./dist/**/*.map'] },
+      errorHandler: (error) => { throw error },
     }),
   ],
   build: { sourcemap: uploadSourceMaps ? 'hidden' : false },
