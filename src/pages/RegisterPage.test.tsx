@@ -39,6 +39,37 @@ it('submits a new account and shows the verification next step', async () => {
   expect(screen.queryByText(/Unable to create/)).not.toBeInTheDocument()
 })
 
+it('shows enabled social account options before the email registration form', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  const api: AuthApi = {
+    login: async () => ({}),
+    me: async () => ({ id: 'u1', email: 'user@example.com' }),
+    refreshAccessToken: async () => null,
+    logout: async () => ({}),
+    register: async () => ({}),
+    getAuthCapabilities: async () => ({ providers: ['google', 'line'], registrationEnabled: true }),
+    getSocialLoginUrl: (provider) => `/api/account/v1/oauth2/${provider}/login`,
+  }
+
+  render(
+    <MemoryRouter initialEntries={['/register']}>
+      <LocaleProvider>
+        <AuthProvider api={api} restoreSession={false}><RegisterPage /></AuthProvider>
+      </LocaleProvider>
+    </MemoryRouter>,
+  )
+
+  const google = await screen.findByLabelText('Continue with Google')
+  const socialPanel = google.closest('.social-login-panel')
+  const form = document.querySelector('.form-stack')
+
+  expect(google).toHaveAttribute('href', '/api/account/v1/oauth2/google/login')
+  expect(screen.getByLabelText('Continue with LINE')).toBeInTheDocument()
+  expect(screen.queryByLabelText('Continue with Microsoft')).not.toBeInTheDocument()
+  expect(socialPanel?.compareDocumentPosition(form as Element)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+  expect(screen.getByText('Or create an account with email')).toBeInTheDocument()
+})
+
 it('submits newsletter consent only when selected', async () => {
   document.cookie = 'hhc_locale=en; Path=/'
   const register = vi.fn(async () => ({}))

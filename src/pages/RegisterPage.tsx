@@ -3,6 +3,7 @@ import { useCallback, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { LanguageSelector } from '../components/LanguageSelector'
+import { SocialAuthOptions, useAuthCapabilities } from '../components/SocialAuthOptions'
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import { readRuntimeConfig } from '../lib/redirects'
@@ -17,6 +18,7 @@ export function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState('')
   const [turnstileSiteKey] = useState(() => readRuntimeConfig().turnstileSiteKey ?? '')
+  const capabilities = useAuthCapabilities()
   const handleTurnstileToken = useCallback((token: string) => setTurnstileToken(token), [])
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -67,6 +69,11 @@ export function RegisterPage() {
         </div>
         <div className="login-form-panel">
           {error ? <p className="form-error" role="alert">{error}</p> : null}
+          <SocialAuthOptions
+            dividerLabel={t.registration.emailDivider}
+            dividerPosition="after"
+            providerIds={capabilities?.providers ?? null}
+          />
           <Form className="form-stack" onSubmit={submit}>
             <div className="auth-name-fields">
               <TextField isRequired name="first_name">
