@@ -129,6 +129,5 @@ export function OAuthOnboardingPage() {
 
 function onboardingError(caught: unknown, invalid: string, fallback: string) {
   if (caught instanceof ApiError && caught.code === 'ACC_OAUTH_ONBOARDING_INVALID') return invalid
-  if (caught instanceof ApiError || caught instanceof Error) return caught.message
   return fallback
 }

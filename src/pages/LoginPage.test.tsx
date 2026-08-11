@@ -9,6 +9,25 @@ import { LoginPage } from './LoginPage'
 import { ApiError } from '../lib/api'
 
 describe('LoginPage', () => {
+  it.each([
+    ['ja', 'ハレルヤ家の教会', '次へ', 'Google アカウントで続ける', 'パスワード'],
+    ['ko', '할렐루야 가정교회', '다음', 'Google 계정으로 계속하기', '비밀번호'],
+  ])('renders login and shared social auth naturally in %s', async (locale, heading, next, socialLabel, passwordLabel) => {
+    document.cookie = `hhc_locale=${locale}; Path=/`
+    const api: AuthApi = {
+      login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken: async () => null, logout: async () => ({}),
+      getAuthCapabilities: async () => ({ providers: ['google'], registrationEnabled: true }),
+      getSocialLoginUrl: (provider) => `/oauth2/${provider}/login`,
+    }
+    render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><LoginPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+    expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: next })).toBeInTheDocument()
+    expect(screen.getByLabelText(socialLabel)).toHaveAttribute('href', '/oauth2/google/login')
+    expect(screen.getByLabelText(passwordLabel)).not.toHaveAttribute('placeholder')
+  })
+
   it('shows a localized credential error instead of the backend message', async () => {
     document.cookie = 'hhc_locale=en; Path=/'
     const api: AuthApi = {
@@ -191,7 +210,7 @@ describe('LoginPage', () => {
     expect(selector.closest('.login-card')).toBeNull()
 
     await userEvent.click(selector)
-    await userEvent.click(screen.getByRole('option', { name: '繁中' }))
+    await userEvent.click(screen.getByRole('option', { name: '繁體中文' }))
     expect(document.cookie).toContain('hhc_locale=zh-Hant')
   })
 

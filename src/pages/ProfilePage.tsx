@@ -7,7 +7,6 @@ import { LanguageSelector } from '../components/LanguageSelector'
 import { ThemeSelector } from '../components/ThemeSelector'
 import { useLocale } from '../i18n/locale-context'
 import { displayAccountName } from '../lib/account-display'
-import { ApiError } from '../lib/api'
 
 export function ProfilePage() {
   const auth = useAuth()
@@ -20,9 +19,9 @@ export function ProfilePage() {
 
   useEffect(() => {
     if (!profile && auth.accessToken && !auth.isBootstrapping) {
-      auth.refreshProfile().catch((caught: unknown) => setError(errorMessage(caught)))
+      auth.refreshProfile().catch(() => setError(t.profile.loadFailed))
     }
-  }, [auth, profile])
+  }, [auth, profile, t.profile.loadFailed])
 
   async function submitName(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -41,8 +40,8 @@ export function ProfilePage() {
       await auth.refreshProfile()
       setMessage(t.profile.updated)
       setNameDialogOpen(false)
-    } catch (caught) {
-      setNameDialogError(errorMessage(caught))
+    } catch {
+      setNameDialogError(t.profile.updateFailed)
     }
   }
 
@@ -141,9 +140,4 @@ export function ProfilePage() {
       </Modal>
     </section>
   )
-}
-
-function errorMessage(caught: unknown) {
-  if (caught instanceof ApiError || caught instanceof Error) return caught.message
-  return 'Request failed.'
 }

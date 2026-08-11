@@ -8,6 +8,27 @@ import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
 import { NotificationsPage } from './NotificationsPage'
 
+it.each([
+  ['ja', '教会ニュースレター', '通知設定を更新しました。'],
+  ['ko', '교회 소식지', '알림 설정을 업데이트했어요.'],
+])('uses %s copy and cookie for notification preference updates', async (locale, label, updated) => {
+  document.cookie = `hhc_locale=${locale}; Path=/`
+  const updateNewsletterPreference = vi.fn(async () => {
+    expect(document.cookie).toContain(`hhc_locale=${locale}`)
+    return { status: 'subscribed' as const }
+  })
+  const api: AuthApi = {
+    login: async () => ({ access_token: 'token' }), refreshAccessToken: async () => 'token',
+    me: async () => ({ id: 'u1', email: 'user@example.com' }), logout: async () => ({}),
+    getNewsletterPreference: async () => ({ status: 'not_subscribed' }), updateNewsletterPreference,
+  }
+  render(<MemoryRouter><LocaleProvider><ToastProvider dismissLabel="Dismiss"><AuthProvider api={api}><NotificationsPage /></AuthProvider></ToastProvider></LocaleProvider></MemoryRouter>)
+
+  await userEvent.click(await screen.findByRole('switch', { name: label }))
+  expect(updateNewsletterPreference).toHaveBeenCalledWith(true)
+  expect(await screen.findByText(updated)).toBeInTheDocument()
+})
+
 it('loads and updates the newsletter preference', async () => {
   document.cookie = 'hhc_locale=en; Path=/'
   const updateNewsletterPreference = vi.fn(async () => ({ status: 'subscribed' as const }))

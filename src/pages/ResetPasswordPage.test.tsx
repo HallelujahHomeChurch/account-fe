@@ -4,9 +4,27 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
+import { LocaleProvider } from '../i18n/locale-context'
 import { ResetPasswordPage } from './ResetPasswordPage'
 
 describe('ResetPasswordPage', () => {
+  it.each([
+    ['ja', 'パスワードを再設定', 'この再設定リンクは無効か、有効期限が切れています。'],
+    ['ko', '비밀번호 재설정', '이 재설정 링크가 유효하지 않거나 만료되었어요.'],
+  ])('shows localized safe invalid-link state in %s', (locale, title, invalid) => {
+    document.cookie = `hhc_locale=${locale}; Path=/`
+    window.history.replaceState(null, '', '/reset-password')
+    const api: AuthApi = {
+      login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken: async () => null, logout: async () => ({}),
+    }
+    render(<MemoryRouter><LocaleProvider><AuthProvider api={api}><ResetPasswordPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+    expect(screen.getByRole('heading', { name: title })).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent(invalid)
+    expect(document.cookie).toContain(`hhc_locale=${locale}`)
+  })
+
   it('prefills email and token from the reset link', async () => {
     window.history.replaceState(
       null,

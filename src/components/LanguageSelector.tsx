@@ -1,6 +1,6 @@
 import { Select } from '@hallelujahhomechurch/ui'
 
-import { localeLabels, locales, type Locale } from '../i18n/locales'
+import { localeMetadata, locales, type Locale } from '../i18n/locales'
 import { useLocale } from '../i18n/locale-context'
 
 type LanguageSelectorProps = {
@@ -14,13 +14,14 @@ export function LanguageSelector({ className = '' }: LanguageSelectorProps) {
     <Select
       className={className}
       hideLabel
-      items={locales.map((targetLocale) => ({
-        id: targetLocale,
-        label: localeLabels[targetLocale],
+      items={localeMetadata.map(({ code, shortLabel, nativeLabel }) => ({
+        id: code,
+        label: shortLabel,
+        ariaLabel: nativeLabel,
       }))}
       label={t.site.language}
       selectedKey={locale}
-      variant="ghost"
+      variant="utility"
       onSelectionChange={(key) => {
         if (locales.includes(key as Locale)) setLocale(key as Locale)
       }}

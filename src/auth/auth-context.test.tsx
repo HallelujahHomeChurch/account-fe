@@ -5,6 +5,7 @@ import { StrictMode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider, RoutedAuthProvider, useAuth, type AuthApi } from './auth-context'
+import { LocaleProvider, useLocale } from '../i18n/locale-context'
 import { ApiError } from '../lib/api'
 import type { RuntimeConfig } from '../lib/redirects'
 
@@ -69,7 +70,121 @@ function LogoutProbe() {
   )
 }
 
+function LocaleRefreshProbe() {
+  const auth = useAuth()
+  const { locale, setLocale } = useLocale()
+  return (
+    <div>
+      <button type="button" onClick={() => void auth.refreshProfile()}>Refresh profile</button>
+      <button type="button" onClick={() => setLocale('ko')}>Switch to Korean</button>
+      <span data-testid="profile-name">{auth.profile?.first_name}</span>
+      <span data-testid="current-locale">{locale}</span>
+    </div>
+  )
+}
+
 describe('AuthProvider', () => {
+  it('does not restore a cached bootstrap profile when the locale changes', async () => {
+    document.cookie = 'hhc_locale=en; Path=/'
+    const me = vi.fn()
+      .mockResolvedValueOnce({ id: 'u1', email: 'admin@example.com', first_name: 'Initial' })
+      .mockResolvedValueOnce({ id: 'u1', email: 'admin@example.com', first_name: 'Updated' })
+    const api: AuthApi = {
+      getSession: async () => ({
+        authenticated: true as const,
+        user: { id: 'u1', email: 'admin@example.com', display_name: 'Initial', avatar_url: null },
+      }),
+      issueAccessToken: async () => 'access-123',
+      login: async () => ({}),
+      me,
+      refreshAccessToken: async () => 'access-123',
+      logout: async () => ({}),
+    }
+
+    render(
+      <LocaleProvider>
+        <MemoryRouter initialEntries={['/profile']}>
+          <RoutedAuthProvider api={api}>
+            <LocaleRefreshProbe />
+          </RoutedAuthProvider>
+        </MemoryRouter>
+      </LocaleProvider>,
+    )
+
+    expect(await screen.findByTestId('profile-name')).toHaveTextContent('Initial')
+    await userEvent.click(screen.getByRole('button', { name: 'Refresh profile' }))
+    expect(await screen.findByTestId('profile-name')).toHaveTextContent('Updated')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Switch to Korean' }))
+    await waitFor(() => expect(screen.getByTestId('current-locale')).toHaveTextContent('ko'))
+    await Promise.resolve()
+
+    expect(screen.getByTestId('profile-name')).toHaveTextContent('Updated')
+    expect(me).toHaveBeenCalledTimes(2)
+  })
+
+  it.each([
+    ['ja', 'ログイン状態を確認できませんでした。もう一度お試しください。'],
+    ['ko', '로그인 상태를 확인할 수 없어요. 다시 시도해 주세요.'],
+  ])('localizes the %s session bootstrap error', async (locale, expected) => {
+    document.cookie = `hhc_locale=${locale}; Path=/`
+    const api: AuthApi = {
+      getSession: async () => { throw new ApiError(503, 'session backend topology leaked') },
+      login: async () => ({}),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken: async () => null,
+      logout: async () => ({}),
+    }
+
+    render(
+      <LocaleProvider>
+        <MemoryRouter initialEntries={['/login']}>
+          <RoutedAuthProvider api={api}>
+            <BootstrapProbe />
+          </RoutedAuthProvider>
+        </MemoryRouter>
+      </LocaleProvider>,
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(expected)
+    expect(screen.queryByText('session backend topology leaked')).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['ja', 'ログアウトできませんでした。もう一度お試しください。'],
+    ['ko', '로그아웃할 수 없어요. 다시 시도해 주세요.'],
+  ])('localizes the %s sign-out error', async (locale, expected) => {
+    document.cookie = `hhc_locale=${locale}; Path=/`
+    const api: AuthApi = {
+      getSession: async () => ({
+        authenticated: true as const,
+        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+      }),
+      issueAccessToken: async () => 'access-123',
+      login: async () => ({}),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken: async () => 'access-123',
+      logout: async () => ({}),
+      logoutAll: async () => { throw new ApiError(503, 'logout provider detail leaked') },
+    }
+
+    render(
+      <LocaleProvider>
+        <MemoryRouter initialEntries={['/profile']}>
+          <RoutedAuthProvider api={api}>
+            <LogoutProbe />
+          </RoutedAuthProvider>
+        </MemoryRouter>
+      </LocaleProvider>,
+    )
+
+    expect(await screen.findByTestId('email')).toHaveTextContent('admin@example.com')
+    await userEvent.click(screen.getByRole('button', { name: 'Logout' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(expected)
+    expect(screen.queryByText('logout provider detail leaked')).not.toBeInTheDocument()
+  })
+
   it('retains authenticated state when global logout fails', async () => {
     const api: AuthApi = {
       login: async () => ({ access_token: 'access-123' }),

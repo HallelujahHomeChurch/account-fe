@@ -7,6 +7,48 @@ import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
 import { RegisterPage } from './RegisterPage'
 
+it.each([
+  ['ja', 'HHCアカウントを作成', 'Google アカウントで続ける', 'またはメールアドレスで作成'],
+  ['ko', 'HHC 계정 만들기', 'Google 계정으로 계속하기', '또는 이메일로 계정 만들기'],
+])('keeps shared social registration above email fields in %s', async (locale, title, socialLabel, divider) => {
+  document.cookie = `hhc_locale=${locale}; Path=/`
+  const api: AuthApi = {
+    login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+    refreshAccessToken: async () => null, logout: async () => ({}), register: async () => ({}),
+    getAuthCapabilities: async () => ({ providers: ['google'], registrationEnabled: true }),
+    getSocialLoginUrl: (provider) => `/oauth2/${provider}/login`,
+  }
+  render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><RegisterPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+  const social = await screen.findByLabelText(socialLabel)
+  const form = document.querySelector('.form-stack') as Element
+  expect(screen.getByRole('heading', { name: title })).toBeInTheDocument()
+  expect(screen.getByText(divider)).toBeInTheDocument()
+  expect(social.closest('.social-login-panel')?.compareDocumentPosition(form)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+})
+
+it.each(['ja', 'ko'])('keeps the %s product cookie on registration API calls', async (locale) => {
+  document.cookie = `hhc_locale=${locale}; Path=/`
+  const register = vi.fn(async () => {
+    expect(document.cookie).toContain(`hhc_locale=${locale}`)
+    return {}
+  })
+  const api: AuthApi = {
+    login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+    refreshAccessToken: async () => null, logout: async () => ({}), register,
+  }
+  const labels = locale === 'ja'
+    ? ['名', '姓', 'メールアドレス', 'パスワード', 'パスワード（確認）', 'アカウントを作成']
+    : ['이름', '성', '이메일', '비밀번호', '비밀번호 확인', '계정 만들기']
+  render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><RegisterPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+  for (const [label, value] of labels.slice(0, 5).map((label, index) => [label, ['Test', 'User', 'user@example.com', 'Password1!', 'Password1!'][index]])) {
+    await userEvent.type(screen.getByLabelText(label), value)
+  }
+  await userEvent.click(screen.getByRole('button', { name: labels[5] }))
+  expect(register).toHaveBeenCalledTimes(1)
+})
+
 it('submits a new account and shows the verification next step', async () => {
   document.cookie = 'hhc_locale=en; Path=/'
   const register = vi.fn(async () => ({}))

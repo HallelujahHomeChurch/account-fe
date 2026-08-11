@@ -26,10 +26,10 @@ export function ProfileAvatarEditor({ profile }: { profile: Profile }) {
   useEffect(() => {
     if (profile.avatar_status !== 'processing') return
     const timer = window.setInterval(() => {
-      void refreshProfile().catch(() => undefined)
+      void refreshProfile().catch(() => setError(t.profile.avatarUpdateFailed))
     }, 2000)
     return () => window.clearInterval(timer)
-  }, [profile.avatar_status, refreshProfile])
+  }, [profile.avatar_status, refreshProfile, t.profile.avatarUpdateFailed])
 
   function resetSelection() {
     releaseObjectURL(objectURL)
@@ -72,8 +72,8 @@ export function ProfileAvatarEditor({ profile }: { profile: Profile }) {
       await auth.api.uploadAvatar(blob)
       await auth.refreshProfile()
       changeOpen(false)
-    } catch (caught) {
-      setError(errorMessage(caught))
+    } catch {
+      setError(t.profile.avatarUpdateFailed)
     } finally {
       setSaving(false)
     }
@@ -87,8 +87,8 @@ export function ProfileAvatarEditor({ profile }: { profile: Profile }) {
       await auth.api.deleteAvatar()
       await auth.refreshProfile()
       changeOpen(false)
-    } catch (caught) {
-      setError(errorMessage(caught))
+    } catch {
+      setError(t.profile.avatarUpdateFailed)
     } finally {
       setSaving(false)
     }
@@ -198,8 +198,4 @@ function releaseObjectURL(reference: { current: string }) {
   if (!reference.current) return
   URL.revokeObjectURL(reference.current)
   reference.current = ''
-}
-
-function errorMessage(caught: unknown) {
-  return caught instanceof Error ? caught.message : 'Request failed.'
 }

@@ -19,6 +19,7 @@ import {
   type ReactNode,
 } from 'react'
 import { useLocation } from 'react-router-dom'
+import { useLocale } from '../i18n/locale-context'
 import { AccountApi, ApiError, type LoginRequest, type LoginResponse, type Profile } from '../lib/api'
 import { MockAccountApi } from '../lib/mock-account-api'
 import {
@@ -95,6 +96,16 @@ const emptyAuthState: AuthState = {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+export type AuthErrorLabels = {
+  sessionCheckFailed: string
+  signOutFailed: string
+}
+
+const defaultAuthErrorLabels: AuthErrorLabels = {
+  sessionCheckFailed: 'Unable to check your sign-in status. Try again.',
+  signOutFailed: 'Unable to sign out. Try again.',
+}
+
 type AuthProviderProps = {
   children: ReactNode
   api?: AuthApi
@@ -104,6 +115,7 @@ type AuthProviderProps = {
   navigateExternal?: (url: string) => void
   route?: Pick<Location, 'pathname' | 'search' | 'hash'>
   authorizeMissingSession?: boolean
+  errorLabels?: AuthErrorLabels
 }
 
 function defaultNavigateAfterLogout(url: string) {
@@ -123,11 +135,14 @@ export function AuthProvider({
   navigateExternal = defaultNavigateExternal,
   route = window.location,
   authorizeMissingSession = false,
+  errorLabels = defaultAuthErrorLabels,
 }: AuthProviderProps) {
   const [config] = useState(() => suppliedConfig ?? readRuntimeConfig())
   const tokenRef = useRef<string | null>(null)
   const [state, setState] = useState<AuthState>(emptyAuthState)
   const stateRef = useRef<AuthState>(emptyAuthState)
+  const errorLabelsRef = useRef(errorLabels)
+  errorLabelsRef.current = errorLabels
   const authorizationRef = useRef<Promise<void> | null>(null)
   const authRevisionRef = useRef(0)
   const initialRouteRef = useRef({
@@ -320,7 +335,7 @@ export function AuthProvider({
           return
         }
       }
-      patchState({ logoutError: 'Unable to sign out. Try again.' })
+      patchState({ logoutError: errorLabelsRef.current.signOutFailed })
     }
   }, [api, commitState, navigateAfterLogout, patchState])
 
@@ -339,7 +354,7 @@ export function AuthProvider({
       return {
         ...stateRef.current,
         status: 'unavailable',
-        bootstrapError: 'Unable to check your sign-in status. Try again.',
+        bootstrapError: errorLabelsRef.current.sessionCheckFailed,
       }
     }
 
@@ -373,7 +388,7 @@ export function AuthProvider({
       return {
         ...stateRef.current,
         status: 'unavailable',
-        bootstrapError: 'Unable to check your sign-in status. Try again.',
+        bootstrapError: errorLabelsRef.current.sessionCheckFailed,
       }
     }
   }, [api, setTokenRef])
@@ -390,7 +405,7 @@ export function AuthProvider({
         return { ...stateRef.current, accessToken: tokenRef.current, profile, bootstrapError: null }
       } catch (error) {
         if (!(error instanceof ApiError) || error.status !== 401) {
-          return { ...stateRef.current, status: 'unavailable' as const, bootstrapError: 'Unable to check your sign-in status. Try again.' }
+          return { ...stateRef.current, status: 'unavailable' as const, bootstrapError: errorLabelsRef.current.sessionCheckFailed }
         }
       }
       try {
@@ -415,7 +430,7 @@ export function AuthProvider({
         if (error instanceof ApiError && (error.status === 401 || error.status === 409)) {
           return { ...emptyAuthState, status: 'anonymous' as const }
         }
-        return { ...stateRef.current, status: 'unavailable' as const, bootstrapError: 'Unable to check your sign-in status. Try again.' }
+        return { ...stateRef.current, status: 'unavailable' as const, bootstrapError: errorLabelsRef.current.sessionCheckFailed }
       }
     }
     const request = resolveRevalidation()
@@ -523,12 +538,14 @@ export function AuthProvider({
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-export function RoutedAuthProvider({ children, api, config, navigateExternal, restoreSession }: AuthProviderProps) {
+export function RoutedAuthProvider({ children, api, config, errorLabels, navigateExternal, restoreSession }: AuthProviderProps) {
   const route = useLocation()
+  const { messages } = useLocale()
   return (
     <AuthProvider
       api={api}
       config={config}
+      errorLabels={errorLabels ?? messages.authErrors}
       route={route}
       restoreSession={restoreSession ?? route.pathname !== '/oauth/callback'}
       authorizeMissingSession
