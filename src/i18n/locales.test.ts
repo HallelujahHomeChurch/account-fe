@@ -4,7 +4,7 @@ import { detectLocale, getLocaleCookie, getStoredLocale, locales } from './local
 
 describe('account locales', () => {
   it('matches hhc-web supported locale values', () => {
-    expect(locales).toEqual(['zh-Hant', 'zh-Hans', 'en'])
+    expect(locales).toEqual(['zh-Hant', 'zh-Hans', 'en', 'ja', 'ko'])
   })
 
   it('reads the shared hhc_locale cookie', () => {
@@ -22,5 +22,18 @@ describe('account locales', () => {
     expect(detectLocale(['zh-TW', 'en-US'])).toBe('zh-Hant')
     expect(detectLocale(['zh-CN', 'en-US'])).toBe('zh-Hans')
     expect(detectLocale(['fr-FR'])).toBe('en')
+  })
+
+  it('detects Japanese and Korean browser locales', () => {
+    expect(detectLocale(['ja-JP', 'en-US'])).toBe('ja')
+    expect(detectLocale(['ko-KR', 'en-US'])).toBe('ko')
+  })
+
+  it('reads and writes Japanese and Korean product cookies', () => {
+    expect(getStoredLocale('hhc_locale=ja')).toBe('ja')
+    expect(getStoredLocale('hhc_locale=ko')).toBe('ko')
+    expect(getLocaleCookie('ja', '.alive.org.tw')).toBe(
+      'hhc_locale=ja; Max-Age=31536000; Path=/; SameSite=Lax; Domain=.alive.org.tw',
+    )
   })
 })

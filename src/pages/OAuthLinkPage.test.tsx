@@ -12,6 +12,21 @@ afterEach(() => {
 })
 
 describe('OAuthLinkPage', () => {
+  it.each([
+    ['ja', '外部ログインを連携', 'この確認リンクは無効か、有効期限が切れています。'],
+    ['ko', '소셜 로그인 연결', '이 확인 링크가 유효하지 않거나 만료되었어요.'],
+  ])('shows localized safe link state in %s', (locale, title, invalid) => {
+    document.cookie = `hhc_locale=${locale}; Path=/`
+    const api: AuthApi = {
+      login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken: async () => null, logout: async () => ({}),
+    }
+    render(<MemoryRouter><LocaleProvider><AuthProvider api={api}><OAuthLinkPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+    expect(screen.getByRole('heading', { name: title })).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent(invalid)
+  })
+
   it('requires explicit confirmation for a token from the URL fragment', async () => {
     const user = userEvent.setup()
     let submittedToken = ''

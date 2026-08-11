@@ -18,7 +18,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
-import { ApiError, type LinkedAccount, type MfaSetup } from '../lib/api'
+import type { LinkedAccount, MfaSetup } from '../lib/api'
 import { authErrorMessage, isStrongPassword } from '../auth/auth-form'
 import { SocialIcon } from '../components/SocialIcon'
 
@@ -152,8 +152,8 @@ export function SecurityPage() {
     try {
       await auth.api.forgotPassword(auth.profile.email)
       setMessage(t.security.passwordSetupSent)
-    } catch (caught) {
-      setError(errorMessage(caught))
+    } catch {
+      setError(t.security.passwordSetupFailed)
     }
   }
 
@@ -167,8 +167,8 @@ export function SecurityPage() {
     try {
       setMfaSetup(await auth.api.setupMfa())
       setMfaDialog('setup')
-    } catch (caught) {
-      setError(errorMessage(caught))
+    } catch {
+      setError(t.security.mfaSetupFailed)
     }
   }
 
@@ -187,8 +187,8 @@ export function SecurityPage() {
       setMfaSetupVerified(true)
       await auth.refreshProfile().catch(() => undefined)
       setMessage(t.security.mfaEnabledNotice)
-    } catch (caught) {
-      setMfaDialogError(errorMessage(caught))
+    } catch {
+      setMfaDialogError(t.security.mfaVerificationFailed)
     }
   }
 
@@ -205,7 +205,7 @@ export function SecurityPage() {
       await auth.refreshProfile().catch(() => undefined)
       setMessage(t.security.mfaDisabledNotice)
     } catch {
-      setError(t.security.providerRemoveFailed)
+      setError(t.security.mfaDisableFailed)
     }
   }
 
@@ -220,8 +220,8 @@ export function SecurityPage() {
       setMfaSetup((current) => ({ ...(current ?? {}), backup_codes: response.backup_codes ?? [] }))
       setMfaSetupVerified(true)
       setMessage(t.security.backupCodesRegenerated)
-    } catch (caught) {
-      setMfaDialogError(errorMessage(caught))
+    } catch {
+      setMfaDialogError(t.security.backupCodesRegenerationFailed)
     }
   }
 
@@ -231,7 +231,7 @@ export function SecurityPage() {
       setLinkedAccounts((current) => (current ?? []).filter((account) => account.provider !== provider))
       toast.add({ message: t.security.providerRemoved, tone: 'success' })
     } catch (caught) {
-      toast.add({ message: errorMessage(caught), tone: 'danger' })
+      toast.add({ message: t.security.providerRemoveFailed, tone: 'danger' })
       throw caught
     }
   }
@@ -536,9 +536,4 @@ function providerLabel(provider: string, labels: Record<string, string>) {
 
 function formatMessage(template: string, values: Record<string, string>) {
   return Object.entries(values).reduce((message, [key, value]) => message.replace(`{${key}}`, value), template)
-}
-
-function errorMessage(caught: unknown) {
-  if (caught instanceof ApiError || caught instanceof Error) return caught.message
-  return 'Request failed.'
 }

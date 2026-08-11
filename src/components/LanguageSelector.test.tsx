@@ -17,6 +17,16 @@ function renderLanguageSelector() {
 }
 
 describe('LanguageSelector', () => {
+  it('shows all product locales with full accessible names', async () => {
+    const trigger = renderLanguageSelector()
+
+    await userEvent.click(trigger)
+
+    for (const language of ['繁體中文', '简体中文', 'English', '日本語', '한국어']) {
+      expect(screen.getByRole('option', { name: language })).toBeInTheDocument()
+    }
+  })
+
   it('closes when clicking outside the open menu', async () => {
     const user = userEvent.setup()
     const trigger = renderLanguageSelector()

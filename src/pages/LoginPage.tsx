@@ -216,7 +216,7 @@ export function LoginPage() {
               </TextField>
               <TextField isRequired name="password" type="password">
                 <Label>{t.login.passwordLabel}</Label>
-                <Input autoComplete="current-password" placeholder="Password" />
+                <Input autoComplete="current-password" />
                 <FieldError />
               </TextField>
               <Link className="muted-link forgot-password-link" to="/forgot-password">

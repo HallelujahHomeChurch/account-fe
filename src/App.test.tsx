@@ -193,21 +193,27 @@ describe('App layout', () => {
     )
 
     await user.click(await screen.findByLabelText(/account menu/i))
-    expect(await screen.findByText('Hi Ray Self')).toBeInTheDocument()
-    expect(screen.getByRole('menuitem', { name: 'Official site' })).toHaveAttribute(
+    expect(await screen.findByRole('menuitem', { name: 'Official site' })).toHaveAttribute(
       'href',
       'https://www.alive.org.tw/en',
     )
+    expect(
+      document.querySelector('.hhc-account-menu__identity-text[title="ray@example.com"]'),
+    ).toBeInTheDocument()
 
     await user.keyboard('{Escape}')
-    expect(screen.queryByText('Hi Ray Self')).not.toBeInTheDocument()
+    expect(
+      document.querySelector('.hhc-account-menu__identity-text[title="ray@example.com"]'),
+    ).not.toBeInTheDocument()
     await waitFor(() => expect(screen.getByLabelText(/account menu/i)).toHaveFocus())
 
     await user.click(screen.getByLabelText(/account menu/i))
-    expect(await screen.findByText('Hi Ray Self')).toBeInTheDocument()
+    expect(await screen.findByRole('menuitem', { name: 'Official site' })).toBeInTheDocument()
 
     await user.click(document.body)
-    expect(screen.queryByText('Hi Ray Self')).not.toBeInTheDocument()
+    expect(
+      document.querySelector('.hhc-account-menu__identity-text[title="ray@example.com"]'),
+    ).not.toBeInTheDocument()
   })
 
   it('opens and dismisses the mobile account navigation drawer', async () => {

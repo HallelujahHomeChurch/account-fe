@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
+import { ApiError } from '../lib/api'
 import { ThemeProvider } from '../theme/theme-context'
 import { ProfilePage } from './ProfilePage'
 
@@ -13,6 +14,22 @@ vi.mock('react-easy-crop', () => ({
 }))
 
 describe('ProfilePage', () => {
+  it.each([
+    ['ja', 'プロフィール', 'メールアドレス確認済み'],
+    ['ko', '개인 정보', '이메일 인증 완료'],
+  ])('renders authenticated profile in %s', async (locale, heading, verified) => {
+    document.cookie = `hhc_locale=${locale}; Path=/`
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }), refreshAccessToken: async () => 'token',
+      me: async () => ({ id: 'u1', email: 'ray@example.com', first_name: 'Ray', is_email_verified: true }),
+      logout: async () => ({}),
+    }
+    render(<MemoryRouter><LocaleProvider><AuthProvider api={api}><ProfilePage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+    expect(await screen.findByRole('heading', { name: heading, level: 1 })).toBeInTheDocument()
+    expect(screen.getByText(verified)).toBeInTheDocument()
+  })
+
   it('uses the shared hhc_locale cookie for localized profile labels', async () => {
     document.cookie = 'hhc_locale=zh-Hant; Path=/'
     const api: AuthApi = {
@@ -163,7 +180,7 @@ describe('ProfilePage', () => {
       refreshAccessToken: async () => 'token',
       me: async () => ({ id: 'u1', email: 'ray@example.com', first_name: 'Ray' }),
       logout: async () => ({}),
-      updateProfile: async () => { throw new Error('Unable to update profile') },
+      updateProfile: async () => { throw new ApiError(500, 'database host and query leaked') },
     }
 
     render(
@@ -178,8 +195,38 @@ describe('ProfilePage', () => {
     await userEvent.click(screen.getByRole('button', { name: /save changes/i }))
 
     const alert = await screen.findByRole('alert')
-    expect(alert).toHaveTextContent('Unable to update profile')
+    expect(alert).toHaveTextContent('Unable to update your profile. Try again.')
+    expect(alert).not.toHaveTextContent('database host and query leaked')
     expect(alert.closest('[role="dialog"]')).toBeInTheDocument()
+  })
+
+  it('does not expose avatar API errors', async () => {
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }),
+      refreshAccessToken: async () => 'token',
+      me: async () => ({
+        id: 'u1',
+        email: 'ray@example.com',
+        avatar_source: 'custom',
+        avatar_status: 'ready',
+      }),
+      logout: async () => ({}),
+      deleteAvatar: async () => { throw new ApiError(500, 'blob account secret leaked') },
+    }
+
+    render(
+      <MemoryRouter>
+        <AuthProvider api={api}>
+          <ProfilePage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    await userEvent.click(await screen.findByRole('button', { name: /change profile picture/i }))
+    await userEvent.click(screen.getByRole('button', { name: /remove photo/i }))
+
+    expect(await screen.findByText('Unable to update your profile picture. Try again.')).toBeInTheDocument()
+    expect(screen.queryByText('blob account secret leaked')).not.toBeInTheDocument()
   })
 
   it('opens avatar management and removes the current custom avatar', async () => {

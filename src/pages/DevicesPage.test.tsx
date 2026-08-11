@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { DevicesPage } from './DevicesPage'
+import { LocaleProvider } from '../i18n/locale-context'
 
 function deviceApi(overrides: Partial<AuthApi> = {}): AuthApi {
   return {
@@ -17,6 +18,17 @@ function deviceApi(overrides: Partial<AuthApi> = {}): AuthApi {
 }
 
 describe('DevicesPage', () => {
+  it.each([
+    ['ja', 'デバイス', '認識済みのデバイスはまだありません。'],
+    ['ko', '기기', '아직 확인된 기기가 없어요.'],
+  ])('renders device state in %s', async (locale, heading, empty) => {
+    document.cookie = `hhc_locale=${locale}; Path=/`
+    render(<MemoryRouter><LocaleProvider><AuthProvider api={deviceApi({ listDevices: async () => [] })}><DevicesPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+    expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument()
+    expect(await screen.findByText(empty)).toBeInTheDocument()
+  })
+
   it('shows a load error without also claiming that there are no devices', async () => {
     render(
       <MemoryRouter>

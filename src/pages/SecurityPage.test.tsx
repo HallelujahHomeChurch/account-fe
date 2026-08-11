@@ -8,12 +8,37 @@ import { describe, expect, it, vi } from 'vitest'
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { SecurityPage } from './SecurityPage'
 import { ApiError } from '../lib/api'
+import { LocaleProvider } from '../i18n/locale-context'
+import { messages } from '../i18n/messages'
 
 function render(element: ReactElement) {
   return testingRender(<ToastProvider dismissLabel="Dismiss">{element}</ToastProvider>)
 }
 
 describe('SecurityPage', () => {
+  it.each([
+    ['ja', 'セキュリティ', 'ログイン方法', '多要素認証'],
+    ['ko', '보안', '로그인 방법', '다단계 인증'],
+  ])('renders security controls in %s', async (locale, heading, methods, mfa) => {
+    document.cookie = `hhc_locale=${locale}; Path=/`
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }), refreshAccessToken: async () => 'token',
+      me: async () => ({ id: 'u1', email: 'ray@example.com', has_password: true, mfa: { enabled: false } }),
+      logout: async () => ({}), listLinkedAccounts: async () => [],
+    }
+    render(<MemoryRouter><LocaleProvider><AuthProvider api={api}><SecurityPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+    expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: methods })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: mfa })).toBeInTheDocument()
+  })
+
+  it('uses standard Korean multi-factor authentication terminology throughout', () => {
+    document.cookie = 'hhc_locale=ko; Path=/'
+    expect(JSON.stringify(messages.ko)).not.toContain('다중 인증')
+    expect(messages.ko.security.mfa).toBe('다단계 인증')
+  })
+
   it('opens password fields only after the user chooses to change password', async () => {
     let passwordBody: unknown
     const navigateAfterLogout = vi.fn()
@@ -182,6 +207,105 @@ describe('SecurityPage', () => {
     expect(screen.queryByLabelText('Current password')).not.toBeInTheDocument()
     expect(resetEmail).toBe('ray@example.com')
     expect(await screen.findByText('A password setup link was sent to your email.')).toBeInTheDocument()
+  })
+
+  it('does not expose password setup API errors', async () => {
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }),
+      refreshAccessToken: async () => 'token',
+      me: async () => ({ id: 'u1', email: 'ray@example.com', has_password: false }),
+      logout: async () => ({}),
+      listLinkedAccounts: async () => [],
+      forgotPassword: async () => { throw new ApiError(500, 'smtp credential leaked') },
+    }
+
+    render(<MemoryRouter><AuthProvider api={api}><SecurityPage /></AuthProvider></MemoryRouter>)
+
+    await userEvent.click(await screen.findByRole('button', { name: /set password/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to send the password setup link. Try again.',
+    )
+    expect(screen.queryByText('smtp credential leaked')).not.toBeInTheDocument()
+  })
+
+  it('does not expose MFA setup or verification API errors', async () => {
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }),
+      refreshAccessToken: async () => 'token',
+      me: async () => ({ id: 'u1', email: 'ray@example.com', mfa: { enabled: false } }),
+      logout: async () => ({}),
+      listLinkedAccounts: async () => [],
+      setupMfa: vi.fn()
+        .mockRejectedValueOnce(new ApiError(500, 'totp seed leaked'))
+        .mockResolvedValueOnce({ otpauth_url: 'otpauth://totp/HHC:ray@example.com' }),
+      verifyMfaSetup: async () => { throw new ApiError(500, 'verification service leaked') },
+    }
+
+    render(<MemoryRouter><AuthProvider api={api}><SecurityPage /></AuthProvider></MemoryRouter>)
+
+    await userEvent.click(await screen.findByRole('button', { name: /^set up$/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to start multi-factor authentication setup. Try again.',
+    )
+    expect(screen.queryByText('totp seed leaked')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /^set up$/i }))
+    await userEvent.type(await screen.findByLabelText('Verification code'), '123456')
+    await userEvent.click(screen.getByRole('button', { name: /enable MFA/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to verify the authentication code. Try again.',
+    )
+    expect(screen.queryByText('verification service leaked')).not.toBeInTheDocument()
+  })
+
+  it('does not expose backup-code or MFA disable API errors', async () => {
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }),
+      refreshAccessToken: async () => 'token',
+      me: async () => ({ id: 'u1', email: 'ray@example.com', mfa: { enabled: true } }),
+      logout: async () => ({}),
+      listLinkedAccounts: async () => [],
+      regenerateBackupCodes: async () => { throw new ApiError(500, 'backup codes leaked') },
+      disableMfa: async () => { throw new ApiError(500, 'mfa database leaked') },
+    }
+
+    render(<MemoryRouter><AuthProvider api={api}><SecurityPage /></AuthProvider></MemoryRouter>)
+
+    await userEvent.click(await screen.findByRole('button', { name: /manage/i }))
+    await userEvent.click(screen.getByRole('button', { name: /regenerate backup codes/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to regenerate backup codes. Try again.',
+    )
+    expect(screen.queryByText('backup codes leaked')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /disable MFA/i }))
+    await userEvent.click(screen.getByRole('button', { name: /disable MFA/i }))
+    expect(await screen.findByText('Unable to disable multi-factor authentication. Try again.')).toBeInTheDocument()
+    expect(screen.queryByText('mfa database leaked')).not.toBeInTheDocument()
+  })
+
+  it('uses the localized provider fallback when unlinking fails', async () => {
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }),
+      refreshAccessToken: async () => 'token',
+      me: async () => ({ id: 'u1', email: 'ray@example.com' }),
+      logout: async () => ({}),
+      getOAuthProviders: async () => ['google'],
+      listLinkedAccounts: async () => [{ provider: 'google' }],
+      unlinkAccount: async () => { throw new ApiError(500, 'provider token leaked') },
+    }
+
+    render(<MemoryRouter><AuthProvider api={api}><SecurityPage /></AuthProvider></MemoryRouter>)
+
+    await userEvent.click(await screen.findByRole('button', { name: /remove google/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^remove$/i }))
+
+    expect(
+      (await screen.findByText('Unable to remove this sign-in method. Try again later.')).closest('.hhc-toast'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('provider token leaked')).not.toBeInTheDocument()
   })
 
   it('manages linked sign-in methods from settings rows', async () => {

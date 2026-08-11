@@ -1,12 +1,33 @@
 import { MemoryRouter } from 'react-router-dom'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
 import { messages } from '../i18n/messages'
 import { ForgotPasswordPage } from './ForgotPasswordPage'
+
+it.each([
+  ['ja', 'パスワードを忘れた場合', '再設定リンクを送信'],
+  ['ko', '비밀번호 찾기', '재설정 링크 보내기'],
+])('uses %s copy and cookie for password recovery', async (locale, title, submit) => {
+  document.cookie = `hhc_locale=${locale}; Path=/`
+  const forgotPassword = vi.fn(async () => {
+    expect(document.cookie).toContain(`hhc_locale=${locale}`)
+    return {}
+  })
+  const api: AuthApi = {
+    login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+    refreshAccessToken: async () => null, logout: async () => ({}), forgotPassword,
+  }
+  render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><ForgotPasswordPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+  expect(screen.getByRole('heading', { name: title })).toBeInTheDocument()
+  await userEvent.type(screen.getByRole('textbox'), 'user@example.com')
+  await userEvent.click(screen.getByRole('button', { name: submit }))
+  expect(forgotPassword).toHaveBeenCalledWith('user@example.com')
+})
 
 describe('ForgotPasswordPage', () => {
   it('requests a password reset email', async () => {
@@ -59,5 +80,6 @@ describe('ForgotPasswordPage', () => {
     expect(messages.en.passwordRecovery.resetSuccessDescription).toBe(
       'You can now sign in with your new password.',
     )
+    expect(messages.ja.passwordRecovery.requestAnotherLink).toBe('再設定リンクを再送')
   })
 })

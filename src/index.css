@@ -90,7 +90,7 @@ select {
 }
 
 a:focus-visible,
-button:focus-visible {
+.theme-selector-option:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 4px;
 }
