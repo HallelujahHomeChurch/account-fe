@@ -9,14 +9,14 @@ importers:
   .:
     dependencies:
       '@hallelujahhomechurch/account-client':
-        specifier: 0.6.5
-        version: 0.6.5
+        specifier: 0.6.7
+        version: 0.6.7
       '@hallelujahhomechurch/preferences':
-        specifier: 0.6.5
-        version: 0.6.5
+        specifier: 0.6.7
+        version: 0.6.7
       '@hallelujahhomechurch/ui':
-        specifier: 0.6.5
-        version: 0.6.5(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: 0.6.7
+        version: 0.6.7(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@sentry/react':
         specifier: 10.69.0
         version: 10.69.0(react@19.2.7)
@@ -231,14 +231,14 @@ packages:
       '@noble/hashes':
         optional: true
 
-  '@hallelujahhomechurch/account-client@0.6.5':
-    resolution: {integrity: sha512-YXAcYFZ5jkeY4N8smnurR8uNHYjAyDEjqwNdg2q04jBGlvc94Yujmj3kKuwZ7Oc2cBr++biE91xLVHvsuhXV8A==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/account-client/0.6.5/b4edfaefadc69043638f66813a1ccea9ce8ac185}
+  '@hallelujahhomechurch/account-client@0.6.7':
+    resolution: {integrity: sha512-DpflPFtGQCuhpgxf0fLtkGoaTx1T4x9OubI9OMe1lp8Bkts0jYbAcrKUlvgqmlk/MdFuEvxSR8hBvTfhrNWz2A==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/account-client/0.6.7/e62ad0667fdf0e7b1b950986a5b84047936f3236}
 
-  '@hallelujahhomechurch/preferences@0.6.5':
-    resolution: {integrity: sha512-Yhu/+MOa2qnvDJoqPU51z58J8eB2XPB6v8f2cpRBKR3mcJRCrNyXi0ur9Ht/Cr5simFDYGspr47jBGZYEvF8Ig==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/preferences/0.6.5/d7f4757dad3696ff420fa057f70054916999504b}
+  '@hallelujahhomechurch/preferences@0.6.7':
+    resolution: {integrity: sha512-MIe3PkdLo+AmgR7dAMhbSAOUmIYw9ZY0k2KNpTqNu6EXF5jGIj4+gSGdXB7ehDWKMhRan5eWpSvoO40dcXmH5A==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/preferences/0.6.7/67b3f9873c149f6654913544b08fd50557fbf5bd}
 
-  '@hallelujahhomechurch/ui@0.6.5':
-    resolution: {integrity: sha512-Asm1kaNbNDRSDgsGdjxYMaUZa0sHk+7rgNzP5zVRNtgGXqsnm5FqpsxWYidMhdeNSsjl72Fzgz167lkeRAMwSQ==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/ui/0.6.5/1f8ac85393b987a7cea4b6ea1ce34a37259a91b0}
+  '@hallelujahhomechurch/ui@0.6.7':
+    resolution: {integrity: sha512-xD8xDsdfjyRWes57aWSLv4+E7Fqu60nbMkiFCLKTHvHZHi/V0FzHecZvkFXkE/DRCxt24mQqytawF1++QNcGng==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/ui/0.6.7/05d9f602c93febbd38e5813aed9605fa2608f6fe}
     peerDependencies:
       react: ^19.0.0
       react-dom: ^19.0.0
@@ -1743,11 +1743,11 @@ snapshots:
 
   '@exodus/bytes@1.15.1': {}
 
-  '@hallelujahhomechurch/account-client@0.6.5': {}
+  '@hallelujahhomechurch/account-client@0.6.7': {}
 
-  '@hallelujahhomechurch/preferences@0.6.5': {}
+  '@hallelujahhomechurch/preferences@0.6.7': {}
 
-  '@hallelujahhomechurch/ui@0.6.5(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@hallelujahhomechurch/ui@0.6.7(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@internationalized/date': 3.12.3
       input-otp: 1.4.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
