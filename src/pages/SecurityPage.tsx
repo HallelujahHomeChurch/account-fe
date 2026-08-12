@@ -281,7 +281,7 @@ export function SecurityPage() {
 
               return (
                 <div key={providerID} className="settings-row">
-                  <span className={`settings-icon social-provider-icon social-provider-icon--${providerID}`} aria-hidden="true">
+                  <span className={`settings-icon social-provider-icon social-provider-icon--brand social-provider-icon--${providerID}`} aria-hidden="true">
                     <SocialIcon provider={providerID} />
                   </span>
                   <div className="settings-row-copy">

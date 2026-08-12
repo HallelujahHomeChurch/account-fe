@@ -16,6 +16,18 @@ function render(element: ReactElement) {
 }
 
 describe('SecurityPage', () => {
+  it('uses the same non-inverted LINE brand treatment as login and registration', async () => {
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }), refreshAccessToken: async () => 'token',
+      me: async () => ({ id: 'u1', email: 'ray@example.com', has_password: true }),
+      logout: async () => ({}), listLinkedAccounts: async () => [{ provider: 'line' }],
+    }
+    const { container } = render(<MemoryRouter><AuthProvider api={api}><SecurityPage /></AuthProvider></MemoryRouter>)
+
+    await screen.findAllByText('LINE')
+    expect(container.querySelector('.social-provider-icon--line')).toHaveClass('social-provider-icon--brand')
+  })
+
   it.each([
     ['ja', 'セキュリティ', 'ログイン方法', '多要素認証'],
     ['ko', '보안', '로그인 방법', '다단계 인증'],
