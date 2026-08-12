@@ -27,6 +27,20 @@ const signedInApi: AuthApi = {
 afterEach(clearLineLinkAutoContinue)
 
 describe('App layout', () => {
+  it('uses the shared branded loading screen until protected-route bootstrap finishes', () => {
+    render(
+      <MemoryRouter initialEntries={['/profile']}>
+        <AuthProvider api={{ ...api, refreshAccessToken: () => new Promise(() => undefined) }}>
+          <App />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('status')).toHaveClass('hhc-brand-loading-screen')
+    expect(screen.getByText('Loading account...')).toBeInTheDocument()
+    expect(document.querySelector('.auth-shell-skeleton')).not.toBeInTheDocument()
+  })
+
   it('does not show account navigation on the login route', () => {
     render(
       <MemoryRouter initialEntries={['/login']}>

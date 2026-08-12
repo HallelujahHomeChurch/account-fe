@@ -1,4 +1,4 @@
-import { AccountMenu, Button, Drawer, Skeleton, Toast, ToastProvider } from '@hallelujahhomechurch/ui'
+import { AccountMenu, BrandLoadingScreen, Button, Drawer, Toast, ToastProvider } from '@hallelujahhomechurch/ui'
 import { Bell, Menu, MonitorSmartphone, ShieldCheck, UserRound } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
@@ -57,13 +57,7 @@ function LayoutContent() {
   }
 
   if (auth.isBootstrapping) {
-    return (
-      <div className="app-shell">
-        <main className="auth-main-panel">
-          <Skeleton className="auth-shell-skeleton" label={t.profile.loading} />
-        </main>
-      </div>
-    )
+    return <BrandLoadingScreen label={t.profile.loading} />
   }
 
   if (auth.status === 'unavailable' && !auth.profile) {
