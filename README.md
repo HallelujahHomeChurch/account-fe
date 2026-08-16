@@ -39,3 +39,9 @@ GitHub Actions builds the Vite application and publishes it to the public
 uploaded before `index.html`; a failed verification restores the previous
 index. `api-gateway` remains the public origin for SPA fallback, security
 headers, and `/api/*` routing.
+
+## Production native callback configuration
+
+Native OAuth callbacks are restricted to `librepresenter://auth/account`.
+Set `VITE_ALLOWED_REDIRECT_SCHEMES=librepresenter` in the production build
+environment; no other native scheme is supported.
