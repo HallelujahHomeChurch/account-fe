@@ -239,7 +239,7 @@ describe('AuthProvider', () => {
       oauthScope: 'openid profile email',
       mockApi: true,
       allowedRedirectOrigins: ['http://localhost:5173'],
-      allowedRedirectSchemes: ['hhc'],
+      allowedRedirectSchemes: ['librepresenter'],
       publicSiteUrl: 'https://www.alive.org.tw',
     }
 
@@ -540,7 +540,7 @@ describe('AuthProvider', () => {
       oauthScope: 'openid profile email',
       mockApi: false,
       allowedRedirectOrigins: ['http://localhost'],
-      allowedRedirectSchemes: ['hhc'],
+      allowedRedirectSchemes: ['librepresenter'],
       publicSiteUrl: 'https://www.alive.org.tw',
     }
 
