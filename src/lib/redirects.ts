@@ -57,7 +57,7 @@ export function readRuntimeConfig(
     oauthScope: stringEnv(env.VITE_ACCOUNT_OAUTH_SCOPE, 'openid profile email'),
     mockApi: env.VITE_ACCOUNT_API_MOCK === 'true' || env.VITE_ACCOUNT_API_MOCK === true,
     allowedRedirectOrigins: splitCsv(env.VITE_ALLOWED_REDIRECT_ORIGINS, defaultAllowedOrigins),
-    allowedRedirectSchemes: splitCsv(env.VITE_ALLOWED_REDIRECT_SCHEMES, ['hhc']),
+    allowedRedirectSchemes: splitCsv(env.VITE_ALLOWED_REDIRECT_SCHEMES, ['librepresenter']),
     publicSiteUrl: stringEnv(env.VITE_PUBLIC_SITE_URL, 'https://www.alive.org.tw').replace(/\/$/, ''),
     turnstileSiteKey: stringEnv(env.VITE_TURNSTILE_SITE_KEY, ''),
   }
@@ -107,7 +107,15 @@ export function isAllowedRedirect(redirectUri: string, config: RuntimeConfig) {
     return config.allowedRedirectOrigins.includes(url.origin)
   }
 
-  return config.allowedRedirectSchemes.includes(url.protocol.replace(':', ''))
+  return url.protocol === 'librepresenter:'
+    && config.allowedRedirectSchemes.includes('librepresenter')
+    && url.host === 'auth'
+    && url.pathname === '/account'
+    && url.username === ''
+    && url.password === ''
+    && !url.searchParams.has('code')
+    && !url.searchParams.has('state')
+    && url.hash === ''
 }
 
 export function buildOAuthRedirectUrl(
