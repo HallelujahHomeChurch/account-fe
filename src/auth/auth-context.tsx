@@ -397,6 +397,9 @@ export function AuthProvider({
     if (revalidationRef.current) return revalidationRef.current
     const revision = authRevisionRef.current
     const resolveRevalidation = async () => {
+      if (stateRef.current.status === 'loading' && bootstrapRef.current) {
+        return bootstrapRef.current.promise
+      }
       if (stateRef.current.status !== 'authenticated' || !tokenRef.current) {
         return resolveState(revision)
       }
@@ -505,13 +508,16 @@ export function AuthProvider({
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') schedule()
     }
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) schedule()
+    }
     window.addEventListener('focus', onFocus)
-    window.addEventListener('pageshow', schedule)
+    window.addEventListener('pageshow', onPageShow)
     document.addEventListener('visibilitychange', onVisibilityChange)
     return () => {
       clearTimeout(timer)
       window.removeEventListener('focus', onFocus)
-      window.removeEventListener('pageshow', schedule)
+      window.removeEventListener('pageshow', onPageShow)
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [restoreSession, revalidateSession])
