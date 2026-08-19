@@ -1,5 +1,5 @@
 import { MemoryRouter } from 'react-router-dom'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { StrictMode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -487,7 +487,94 @@ describe('AuthProvider', () => {
     })
   })
 
-  it('debounces focus and pageshow session revalidation', async () => {
+  it('joins lifecycle revalidation to the unresolved cold bootstrap', async () => {
+    vi.useFakeTimers()
+    let finishSession!: (session: {
+      authenticated: true
+      user: { id: string; email: string; display_name: string; avatar_url: null }
+    }) => void
+    const getSession = vi.fn(() => new Promise<{
+      authenticated: true
+      user: { id: string; email: string; display_name: string; avatar_url: null }
+    }>((resolve) => {
+      finishSession = resolve
+    }))
+    const issueAccessToken = vi.fn(async () => 'access-123')
+    const me = vi.fn(async () => ({ id: 'u1', email: 'admin@example.com' }))
+    const api: AuthApi = {
+      getSession,
+      login: async () => ({}),
+      me,
+      issueAccessToken,
+      refreshAccessToken: async () => 'access-123',
+      logout: async () => ({}),
+    }
+
+    try {
+      render(
+        <AuthProvider api={api}>
+          <BootstrapProbe />
+        </AuthProvider>,
+      )
+
+      window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: false }))
+      window.dispatchEvent(new Event('focus'))
+      document.dispatchEvent(new Event('visibilitychange'))
+      await vi.advanceTimersByTimeAsync(151)
+
+      expect(getSession).toHaveBeenCalledTimes(1)
+
+      await act(async () => {
+        finishSession({
+          authenticated: true,
+          user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+        })
+        await vi.advanceTimersByTimeAsync(0)
+      })
+
+      expect(screen.getByText('ready')).toBeInTheDocument()
+      expect(issueAccessToken).toHaveBeenCalledTimes(1)
+      expect(me).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('ignores non-persisted pageshow session revalidation', async () => {
+    const getSession = vi.fn(async () => ({
+      authenticated: true as const,
+      user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+    }))
+    const refreshAccessToken = vi.fn(async () => 'access-123')
+    const issueAccessToken = vi.fn(async () => 'access-123')
+    const me = vi.fn(async () => ({ id: 'u1', email: 'admin@example.com' }))
+    const api: AuthApi = {
+      getSession,
+      login: async () => ({}),
+      me,
+      issueAccessToken,
+      refreshAccessToken,
+      logout: async () => ({}),
+    }
+
+    render(
+      <AuthProvider api={api}>
+        <BootstrapProbe />
+      </AuthProvider>,
+    )
+    expect(await screen.findByText('ready')).toBeInTheDocument()
+
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: false }))
+
+    await new Promise((resolve) => setTimeout(resolve, 200))
+
+    expect(me).toHaveBeenCalledTimes(1)
+    expect(getSession).toHaveBeenCalledTimes(1)
+    expect(issueAccessToken).toHaveBeenCalledTimes(1)
+    expect(refreshAccessToken).not.toHaveBeenCalled()
+  })
+
+  it('debounces focus and visibility session revalidation after bootstrap', async () => {
     const getSession = vi.fn(async () => ({
       authenticated: true as const,
       user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
@@ -512,13 +599,38 @@ describe('AuthProvider', () => {
     expect(await screen.findByText('ready')).toBeInTheDocument()
 
     window.dispatchEvent(new Event('focus'))
-    window.dispatchEvent(new Event('pageshow'))
-    window.dispatchEvent(new Event('focus'))
+    document.dispatchEvent(new Event('visibilitychange'))
 
     await waitFor(() => expect(me).toHaveBeenCalledTimes(2))
     expect(getSession).toHaveBeenCalledTimes(1)
     expect(issueAccessToken).toHaveBeenCalledTimes(1)
     expect(refreshAccessToken).not.toHaveBeenCalled()
+  })
+
+  it('revalidates once after a persisted pageshow', async () => {
+    const me = vi.fn(async () => ({ id: 'u1', email: 'admin@example.com' }))
+    const api: AuthApi = {
+      getSession: async () => ({
+        authenticated: true as const,
+        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+      }),
+      login: async () => ({}),
+      me,
+      issueAccessToken: async () => 'access-123',
+      refreshAccessToken: async () => 'access-123',
+      logout: async () => ({}),
+    }
+
+    render(
+      <AuthProvider api={api}>
+        <BootstrapProbe />
+      </AuthProvider>,
+    )
+    expect(await screen.findByText('ready')).toBeInTheDocument()
+
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))
+
+    await waitFor(() => expect(me).toHaveBeenCalledTimes(2))
   })
 
   it('starts one authorization transaction for a protected route without a local session', async () => {
