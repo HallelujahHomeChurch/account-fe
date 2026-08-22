@@ -18,4 +18,3 @@ behavior tests for special-character encoding, success, back navigation, and soc
 
 Run full lint, tests, and production build. Record the cross-app browser-to-`librepresenter://auth/account`
 round trip as a manual gate; do not deploy, push, merge, or mutate production.
-
