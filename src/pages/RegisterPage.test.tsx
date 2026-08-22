@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { expect, it, vi } from 'vitest'
 
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
@@ -62,7 +62,7 @@ it('submits a new account and shows the verification next step', async () => {
         <AuthProvider api={api} restoreSession={false}>
           <Routes>
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="/login" element={<p>Registration complete</p>} />
+            <Route path="/login" element={<><p>Registration complete</p><LocationSearch /></>} />
           </Routes>
         </AuthProvider>
       </LocaleProvider>
@@ -78,6 +78,7 @@ it('submits a new account and shows the verification next step', async () => {
 
   expect(register).toHaveBeenCalledWith({ email: 'user@example.com', password: 'Password1!', first_name: 'Test', last_name: 'User', newsletter_opt_in: false, turnstile_token: undefined })
   expect(await screen.findByText('Registration complete')).toBeInTheDocument()
+  expect(screen.getByTestId('location-search')).toHaveTextContent('')
   expect(screen.queryByText(/Unable to create/)).not.toBeInTheDocument()
 })
 
@@ -106,10 +107,89 @@ it('shows enabled social account options before the email registration form', as
   const form = document.querySelector('.form-stack')
 
   expect(google).toHaveAttribute('href', '/api/account/v1/oauth2/google/login')
-  expect(screen.getByLabelText('Continue with LINE')).toBeInTheDocument()
+  expect(screen.getByLabelText('Continue with LINE')).toHaveAttribute('href', '/api/account/v1/oauth2/line/login')
   expect(screen.queryByLabelText('Continue with Microsoft')).not.toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Back to sign in' })).toHaveAttribute('href', '/login')
   expect(socialPanel?.compareDocumentPosition(form as Element)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
   expect(screen.getByText('Or create an account with email')).toBeInTheDocument()
+})
+
+it('preserves an encoded auth_request_id in back navigation and every social provider', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  const api: AuthApi = {
+    login: async () => ({}),
+    me: async () => ({ id: 'u1', email: 'user@example.com' }),
+    refreshAccessToken: async () => null,
+    logout: async () => ({}),
+    register: async () => ({}),
+    getAuthCapabilities: async () => ({ providers: ['google', 'line', 'microsoft'], registrationEnabled: true }),
+    getSocialLoginUrl: (provider, authRequestId) =>
+      `/api/account/v1/oauth2/${provider}/login?${new URLSearchParams({ auth_request_id: authRequestId ?? '' }).toString()}`,
+  }
+
+  render(
+    <MemoryRouter initialEntries={['/register?auth_request_id=req%2F%3F%23%20%2B%26']}>
+      <LocaleProvider>
+        <AuthProvider api={api} restoreSession={false}>
+          <Routes>
+            <Route path="/login" element={<LocationSearch />} />
+            <Route path="/register" element={<RegisterPage />} />
+          </Routes>
+        </AuthProvider>
+      </LocaleProvider>
+    </MemoryRouter>,
+  )
+
+  const query = 'auth_request_id=req%2F%3F%23+%2B%26'
+  expect(await screen.findByLabelText('Continue with Google')).toHaveAttribute(
+    'href',
+    `/api/account/v1/oauth2/google/login?${query}`,
+  )
+  expect(screen.getByLabelText('Continue with LINE')).toHaveAttribute(
+    'href',
+    `/api/account/v1/oauth2/line/login?${query}`,
+  )
+  expect(screen.getByLabelText('Continue with Microsoft')).toHaveAttribute(
+    'href',
+    `/api/account/v1/oauth2/microsoft/login?${query}`,
+  )
+
+  await userEvent.click(screen.getByRole('link', { name: 'Back to sign in' }))
+
+  expect(screen.getByTestId('location-search')).toHaveTextContent('?auth_request_id=req%2F%3F%23+%2B%26')
+})
+
+it('preserves auth_request_id after registration succeeds', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  const api: AuthApi = {
+    login: async () => ({}),
+    me: async () => ({ id: 'u1', email: 'user@example.com' }),
+    refreshAccessToken: async () => null,
+    logout: async () => ({}),
+    register: async () => ({}),
+  }
+
+  render(
+    <MemoryRouter initialEntries={['/register?auth_request_id=req%2F%3F%23%20%2B%26']}>
+      <LocaleProvider>
+        <AuthProvider api={api} restoreSession={false}>
+          <Routes>
+            <Route path="/login" element={<LocationSearch />} />
+            <Route path="/register" element={<RegisterPage />} />
+          </Routes>
+        </AuthProvider>
+      </LocaleProvider>
+    </MemoryRouter>,
+  )
+
+  await userEvent.type(screen.getByLabelText('First name'), 'Test')
+  await userEvent.type(screen.getByLabelText('Last name'), 'User')
+  await userEvent.type(screen.getByLabelText('Email'), 'user@example.com')
+  await userEvent.type(screen.getByLabelText('Password'), 'Password1!')
+  await userEvent.type(screen.getByLabelText('Confirm password'), 'Password1!')
+  await userEvent.click(screen.getByRole('button', { name: 'Create account' }))
+
+  expect(await screen.findByTestId('location-search')).toHaveTextContent('?auth_request_id=req%2F%3F%23+%2B%26')
 })
 
 it('submits newsletter consent only when selected', async () => {
@@ -189,3 +269,7 @@ it('shows a localized invalid email message', async () => {
   expect(register).not.toHaveBeenCalled()
   expect(await screen.findByText('請輸入有效的 Email。')).toBeInTheDocument()
 })
+
+function LocationSearch() {
+  return <span data-testid="location-search">{useLocation().search}</span>
+}

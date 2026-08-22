@@ -515,6 +515,31 @@ describe('LoginPage', () => {
     expect(await screen.findByRole('link', { name: 'Create account' })).toHaveAttribute('href', '/register')
   })
 
+  it('preserves an encoded auth_request_id in the create account link', async () => {
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'token' }),
+      me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken: async () => null,
+      logout: async () => ({}),
+      getAuthCapabilities: async () => ({ providers: [], registrationEnabled: true }),
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/login?auth_request_id=req%2F%3F%23%20%2B%26']}>
+        <LocaleProvider>
+          <AuthProvider api={api} restoreSession={false}>
+            <LoginPage />
+          </AuthProvider>
+        </LocaleProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('link', { name: 'Create account' })).toHaveAttribute(
+      'href',
+      '/register?auth_request_id=req%2F%3F%23+%2B%26',
+    )
+  })
+
   it('only renders OAuth providers enabled by the API', async () => {
     const api: AuthApi = {
       login: async () => ({ access_token: 'token' }),

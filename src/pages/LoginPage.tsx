@@ -25,6 +25,9 @@ export function LoginPage() {
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const authRequestId = searchParams.get('auth_request_id') ?? undefined
+  const authRequestSearch = authRequestId
+    ? `?${new URLSearchParams({ auth_request_id: authRequestId }).toString()}`
+    : ''
   const returnTo = safeReturnTo(searchParams.get('return_to'))
   const signedOut = searchParams.get('signed_out') === '1'
   const passwordChanged = searchParams.get('password_changed') === '1'
@@ -224,7 +227,7 @@ export function LoginPage() {
               </Link>
               <div className="login-actions">
                 {registrationEnabled ? (
-                  <Link className="muted-link" to="/register">{t.login.createAccount}</Link>
+                  <Link className="muted-link" to={`/register${authRequestSearch}`}>{t.login.createAccount}</Link>
                 ) : null}
                 <Button isPending={isSubmitting} type="submit">
                   {t.login.next}

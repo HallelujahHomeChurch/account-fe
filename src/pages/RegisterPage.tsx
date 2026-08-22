@@ -1,6 +1,6 @@
 import { Button, FieldError, Form, Input, Label, TextField } from '@hallelujahhomechurch/ui'
 import { useCallback, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { LanguageSelector } from '../components/LanguageSelector'
 import { SocialAuthOptions, useAuthCapabilities } from '../components/SocialAuthOptions'
@@ -14,6 +14,11 @@ export function RegisterPage() {
   const auth = useAuth()
   const { messages: t } = useLocale()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const authRequestId = searchParams.get('auth_request_id') ?? undefined
+  const authRequestSearch = authRequestId
+    ? `?${new URLSearchParams({ auth_request_id: authRequestId }).toString()}`
+    : ''
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState('')
@@ -46,7 +51,7 @@ export function RegisterPage() {
 		newsletter_opt_in: form.has('newsletter_opt_in'),
         turnstile_token: turnstileToken || undefined,
       })
-      navigate('/login', {
+      navigate(`/login${authRequestSearch}`, {
         replace: true,
         state: { registrationComplete: true, registrationEmail: email },
       })
@@ -70,6 +75,7 @@ export function RegisterPage() {
         <div className="login-form-panel">
           {error ? <p className="form-error" role="alert">{error}</p> : null}
           <SocialAuthOptions
+            authRequestId={authRequestId}
             dividerLabel={t.registration.emailDivider}
             dividerPosition="after"
             providerIds={capabilities?.providers ?? null}
@@ -111,7 +117,7 @@ export function RegisterPage() {
 			</label>
             <Turnstile siteKey={turnstileSiteKey} onToken={handleTurnstileToken} />
             <div className="login-actions auth-actions-between">
-              <Link className="muted-link" to="/login">{t.registration.backToLogin}</Link>
+              <Link className="muted-link" to={`/login${authRequestSearch}`}>{t.registration.backToLogin}</Link>
               <Button isDisabled={Boolean(turnstileSiteKey && !turnstileToken)} isPending={isSubmitting} type="submit">{t.registration.submit}</Button>
             </div>
           </Form>
