@@ -133,3 +133,47 @@ export function buildOAuthRedirectUrl(
   url.searchParams.set('state', state)
   return url.toString()
 }
+
+function isAllowedNativeAuthCallback(callback: string, config: RuntimeConfig) {
+  let url: URL
+  try {
+    url = new URL(callback)
+  } catch {
+    return false
+  }
+  const keys = [...url.searchParams.keys()]
+  const codes = url.searchParams.getAll('code')
+  const states = url.searchParams.getAll('state')
+  return url.protocol === 'librepresenter:'
+    && config.allowedRedirectSchemes.includes('librepresenter')
+    && url.host === 'auth'
+    && url.pathname === '/account'
+    && url.username === ''
+    && url.password === ''
+    && url.port === ''
+    && url.hash === ''
+    && keys.every((key) => key === 'code' || key === 'state')
+    && codes.length === 1
+    && states.length === 1
+    && codes[0].trim() !== ''
+    && states[0].trim() !== ''
+}
+
+export function buildNativeAuthCompletionPath(callback: string, config: RuntimeConfig) {
+  if (!isAllowedNativeAuthCallback(callback, config)) {
+    throw new Error('Blocked unsafe native auth callback')
+  }
+  return `/native-auth-complete#${new URLSearchParams({ callback }).toString()}`
+}
+
+export function readNativeAuthCallback(hash: string, config: RuntimeConfig) {
+  const params = new URLSearchParams(hash.replace(/^#/, ''))
+  if ([...params.keys()].some((key) => key !== 'callback')) return null
+  const callbacks = params.getAll('callback')
+  if (callbacks.length !== 1 || !isAllowedNativeAuthCallback(callbacks[0], config)) return null
+  return callbacks[0]
+}
+
+export function openNativeAuthCallback(callback: string) {
+  window.location.assign(callback)
+}

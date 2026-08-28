@@ -21,6 +21,7 @@ import { SecurityPage } from './pages/SecurityPage'
 import { DevicesPage } from './pages/DevicesPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
+import { NativeAuthCompletePage } from './pages/NativeAuthCompletePage'
 
 function LayoutContent() {
   const auth = useAuth()
@@ -45,6 +46,7 @@ function LayoutContent() {
             <Route element={<ForgotPasswordPage />} path="/forgot-password" />
             <Route element={<ResetPasswordPage />} path="/reset-password" />
             <Route element={<VerifyEmailPage />} path="/verify-email" />
+            <Route element={<NativeAuthCompletePage />} path="/native-auth-complete" />
             <Route element={<OAuthCallbackPage />} path="/oauth/callback" />
             <Route element={<OAuthLinkPage />} path="/oauth/link" />
             <Route element={<OAuthOnboardingPage />} path="/oauth/onboarding" />

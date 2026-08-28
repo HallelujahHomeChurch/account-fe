@@ -121,6 +121,11 @@ const messageCatalog = {
       failed: '無法完成登入，請再試一次。',
       retry: '重新登入',
     },
+    nativeAuth: {
+      title: '登入完成', description: 'LibrePresenter 應已開啟。你可以關閉這個頁面。',
+      openApp: '開啟 LibrePresenter', invalidTitle: '登入連結無效',
+      invalidDescription: '請回到 LibrePresenter 重新登入。', backToLogin: '返回登入',
+    },
     passwordRecovery: {
       section: '密碼',
       forgotTitle: '忘記密碼',
@@ -388,6 +393,11 @@ const messageCatalog = {
       completing: '正在完成登录...',
       failed: '无法完成登录，请重试。',
       retry: '重新登录',
+    },
+    nativeAuth: {
+      title: '登录完成', description: 'LibrePresenter 应已打开。你可以关闭此页面。',
+      openApp: '打开 LibrePresenter', invalidTitle: '登录链接无效',
+      invalidDescription: '请返回 LibrePresenter 重新登录。', backToLogin: '返回登录',
     },
     passwordRecovery: {
       section: '密码',
@@ -657,6 +667,11 @@ const messageCatalog = {
       failed: 'Unable to complete sign-in. Try again.',
       retry: 'Sign in again',
     },
+    nativeAuth: {
+      title: 'Sign-in complete', description: 'LibrePresenter should now be open. You can close this page.',
+      openApp: 'Open LibrePresenter', invalidTitle: 'Invalid sign-in link',
+      invalidDescription: 'Return to LibrePresenter and start sign-in again.', backToLogin: 'Back to sign in',
+    },
     passwordRecovery: {
       section: 'Password',
       forgotTitle: 'Forgot password',
@@ -925,6 +940,11 @@ const messageCatalog = {
       failed: 'ログインを完了できませんでした。もう一度お試しください。',
       retry: 'もう一度ログイン',
     },
+    nativeAuth: {
+      title: 'ログインが完了しました', description: 'LibrePresenter が開きました。このページは閉じて構いません。',
+      openApp: 'LibrePresenter を開く', invalidTitle: 'ログインリンクが無効です',
+      invalidDescription: 'LibrePresenter に戻って、もう一度ログインしてください。', backToLogin: 'ログインに戻る',
+    },
     passwordRecovery: {
       section: 'パスワード',
       forgotTitle: 'パスワードを忘れた場合',
@@ -1192,6 +1212,11 @@ const messageCatalog = {
       completing: '로그인을 마치는 중이에요...',
       failed: '로그인을 완료할 수 없어요. 다시 시도해 주세요.',
       retry: '다시 로그인',
+    },
+    nativeAuth: {
+      title: '로그인 완료', description: 'LibrePresenter가 열렸습니다. 이 페이지를 닫아도 됩니다.',
+      openApp: 'LibrePresenter 열기', invalidTitle: '잘못된 로그인 링크',
+      invalidDescription: 'LibrePresenter로 돌아가 다시 로그인해 주세요.', backToLogin: '로그인으로 돌아가기',
     },
     passwordRecovery: {
       section: '비밀번호',

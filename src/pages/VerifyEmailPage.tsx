@@ -7,6 +7,10 @@ import { LanguageSelector } from '../components/LanguageSelector'
 import { useLocale } from '../i18n/locale-context'
 import { authErrorMessage } from '../auth/auth-form'
 import { AuthResultState } from '../components/AuthResultState'
+import {
+  clearNativeAuthContinuation,
+  readNativeAuthContinuation,
+} from '../lib/native-auth-continuation'
 
 export function VerifyEmailPage() {
   const auth = useAuth()
@@ -16,6 +20,15 @@ export function VerifyEmailPage() {
   const [error, setError] = useState('')
   const handled = useRef(false)
   const [token] = useState(() => new URLSearchParams(window.location.hash.slice(1)).get('token') ?? '')
+  const [authRequestId] = useState(readNativeAuthContinuation)
+
+  const returnToLogin = () => {
+    clearNativeAuthContinuation()
+    const search = authRequestId
+      ? `?${new URLSearchParams({ auth_request_id: authRequestId }).toString()}`
+      : ''
+    navigate(`/login${search}`, { replace: true })
+  }
 
   useEffect(() => {
     if (!window.location.hash) return
@@ -50,7 +63,7 @@ export function VerifyEmailPage() {
             <AuthResultState>{t.emailVerification.successDescription}</AuthResultState>
           ) : null}
           {error ? <p className="form-error" role="alert">{error}</p> : null}
-          {(verified || error) ? <Button onPress={() => navigate('/login', { replace: true })}>
+          {(verified || error) ? <Button onPress={returnToLogin}>
             {t.emailVerification.backToLogin}
           </Button> : null}
         </div>

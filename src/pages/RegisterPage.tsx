@@ -1,5 +1,5 @@
 import { Button, FieldError, Form, Input, Label, TextField } from '@hallelujahhomechurch/ui'
-import { useCallback, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { LanguageSelector } from '../components/LanguageSelector'
@@ -9,6 +9,10 @@ import { useLocale } from '../i18n/locale-context'
 import { readRuntimeConfig } from '../lib/redirects'
 import { Turnstile } from '../components/Turnstile'
 import { authErrorMessage, isStrongPassword, validateEmail } from '../auth/auth-form'
+import {
+  clearNativeAuthContinuation,
+  saveNativeAuthContinuation,
+} from '../lib/native-auth-continuation'
 
 export function RegisterPage() {
   const auth = useAuth()
@@ -25,6 +29,11 @@ export function RegisterPage() {
   const [turnstileSiteKey] = useState(() => readRuntimeConfig().turnstileSiteKey ?? '')
   const capabilities = useAuthCapabilities()
   const handleTurnstileToken = useCallback((token: string) => setTurnstileToken(token), [])
+
+  useEffect(() => {
+    if (authRequestId) saveNativeAuthContinuation(authRequestId)
+    else clearNativeAuthContinuation()
+  }, [authRequestId])
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -48,7 +57,7 @@ export function RegisterPage() {
         password,
         first_name: String(form.get('first_name') ?? ''),
         last_name: String(form.get('last_name') ?? ''),
-		newsletter_opt_in: form.has('newsletter_opt_in'),
+        newsletter_opt_in: form.has('newsletter_opt_in'),
         turnstile_token: turnstileToken || undefined,
       })
       navigate(`/login${authRequestSearch}`, {
