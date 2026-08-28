@@ -25,6 +25,7 @@ import { MockAccountApi } from '../lib/mock-account-api'
 import {
   accountOAuthConfig,
   buildAccountAuthorizeUrl,
+  buildNativeAuthCompletionPath,
   buildOAuthRedirectUrl,
   clearAccountOAuthTransaction,
   readAccountOAuthTransaction,
@@ -259,9 +260,15 @@ export function AuthProvider({
       }
 
       if (response.redirect_type === 'oauth' && response.redirect_uri && response.code && response.state) {
-        window.location.assign(
-          buildOAuthRedirectUrl(response.redirect_uri, response.code, response.state, config),
+        const callback = buildOAuthRedirectUrl(
+          response.redirect_uri,
+          response.code,
+          response.state,
+          config,
         )
+        window.location.assign(callback.startsWith('librepresenter:')
+          ? buildNativeAuthCompletionPath(callback, config)
+          : callback)
         return response
       }
 

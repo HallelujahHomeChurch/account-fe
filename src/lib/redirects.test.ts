@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildNativeAuthCompletionPath,
   buildOAuthRedirectUrl,
   isAllowedRedirect,
+  readNativeAuthCallback,
   readRuntimeConfig,
   type RuntimeConfig,
 } from './redirects'
@@ -70,6 +72,19 @@ describe('isAllowedRedirect', () => {
     expect(isAllowedRedirect('https://evil.example/oauth/callback', config)).toBe(false)
     expect(isAllowedRedirect('/relative/callback', config)).toBe(false)
     expect(isAllowedRedirect('not a url', config)).toBe(false)
+  })
+
+  it('round-trips only an exact LibrePresenter completion callback through the fragment', () => {
+    const callback = 'librepresenter://auth/account?code=issued-code&state=issued-state'
+    const path = buildNativeAuthCompletionPath(callback, config)
+
+    expect(path).toBe(
+      '/native-auth-complete#callback=librepresenter%3A%2F%2Fauth%2Faccount%3Fcode%3Dissued-code%26state%3Dissued-state',
+    )
+    expect(readNativeAuthCallback(path.slice(path.indexOf('#')), config)).toBe(callback)
+    expect(
+      readNativeAuthCallback('#callback=javascript%3Aalert%281%29', config),
+    ).toBeNull()
   })
 
   it('enables account-api mock mode from runtime env', () => {

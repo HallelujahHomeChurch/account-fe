@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { expect, it, vi } from 'vitest'
@@ -6,6 +6,27 @@ import { expect, it, vi } from 'vitest'
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
 import { RegisterPage } from './RegisterPage'
+
+it('clears a stale native continuation on ordinary registration', async () => {
+  localStorage.setItem('hhc_native_auth_request_id', 'stale-request')
+  const api: AuthApi = {
+    login: async () => ({}),
+    me: async () => ({ id: 'u1', email: 'user@example.com' }),
+    refreshAccessToken: async () => null,
+    logout: async () => ({}),
+    register: async () => ({}),
+  }
+
+  render(
+    <MemoryRouter initialEntries={['/register']}>
+      <LocaleProvider>
+        <AuthProvider api={api} restoreSession={false}><RegisterPage /></AuthProvider>
+      </LocaleProvider>
+    </MemoryRouter>,
+  )
+
+  await waitFor(() => expect(localStorage.getItem('hhc_native_auth_request_id')).toBeNull())
+})
 
 it.each([
   ['ja', 'HHCアカウントを作成', 'Google アカウントで続ける', 'またはメールアドレスで作成'],
