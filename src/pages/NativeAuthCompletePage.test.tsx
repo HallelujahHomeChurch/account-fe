@@ -11,13 +11,13 @@ vi.mock('../lib/redirects', async (importOriginal) => {
   return {
     ...actual,
     readNativeAuthCallback: () =>
-      'librepresenter://auth/account?code=issued-code&state=issued-state',
+      'hhc-presenter://auth/account?code=issued-code&state=issued-state',
     openNativeAuthCallback: vi.fn(),
   }
 })
 
 describe('NativeAuthCompletePage', () => {
-  it('opens LibrePresenter and leaves a manual retry page', () => {
+  it('opens HHC Presenter and leaves a manual retry page', () => {
     window.history.replaceState(null, '', '/native-auth-complete#callback=opaque')
 
     render(
@@ -30,10 +30,10 @@ describe('NativeAuthCompletePage', () => {
 
     expect(window.location.hash).toBe('')
     expect(openNativeAuthCallback).toHaveBeenCalledWith(
-      'librepresenter://auth/account?code=issued-code&state=issued-state',
+      'hhc-presenter://auth/account?code=issued-code&state=issued-state',
     )
     expect(screen.getByRole('heading', { name: 'Sign-in complete' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Open LibrePresenter' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open HHC Presenter' }))
     expect(openNativeAuthCallback).toHaveBeenCalledTimes(2)
   })
 })

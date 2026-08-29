@@ -42,6 +42,6 @@ headers, and `/api/*` routing.
 
 ## Production native callback configuration
 
-Native OAuth callbacks are restricted to `librepresenter://auth/account`.
-Set `VITE_ALLOWED_REDIRECT_SCHEMES=librepresenter` in the production build
+Native OAuth callbacks are restricted to `hhc-presenter://auth/account`.
+Set `VITE_ALLOWED_REDIRECT_SCHEMES=hhc-presenter` in the production build
 environment; no other native scheme is supported.
