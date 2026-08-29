@@ -122,9 +122,9 @@ const messageCatalog = {
       retry: '重新登入',
     },
     nativeAuth: {
-      title: '登入完成', description: 'LibrePresenter 應已開啟。你可以關閉這個頁面。',
-      openApp: '開啟 LibrePresenter', invalidTitle: '登入連結無效',
-      invalidDescription: '請回到 LibrePresenter 重新登入。', backToLogin: '返回登入',
+      title: '登入完成', description: 'HHC Presenter 應已開啟。你可以關閉這個頁面。',
+      openApp: '開啟 HHC Presenter', invalidTitle: '登入連結無效',
+      invalidDescription: '請回到 HHC Presenter 重新登入。', backToLogin: '返回登入',
     },
     passwordRecovery: {
       section: '密碼',
@@ -395,9 +395,9 @@ const messageCatalog = {
       retry: '重新登录',
     },
     nativeAuth: {
-      title: '登录完成', description: 'LibrePresenter 应已打开。你可以关闭此页面。',
-      openApp: '打开 LibrePresenter', invalidTitle: '登录链接无效',
-      invalidDescription: '请返回 LibrePresenter 重新登录。', backToLogin: '返回登录',
+      title: '登录完成', description: 'HHC Presenter 应已打开。你可以关闭此页面。',
+      openApp: '打开 HHC Presenter', invalidTitle: '登录链接无效',
+      invalidDescription: '请返回 HHC Presenter 重新登录。', backToLogin: '返回登录',
     },
     passwordRecovery: {
       section: '密码',
@@ -668,9 +668,9 @@ const messageCatalog = {
       retry: 'Sign in again',
     },
     nativeAuth: {
-      title: 'Sign-in complete', description: 'LibrePresenter should now be open. You can close this page.',
-      openApp: 'Open LibrePresenter', invalidTitle: 'Invalid sign-in link',
-      invalidDescription: 'Return to LibrePresenter and start sign-in again.', backToLogin: 'Back to sign in',
+      title: 'Sign-in complete', description: 'HHC Presenter should now be open. You can close this page.',
+      openApp: 'Open HHC Presenter', invalidTitle: 'Invalid sign-in link',
+      invalidDescription: 'Return to HHC Presenter and start sign-in again.', backToLogin: 'Back to sign in',
     },
     passwordRecovery: {
       section: 'Password',
@@ -941,9 +941,9 @@ const messageCatalog = {
       retry: 'もう一度ログイン',
     },
     nativeAuth: {
-      title: 'ログインが完了しました', description: 'LibrePresenter が開きました。このページは閉じて構いません。',
-      openApp: 'LibrePresenter を開く', invalidTitle: 'ログインリンクが無効です',
-      invalidDescription: 'LibrePresenter に戻って、もう一度ログインしてください。', backToLogin: 'ログインに戻る',
+      title: 'ログインが完了しました', description: 'HHC Presenter が開きました。このページは閉じて構いません。',
+      openApp: 'HHC Presenter を開く', invalidTitle: 'ログインリンクが無効です',
+      invalidDescription: 'HHC Presenter に戻って、もう一度ログインしてください。', backToLogin: 'ログインに戻る',
     },
     passwordRecovery: {
       section: 'パスワード',
@@ -1214,9 +1214,9 @@ const messageCatalog = {
       retry: '다시 로그인',
     },
     nativeAuth: {
-      title: '로그인 완료', description: 'LibrePresenter가 열렸습니다. 이 페이지를 닫아도 됩니다.',
-      openApp: 'LibrePresenter 열기', invalidTitle: '잘못된 로그인 링크',
-      invalidDescription: 'LibrePresenter로 돌아가 다시 로그인해 주세요.', backToLogin: '로그인으로 돌아가기',
+      title: '로그인 완료', description: 'HHC Presenter가 열렸습니다. 이 페이지를 닫아도 됩니다.',
+      openApp: 'HHC Presenter 열기', invalidTitle: '잘못된 로그인 링크',
+      invalidDescription: 'HHC Presenter로 돌아가 다시 로그인해 주세요.', backToLogin: '로그인으로 돌아가기',
     },
     passwordRecovery: {
       section: '비밀번호',

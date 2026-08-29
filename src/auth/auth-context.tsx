@@ -266,7 +266,7 @@ export function AuthProvider({
           response.state,
           config,
         )
-        window.location.assign(callback.startsWith('librepresenter:')
+        window.location.assign(callback.startsWith('hhc-presenter:')
           ? buildNativeAuthCompletionPath(callback, config)
           : callback)
         return response

@@ -57,7 +57,7 @@ export function readRuntimeConfig(
     oauthScope: stringEnv(env.VITE_ACCOUNT_OAUTH_SCOPE, 'openid profile email'),
     mockApi: env.VITE_ACCOUNT_API_MOCK === 'true' || env.VITE_ACCOUNT_API_MOCK === true,
     allowedRedirectOrigins: splitCsv(env.VITE_ALLOWED_REDIRECT_ORIGINS, defaultAllowedOrigins),
-    allowedRedirectSchemes: splitCsv(env.VITE_ALLOWED_REDIRECT_SCHEMES, ['librepresenter']),
+    allowedRedirectSchemes: splitCsv(env.VITE_ALLOWED_REDIRECT_SCHEMES, ['hhc-presenter']),
     publicSiteUrl: stringEnv(env.VITE_PUBLIC_SITE_URL, 'https://www.alive.org.tw').replace(/\/$/, ''),
     turnstileSiteKey: stringEnv(env.VITE_TURNSTILE_SITE_KEY, ''),
   }
@@ -107,8 +107,8 @@ export function isAllowedRedirect(redirectUri: string, config: RuntimeConfig) {
     return config.allowedRedirectOrigins.includes(url.origin)
   }
 
-  return url.protocol === 'librepresenter:'
-    && config.allowedRedirectSchemes.includes('librepresenter')
+  return url.protocol === 'hhc-presenter:'
+    && config.allowedRedirectSchemes.includes('hhc-presenter')
     && url.host === 'auth'
     && url.pathname === '/account'
     && url.username === ''
@@ -144,8 +144,8 @@ function isAllowedNativeAuthCallback(callback: string, config: RuntimeConfig) {
   const keys = [...url.searchParams.keys()]
   const codes = url.searchParams.getAll('code')
   const states = url.searchParams.getAll('state')
-  return url.protocol === 'librepresenter:'
-    && config.allowedRedirectSchemes.includes('librepresenter')
+  return url.protocol === 'hhc-presenter:'
+    && config.allowedRedirectSchemes.includes('hhc-presenter')
     && url.host === 'auth'
     && url.pathname === '/account'
     && url.username === ''
