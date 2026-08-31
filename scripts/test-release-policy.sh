@@ -2,6 +2,14 @@
 set -eu
 
 workflow=.github/workflows/release.yml
+ci_workflow=.github/workflows/ci.yml
+scanner='ghcr.io/aquasecurity/trivy@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969'
+
+for scanned_workflow in "$ci_workflow" "$workflow"; do
+  grep -Fq "$scanner" "$scanned_workflow"
+  grep -Fq 'fs --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1' "$scanned_workflow"
+  grep -Fq -- '--skip-dirs /workspace/.git --skip-dirs /workspace/node_modules /workspace' "$scanned_workflow"
+done
 
 grep -q 'workflow_dispatch:' "$workflow"
 grep -q '^  push:' "$workflow"
