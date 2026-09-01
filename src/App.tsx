@@ -22,6 +22,7 @@ import { DevicesPage } from './pages/DevicesPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { NativeAuthCompletePage } from './pages/NativeAuthCompletePage'
+import { PolicyAcceptancePage } from './pages/PolicyAcceptancePage'
 
 function LayoutContent() {
   const auth = useAuth()
@@ -50,6 +51,7 @@ function LayoutContent() {
             <Route element={<OAuthCallbackPage />} path="/oauth/callback" />
             <Route element={<OAuthLinkPage />} path="/oauth/link" />
             <Route element={<OAuthOnboardingPage />} path="/oauth/onboarding" />
+            <Route element={<PolicyAcceptancePage />} path="/policy/acceptance" />
             <Route element={<LineBindingPage />} path="/line/bind" />
             <Route element={<Navigate replace to="/profile" />} path="*" />
           </Routes>
