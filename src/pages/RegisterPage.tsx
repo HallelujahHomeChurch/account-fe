@@ -3,7 +3,8 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { LanguageSelector } from '../components/LanguageSelector'
-import { SocialAuthOptions, useAuthCapabilities } from '../components/SocialAuthOptions'
+import { SocialAuthOptions, useAuthCapabilitiesState } from '../components/SocialAuthOptions'
+import { LegalAcceptance } from '../components/LegalAcceptance'
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import { readRuntimeConfig } from '../lib/redirects'
@@ -16,7 +17,7 @@ import {
 
 export function RegisterPage() {
   const auth = useAuth()
-  const { messages: t } = useLocale()
+  const { locale, messages: t } = useLocale()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const authRequestId = searchParams.get('auth_request_id') ?? undefined
@@ -27,7 +28,10 @@ export function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState('')
   const [turnstileSiteKey] = useState(() => readRuntimeConfig().turnstileSiteKey ?? '')
-  const capabilities = useAuthCapabilities()
+  const { capabilities, error: capabilitiesError, retry: retryCapabilities } = useAuthCapabilitiesState()
+  const [policyAccepted, setPolicyAccepted] = useState(false)
+  const policy = capabilities?.policy
+  const policyReady = Boolean(policy && (!policy.enforced || (policy.terms_version && policy.privacy_notice_version)))
   const handleTurnstileToken = useCallback((token: string) => setTurnstileToken(token), [])
 
   useEffect(() => {
@@ -38,6 +42,7 @@ export function RegisterPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!auth.api.register) return
+    if (!capabilities || !policyReady || (policy?.enforced && !policyAccepted)) return
     const form = new FormData(event.currentTarget)
     const password = String(form.get('password') ?? '')
     if (!isStrongPassword(password)) {
@@ -59,6 +64,12 @@ export function RegisterPage() {
         last_name: String(form.get('last_name') ?? ''),
         newsletter_opt_in: form.has('newsletter_opt_in'),
         turnstile_token: turnstileToken || undefined,
+        policy: policy?.enforced ? {
+          accepted: true,
+          terms_version: policy.terms_version,
+          privacy_notice_version: policy.privacy_notice_version,
+          locale,
+        } : undefined,
       })
       navigate(`/login${authRequestSearch}`, {
         replace: true,
@@ -83,6 +94,12 @@ export function RegisterPage() {
         </div>
         <div className="login-form-panel">
           {error ? <p className="form-error" role="alert">{error}</p> : null}
+          {capabilitiesError || (capabilities && !policyReady) ? (
+            <div role="alert">
+              <p className="form-error">{t.legalAcceptance.loadFailed}</p>
+              <Button onPress={retryCapabilities} variant="secondary">{t.legalAcceptance.retry}</Button>
+            </div>
+          ) : null}
           <SocialAuthOptions
             authRequestId={authRequestId}
             dividerLabel={t.registration.emailDivider}
@@ -124,10 +141,11 @@ export function RegisterPage() {
 					<small>{t.registration.newsletterOptOut}</small>
 				</span>
 			</label>
+            {policy?.enforced ? <LegalAcceptance checked={policyAccepted} onChange={setPolicyAccepted} /> : null}
             <Turnstile siteKey={turnstileSiteKey} onToken={handleTurnstileToken} />
             <div className="login-actions auth-actions-between">
               <Link className="muted-link" to={`/login${authRequestSearch}`}>{t.registration.backToLogin}</Link>
-              <Button isDisabled={Boolean(turnstileSiteKey && !turnstileToken)} isPending={isSubmitting} type="submit">{t.registration.submit}</Button>
+              <Button isDisabled={!capabilities || !policyReady || Boolean(policy?.enforced && !policyAccepted) || Boolean(turnstileSiteKey && !turnstileToken)} isPending={isSubmitting} type="submit">{t.registration.submit}</Button>
             </div>
           </Form>
         </div>

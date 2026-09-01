@@ -203,8 +203,15 @@ export class MockAccountApi {
     return {
       provider: 'line',
       masked_email: 'u***@example.com',
-      existing_account: false,
-      requires_link_confirmation: false,
+      email_verification_required: false,
+      link_confirmation_required: false,
+    }
+  }
+
+  async getOAuthOnboardingStatus() {
+    return {
+      provider: 'line', masked_email: 'u***@example.com',
+      email_verification_required: true, link_confirmation_required: false,
     }
   }
 
@@ -240,6 +247,9 @@ export class MockAccountApi {
   }
 
   async getAuthCapabilities() {
-    return { providers: ['google', 'line', 'microsoft'], registrationEnabled: true }
+    return {
+      providers: ['google', 'line', 'microsoft'], registrationEnabled: true,
+      policy: { enforced: false, terms_version: '', privacy_notice_version: '' },
+    }
   }
 }

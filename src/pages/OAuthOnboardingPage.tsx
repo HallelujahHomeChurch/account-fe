@@ -3,27 +3,46 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { LanguageSelector } from '../components/LanguageSelector'
+import { LegalAcceptance } from '../components/LegalAcceptance'
+import { useAuthCapabilitiesState } from '../components/SocialAuthOptions'
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import { ApiError, type OAuthOnboardingStatus } from '../lib/api'
 import { validateEmail } from '../auth/auth-form'
 
-type Step = 'email' | 'code' | 'link'
+type Step = 'loading' | 'email' | 'code' | 'confirm'
 
 export function OAuthOnboardingPage() {
   const auth = useAuth()
-  const { messages: t } = useLocale()
+  const { locale, messages: t } = useLocale()
   const navigate = useNavigate()
   const [token] = useState(() => new URLSearchParams(window.location.hash.slice(1)).get('token') ?? '')
-  const [step, setStep] = useState<Step>('email')
+  const [step, setStep] = useState<Step>(() => auth.api.getOAuthOnboardingStatus ? 'loading' : 'email')
   const [status, setStatus] = useState<OAuthOnboardingStatus | null>(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [policyAccepted, setPolicyAccepted] = useState(false)
+  const { capabilities, error: capabilitiesError, retry: retryCapabilities } = useAuthCapabilitiesState()
+  const policy = capabilities?.policy
+  const policyReady = Boolean(policy && (!policy.enforced || (policy.terms_version && policy.privacy_notice_version)))
 
   useEffect(() => {
     if (window.location.hash) window.history.replaceState(null, '', window.location.pathname)
   }, [])
+
+  useEffect(() => {
+    if (!token || !auth.api.getOAuthOnboardingStatus) return
+    let active = true
+    auth.api.getOAuthOnboardingStatus(token).then((next) => {
+      if (!active) return
+      setStatus(next)
+      setStep(next.email_verification_required ? 'email' : 'confirm')
+    }).catch((caught) => {
+      if (active) setError(onboardingError(caught, t.oauthOnboarding.invalid, t.oauthOnboarding.failed))
+    })
+    return () => { active = false }
+  }, [auth.api, t.oauthOnboarding.failed, t.oauthOnboarding.invalid, token])
 
   async function sendCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -49,7 +68,7 @@ export function OAuthOnboardingPage() {
     try {
       const next = await auth.api.verifyOAuthOnboardingCode(token, String(new FormData(event.currentTarget).get('code') ?? ''))
       setStatus(next)
-      if (next.requires_link_confirmation) setStep('link')
+      if (next.link_confirmation_required || next.requires_link_confirmation || policy?.enforced) setStep('confirm')
       else await complete(false)
     } catch (caught) {
       setError(onboardingError(caught, t.oauthOnboarding.invalid, t.oauthOnboarding.failed))
@@ -59,8 +78,15 @@ export function OAuthOnboardingPage() {
   }
 
   async function complete(linkExisting: boolean) {
-    if (!auth.api.completeOAuthOnboarding) return
-    const response = await auth.api.completeOAuthOnboarding(token, linkExisting)
+    if (!auth.api.completeOAuthOnboarding || !capabilities || !policyReady || (policy?.enforced && !policyAccepted)) return
+    const response = policy?.enforced
+      ? await auth.api.completeOAuthOnboarding(token, linkExisting, {
+          accepted: true,
+          terms_version: policy.terms_version,
+          privacy_notice_version: policy.privacy_notice_version,
+          locale,
+        })
+      : await auth.api.completeOAuthOnboarding(token, linkExisting)
     await auth.completeLogin(response)
     if (response.redirect_type !== 'oauth') {
       await auth.retrySession()
@@ -68,12 +94,17 @@ export function OAuthOnboardingPage() {
     }
   }
 
-  async function confirmLink() {
+  async function confirm() {
     setError('')
     setIsSubmitting(true)
     try {
-      await complete(true)
+      await complete(Boolean(status?.link_confirmation_required || status?.requires_link_confirmation))
     } catch (caught) {
+      if (caught instanceof ApiError && caught.code === 'ACC_POLICY_VERSION_CHANGED') {
+        setPolicyAccepted(false)
+        retryCapabilities()
+        return
+      }
       setError(onboardingError(caught, t.oauthOnboarding.invalid, t.oauthOnboarding.failed))
     } finally {
       setIsSubmitting(false)
@@ -97,6 +128,10 @@ export function OAuthOnboardingPage() {
         <div className="login-form-panel">
           {notice && step === 'code' ? <p className="form-notice">{notice}</p> : null}
           {error || !token ? <p className="form-error">{error || t.oauthOnboarding.invalid}</p> : null}
+          {capabilitiesError || (capabilities && !policyReady) ? (
+            <div role="alert"><p className="form-error">{t.legalAcceptance.loadFailed}</p><Button onPress={retryCapabilities} variant="secondary">{t.legalAcceptance.retry}</Button></div>
+          ) : null}
+          {step === 'loading' && !error ? <p className="form-notice">{t.oauthOnboarding.loading}</p> : null}
           {step === 'email' && token ? (
             <Form className="form-stack" onSubmit={sendCode}>
               <TextField isRequired name="email" type="email" validate={(value) => validateEmail(value, t.validation.invalidEmail)}>
@@ -113,10 +148,11 @@ export function OAuthOnboardingPage() {
               <div className="login-actions"><Button isPending={isSubmitting} type="submit">{t.oauthOnboarding.verify}</Button></div>
             </Form>
           ) : null}
-          {step === 'link' ? (
+          {step === 'confirm' ? (
             <div className="form-stack">
               <p className="oauth-account-summary">{status?.masked_email}</p>
-              <div className="login-actions"><Button isPending={isSubmitting} onPress={confirmLink}>{t.oauthOnboarding.linkAccount}</Button></div>
+              {policy?.enforced ? <LegalAcceptance checked={policyAccepted} onChange={setPolicyAccepted} /> : null}
+              <div className="login-actions"><Button isDisabled={!capabilities || !policyReady || Boolean(policy?.enforced && !policyAccepted)} isPending={isSubmitting} onPress={confirm}>{status?.link_confirmation_required || status?.requires_link_confirmation ? t.oauthOnboarding.linkAccount : t.oauthOnboarding.continue}</Button></div>
             </div>
           ) : null}
           <Link className="muted-link auth-back-link" to="/login">{t.oauthOnboarding.cancel}</Link>
