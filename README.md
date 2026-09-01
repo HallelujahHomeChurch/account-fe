@@ -2,6 +2,11 @@
 
 React account console for `account.alive.org.tw`.
 
+## License
+
+The source is publicly visible but remains all rights reserved. See
+[LICENSE](LICENSE).
+
 ## Mock mode
 
 Use mock mode when you want to test the UI without `account-api`.
