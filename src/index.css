@@ -409,6 +409,15 @@ textarea::selection {
 	font-size: 13px;
 }
 
+.legal-acceptance a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.legal-acceptance span {
+  display: block;
+}
+
 .settings-row-switch {
 	width: 100%;
 	justify-content: space-between;

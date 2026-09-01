@@ -20,31 +20,46 @@ type SocialAuthOptionsProps = {
 }
 
 export function useAuthCapabilities() {
+  return useAuthCapabilitiesState().capabilities
+}
+
+export function useAuthCapabilitiesState() {
   const auth = useAuth()
   const [capabilities, setCapabilities] = useState<AuthCapabilities | null>(null)
+  const [error, setError] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let active = true
     const request = auth.api.getAuthCapabilities
       ? auth.api.getAuthCapabilities()
       : auth.api.getOAuthProviders
-        ? auth.api.getOAuthProviders().then((providers) => ({ providers, registrationEnabled: false }))
-        : Promise.resolve({ providers: socialProviders.map(({ id }) => id), registrationEnabled: false })
+        ? auth.api.getOAuthProviders().then((providers) => ({ providers, registrationEnabled: false, policy: { enforced: false, terms_version: '', privacy_notice_version: '' } }))
+        : Promise.resolve({ providers: socialProviders.map(({ id }) => id), registrationEnabled: false, policy: { enforced: false, terms_version: '', privacy_notice_version: '' } })
 
     request
       .then((nextCapabilities) => {
-        if (active) setCapabilities(nextCapabilities)
+        if (nextCapabilities.policy?.enforced && (!nextCapabilities.policy.terms_version || !nextCapabilities.policy.privacy_notice_version)) {
+          throw new Error('Policy versions missing')
+        }
+        if (active) {
+          setCapabilities(nextCapabilities)
+          setError(false)
+        }
       })
       .catch(() => {
-        if (active) setCapabilities({ providers: [], registrationEnabled: false })
+        if (active) {
+          setCapabilities(null)
+          setError(true)
+        }
       })
 
     return () => {
       active = false
     }
-  }, [auth.api])
+  }, [attempt, auth.api])
 
-  return capabilities
+  return { capabilities, error, retry: () => setAttempt((value) => value + 1) }
 }
 
 export function SocialAuthOptions({

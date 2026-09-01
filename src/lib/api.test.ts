@@ -494,6 +494,60 @@ describe('AccountApi', () => {
 	})
   })
 
+  it('maps policy capabilities and acceptance endpoints', async () => {
+    const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
+    const api = new AccountApi({
+      baseUrl: '/api/account/v1',
+      fetcher: async (input, init) => {
+        calls.push({ input, init })
+        const url = String(input)
+        if (url.endsWith('/csrf-token')) return jsonResponse({ csrf_token: 'csrf-123' })
+        if (url.endsWith('/oauth-providers')) return jsonResponse({
+          providers: ['google'],
+          registration_enabled: true,
+          policy: { enforced: true, terms_version: 'terms-v1', privacy_notice_version: 'privacy-v1' },
+        })
+        if (url.endsWith('/status')) return jsonResponse({
+          provider: 'google', masked_email: 'u***@example.com',
+          email_verification_required: false, link_confirmation_required: false,
+        })
+        return jsonResponse({ policy_acceptance_required: true, policy_token: 'next-token', terms_version: 'terms-v1', privacy_notice_version: 'privacy-v1' }, 202)
+      },
+    })
+    const policy = { accepted: true as const, terms_version: 'terms-v1', privacy_notice_version: 'privacy-v1', locale: 'en' }
+
+    await expect(api.getAuthCapabilities()).resolves.toMatchObject({
+      policy: { enforced: true, terms_version: 'terms-v1', privacy_notice_version: 'privacy-v1' },
+    })
+    await expect(api.getOAuthOnboardingStatus('onboarding-token')).resolves.toMatchObject({
+      email_verification_required: false,
+    })
+    await expect(api.confirmPolicyAcceptance('policy-token', policy)).resolves.toMatchObject({
+      policy_token: 'next-token',
+    })
+
+    expect(calls.at(-1)?.init?.body).toBe(JSON.stringify({ token: 'policy-token', policy }))
+  })
+
+  it('preserves stale policy replacement data on API errors', async () => {
+    const api = new AccountApi({
+      baseUrl: '/api/account/v1',
+      fetcher: async (input) => String(input).endsWith('/csrf-token')
+        ? jsonResponse({ csrf_token: 'csrf-123' })
+        : jsonResponse({
+            error_code: 'ACC_POLICY_VERSION_CHANGED', message: 'changed', policy_token: 'replacement',
+            terms_version: 'terms-v2', privacy_notice_version: 'privacy-v2',
+          }, 409),
+    })
+
+    await expect(api.confirmPolicyAcceptance('old', {
+      accepted: true, terms_version: 'terms-v1', privacy_notice_version: 'privacy-v1', locale: 'en',
+    })).rejects.toMatchObject({
+      code: 'ACC_POLICY_VERSION_CHANGED',
+      data: { policy_token: 'replacement', terms_version: 'terms-v2', privacy_notice_version: 'privacy-v2' },
+    })
+  })
+
   it('runs the social onboarding API sequence', async () => {
 	const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
 	const api = new AccountApi({
