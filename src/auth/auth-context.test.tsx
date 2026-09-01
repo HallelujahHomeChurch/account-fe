@@ -295,6 +295,19 @@ describe('AuthProvider', () => {
     expect(screen.getByTestId('token')).toBeEmptyDOMElement()
   })
 
+  it('does not bootstrap a session from a policy-required login response', async () => {
+    const me = vi.fn(async () => ({ id: 'u1', email: 'admin@example.com' }))
+    const api: AuthApi = {
+      login: async () => ({ policy_acceptance_required: true, policy_token: 'secret', terms_version: 'terms-v1', privacy_notice_version: 'privacy-v1' }),
+      me, refreshAccessToken: async () => null, logout: async () => ({}),
+    }
+    render(<AuthProvider api={api} restoreSession={false}><LoginProbe /></AuthProvider>)
+    await userEvent.click(screen.getByRole('button', { name: 'Login' }))
+    expect(screen.getByTestId('status')).toHaveTextContent('anonymous')
+    expect(screen.getByTestId('token')).toBeEmptyDOMElement()
+    expect(me).not.toHaveBeenCalled()
+  })
+
   it('checks the session without refreshing on anonymous auth routes', async () => {
     const getSession = vi.fn(async () => ({ authenticated: false as const }))
     const refreshAccessToken = vi.fn(async () => null)
@@ -317,6 +330,17 @@ describe('AuthProvider', () => {
     expect(await screen.findByText('ready')).toBeInTheDocument()
     expect(getSession).toHaveBeenCalledTimes(1)
     expect(refreshAccessToken).not.toHaveBeenCalled()
+  })
+
+  it('does not bootstrap a session on the policy acceptance route', async () => {
+    const getSession = vi.fn(async () => ({ authenticated: false as const }))
+    const api: AuthApi = {
+      getSession, login: async () => ({}), me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken: async () => null, logout: async () => ({}),
+    }
+    render(<MemoryRouter initialEntries={['/policy/acceptance#token=secret']}><RoutedAuthProvider api={api}><BootstrapProbe /></RoutedAuthProvider></MemoryRouter>)
+    expect(await screen.findByText('ready')).toBeInTheDocument()
+    expect(getSession).not.toHaveBeenCalled()
   })
 
   it('issues a non-rotating access token and loads the profile when a session exists', async () => {

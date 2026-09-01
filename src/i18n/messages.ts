@@ -14,6 +14,8 @@ const messageCatalog = {
       signOutFailed: '目前無法登出，請再試一次。',
     },
     validation: { invalidEmail: '請輸入有效的 Email。' },
+    legalAcceptance: { prefix: '我同意', terms: '使用條款', middle: '並確認已閱讀', privacy: '隱私權聲明', suffix: '。', loadFailed: '目前無法載入條款資訊。', retry: '重試' },
+    policyAcceptance: { title: '確認條款', description: '請先確認目前的使用條款與隱私權聲明，再繼續登入。', continue: '繼續', invalid: '此確認要求無效或已過期。', restart: '重新登入', failed: '目前無法記錄確認，請稍後再試。' },
     nav: {
       accountSections: '帳號區段',
       accountNavigation: '帳號導覽',
@@ -75,6 +77,7 @@ const messageCatalog = {
       passwordPolicy: '密碼至少需要 8 碼，並包含英文大寫、小寫與數字。', invalidDetails: '請檢查輸入的帳戶資料。',
     },
     oauthOnboarding: {
+      loading: '正在載入帳戶設定。',
       title: '完成帳戶設定', emailDescription: '輸入要用於 HHC 帳戶的 Email。',
       codeDescription: '輸入寄到 Email 的 6 位數驗證碼。',
       linkDescription: '此 Email 已有 HHC 帳戶。確認後會將社群登入連結至該帳戶。',
@@ -287,6 +290,8 @@ const messageCatalog = {
       signOutFailed: '目前无法退出登录，请再试一次。',
     },
     validation: { invalidEmail: '请输入有效的 Email。' },
+    legalAcceptance: { prefix: '我同意', terms: '使用条款', middle: '并确认已阅读', privacy: '隐私权声明', suffix: '。', loadFailed: '目前无法载入条款信息。', retry: '重试' },
+    policyAcceptance: { title: '确认条款', description: '请先确认目前的使用条款与隐私权声明，再继续登录。', continue: '继续', invalid: '此确认请求无效或已过期。', restart: '重新登录', failed: '目前无法记录确认，请稍后重试。' },
     nav: {
       accountSections: '帐号区段',
       accountNavigation: '帐号导航',
@@ -348,6 +353,7 @@ const messageCatalog = {
       passwordPolicy: '密码至少需要 8 位，并包含英文大写、小写和数字。', invalidDetails: '请检查输入的帐户资料。',
     },
     oauthOnboarding: {
+      loading: '正在载入帐户设置。',
       title: '完成帐户设置', emailDescription: '输入要用于 HHC 帐户的 Email。',
       codeDescription: '输入发送到 Email 的 6 位验证码。',
       linkDescription: '此 Email 已有 HHC 帐户。确认后会将社群登录关联到该帐户。',
@@ -560,6 +566,8 @@ const messageCatalog = {
       signOutFailed: 'Unable to sign out. Try again.',
     },
     validation: { invalidEmail: 'Enter a valid email.' },
+    legalAcceptance: { prefix: 'I agree to the', terms: 'Terms of Use', middle: 'and acknowledge the', privacy: 'Privacy Notice', suffix: '.', loadFailed: 'Unable to load policy information.', retry: 'Retry' },
+    policyAcceptance: { title: 'Review account policies', description: 'Review the current Terms of Use and Privacy Notice before continuing sign-in.', continue: 'Continue', invalid: 'This review request is invalid or expired.', restart: 'Start sign-in again', failed: 'Unable to record your acknowledgement. Try again later.' },
     nav: {
       accountSections: 'Account sections',
       accountNavigation: 'Account navigation',
@@ -621,6 +629,7 @@ const messageCatalog = {
       passwordPolicy: 'Use at least 8 characters with uppercase, lowercase, and a number.', invalidDetails: 'Check the account details and try again.',
     },
     oauthOnboarding: {
+      loading: 'Loading account setup.',
       title: 'Finish account setup', emailDescription: 'Enter the email to use for your HHC account.',
       codeDescription: 'Enter the six-digit code sent to your email.',
       linkDescription: 'This email already has an HHC account. Confirm to link this social sign-in method.',
@@ -833,6 +842,8 @@ const messageCatalog = {
       signOutFailed: 'ログアウトできませんでした。もう一度お試しください。',
     },
     validation: { invalidEmail: '有効なメールアドレスを入力してください。' },
+    legalAcceptance: { prefix: '', terms: '利用規約', middle: 'に同意し、', privacy: 'プライバシー通知', suffix: 'を確認しました。', loadFailed: '規約情報を読み込めませんでした。', retry: '再試行' },
+    policyAcceptance: { title: '規約を確認', description: 'ログインを続ける前に、現在の利用規約とプライバシー通知をご確認ください。', continue: '続ける', invalid: 'この確認リクエストは無効か期限切れです。', restart: 'ログインをやり直す', failed: '確認を記録できませんでした。しばらくしてからもう一度お試しください。' },
     nav: {
       accountSections: 'アカウントの項目',
       accountNavigation: 'アカウントメニュー',
@@ -894,6 +905,7 @@ const messageCatalog = {
       passwordPolicy: 'パスワードは8文字以上で、英大文字・英小文字・数字をそれぞれ含めてください。', invalidDetails: '入力内容を確認して、もう一度お試しください。',
     },
     oauthOnboarding: {
+      loading: 'アカウント設定を読み込んでいます。',
       title: 'アカウント設定を完了', emailDescription: 'HHCアカウントで使用するメールアドレスを入力してください。',
       codeDescription: 'メールで届いた6桁の確認コードを入力してください。',
       linkDescription: 'このメールアドレスにはHHCアカウントがあります。確認すると、このログイン方法が連携されます。',
@@ -1106,6 +1118,8 @@ const messageCatalog = {
       signOutFailed: '로그아웃할 수 없어요. 다시 시도해 주세요.',
     },
     validation: { invalidEmail: '올바른 이메일 주소를 입력해 주세요.' },
+    legalAcceptance: { prefix: '', terms: '이용약관', middle: '에 동의하고', privacy: '개인정보 처리방침', suffix: '을 확인했습니다.', loadFailed: '정책 정보를 불러올 수 없어요.', retry: '다시 시도' },
+    policyAcceptance: { title: '약관 확인', description: '로그인을 계속하기 전에 현재 이용약관과 개인정보 처리방침을 확인해 주세요.', continue: '계속', invalid: '이 확인 요청은 유효하지 않거나 만료되었어요.', restart: '다시 로그인하기', failed: '확인을 기록할 수 없어요. 잠시 후 다시 시도해 주세요.' },
     nav: {
       accountSections: '계정 항목',
       accountNavigation: '계정 메뉴',
@@ -1167,6 +1181,7 @@ const messageCatalog = {
       passwordPolicy: '비밀번호는 8자 이상이며 영문 대문자, 소문자, 숫자를 각각 포함해야 해요.', invalidDetails: '입력한 계정 정보를 확인하고 다시 시도해 주세요.',
     },
     oauthOnboarding: {
+      loading: '계정 설정을 불러오는 중이에요.',
       title: '계정 설정 마치기', emailDescription: 'HHC 계정에 사용할 이메일을 입력해 주세요.',
       codeDescription: '이메일로 받은 6자리 인증 코드를 입력해 주세요.',
       linkDescription: '이 이메일에 HHC 계정이 있어요. 확인하면 이 소셜 로그인 방법이 연결돼요.',

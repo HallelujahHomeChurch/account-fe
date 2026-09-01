@@ -131,7 +131,9 @@ export function LoginPage() {
         password: String(form.get('password') ?? ''),
         authRequestId,
       })
-      if (response.access_token) {
+      if (response.policy_acceptance_required && response.policy_token) {
+        navigate(`/policy/acceptance#token=${encodeURIComponent(response.policy_token)}`, { replace: true })
+      } else if (response.access_token) {
         navigate(returnTo, { replace: true })
       } else if (!response.mfa_type) {
         setNotice(t.login.signedIn)
@@ -157,7 +159,9 @@ export function LoginPage() {
 
     try {
       const response = await auth.verifyMfa(code)
-      if (response.access_token) {
+      if (response.policy_acceptance_required && response.policy_token) {
+        navigate(`/policy/acceptance#token=${encodeURIComponent(response.policy_token)}`, { replace: true })
+      } else if (response.access_token) {
         navigate(returnTo, { replace: true })
       }
     } catch (caught) {

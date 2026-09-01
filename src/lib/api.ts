@@ -34,18 +34,38 @@ export type LoginResponse = {
   code?: string
   state?: string
   success?: boolean
+  policy_acceptance_required?: true
+  policy_token?: string
+  terms_version?: string
+  privacy_notice_version?: string
+}
+
+export type PolicyCapabilities = {
+  enforced: boolean
+  terms_version: string
+  privacy_notice_version: string
+}
+
+export type PolicyAcceptance = {
+  accepted: true
+  terms_version: string
+  privacy_notice_version: string
+  locale: string
 }
 
 export type AuthCapabilities = {
   providers: string[]
   registrationEnabled: boolean
+  policy?: PolicyCapabilities
 }
 
 export type OAuthOnboardingStatus = {
   provider: string
   masked_email: string
-  existing_account: boolean
-  requires_link_confirmation: boolean
+  email_verification_required?: boolean
+  link_confirmation_required?: boolean
+  existing_account?: boolean
+  requires_link_confirmation?: boolean
 }
 
 export type Profile = {
@@ -235,7 +255,7 @@ export class AccountApi {
     })
   }
 
-  register(body: { email: string; password: string; first_name: string; last_name: string; newsletter_opt_in: boolean; turnstile_token?: string }) {
+  register(body: { email: string; password: string; first_name: string; last_name: string; newsletter_opt_in: boolean; turnstile_token?: string; policy?: PolicyAcceptance }) {
     return this.request<{ message?: string }>('/register', {
       method: 'POST',
       auth: false,
@@ -344,11 +364,23 @@ export class AccountApi {
     })
   }
 
-  completeOAuthOnboarding(token: string, linkExisting: boolean) {
+  getOAuthOnboardingStatus(token: string) {
+    return this.request<OAuthOnboardingStatus>('/oauth/onboarding/status', {
+      method: 'POST', auth: false, body: { token },
+    })
+  }
+
+  completeOAuthOnboarding(token: string, linkExisting: boolean, policy?: PolicyAcceptance) {
     return this.request<LoginResponse>('/oauth/onboarding/confirm', {
       method: 'POST',
       auth: false,
-      body: { token, link_existing: linkExisting },
+      body: { token, link_existing: linkExisting, policy },
+    })
+  }
+
+  confirmPolicyAcceptance(token: string, policy: PolicyAcceptance) {
+    return this.request<LoginResponse>('/policy-acceptance/confirm', {
+      method: 'POST', auth: false, body: { token, policy },
     })
   }
 
@@ -392,13 +424,14 @@ export class AccountApi {
   }
 
   async getAuthCapabilities(): Promise<AuthCapabilities> {
-    const response = await this.request<{ providers?: string[]; registration_enabled?: boolean }>(
+    const response = await this.request<{ providers?: string[]; registration_enabled?: boolean; policy?: PolicyCapabilities }>(
       '/oauth-providers',
       { auth: false },
     )
     return {
       providers: response.providers ?? [],
       registrationEnabled: response.registration_enabled === true,
+      policy: response.policy,
     }
   }
 

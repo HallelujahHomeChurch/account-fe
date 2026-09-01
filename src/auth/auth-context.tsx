@@ -247,6 +247,11 @@ export function AuthProvider({
 
   const completeLogin = useCallback(
     async (response: LoginResponse) => {
+      if (response.policy_acceptance_required && response.policy_token) {
+        commitState({ ...emptyAuthState, status: 'anonymous' })
+        return response
+      }
+
       if (response.mfa_type && response.mfa_token) {
         commitState({
           status: 'mfa',
@@ -560,7 +565,7 @@ export function RoutedAuthProvider({ children, api, config, errorLabels, navigat
       config={config}
       errorLabels={errorLabels ?? messages.authErrors}
       route={route}
-      restoreSession={restoreSession ?? route.pathname !== '/oauth/callback'}
+      restoreSession={restoreSession ?? !['/oauth/callback', '/policy/acceptance'].includes(route.pathname)}
       authorizeMissingSession
       navigateExternal={navigateExternal}
     >

@@ -13,4 +13,8 @@ describe('safeReturnTo', () => {
   it('treats LINE binding as a public auth-shell route', () => {
     expect(isAuthRoutePath('/line/bind')).toBe(true)
   })
+
+  it('treats policy acceptance as a public auth-shell route', () => {
+    expect(isAuthRoutePath('/policy/acceptance')).toBe(true)
+  })
 })

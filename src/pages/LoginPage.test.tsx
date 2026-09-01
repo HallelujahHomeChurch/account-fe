@@ -240,6 +240,21 @@ describe('LoginPage', () => {
     expect(await screen.findByRole('heading', { name: /profile reached/i })).toBeInTheDocument()
   })
 
+  it('navigates a policy-required response with the token in the fragment', async () => {
+    const api: AuthApi = {
+      login: async () => ({ policy_acceptance_required: true, policy_token: 'policy-token', terms_version: 'terms-v1', privacy_notice_version: 'privacy-v1' }),
+      me: async () => ({ id: 'u1', email: 'admin' }), refreshAccessToken: async () => null, logout: async () => ({}),
+    }
+    render(<MemoryRouter initialEntries={['/login']}><AuthProvider api={api} restoreSession={false}><Routes>
+      <Route element={<LoginPage />} path="/login" />
+      <Route element={<LocationHash />} path="/policy/acceptance" />
+    </Routes></AuthProvider></MemoryRouter>)
+    await userEvent.type(screen.getByLabelText('Email'), 'admin')
+    await userEvent.type(screen.getByLabelText('Password'), 'admin123')
+    await userEvent.click(screen.getByRole('button', { name: /next/i }))
+    expect(await screen.findByTestId('location-hash')).toHaveTextContent('#token=policy-token')
+  })
+
   it('continues an existing account session without showing a refresh error', async () => {
     const refreshAccessToken = vi.fn(async () => 'token')
     const api: AuthApi = {
@@ -568,4 +583,8 @@ describe('LoginPage', () => {
 
 function LocationSearch() {
   return <span data-testid="location-search">{useLocation().search}</span>
+}
+
+function LocationHash() {
+  return <span data-testid="location-hash">{useLocation().hash}</span>
 }

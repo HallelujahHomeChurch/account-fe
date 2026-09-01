@@ -7,6 +7,38 @@ import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
 import { RegisterPage } from './RegisterPage'
 
+it('requires current policy acceptance without coupling newsletter consent', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  const register = vi.fn(async () => ({}))
+  const api: AuthApi = {
+    login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+    refreshAccessToken: async () => null, logout: async () => ({}), register,
+    getAuthCapabilities: async () => ({
+      providers: [], registrationEnabled: true,
+      policy: { enforced: true, terms_version: 'terms-v1', privacy_notice_version: 'privacy-v1' },
+    }),
+  }
+  render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><RegisterPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+  for (const [label, value] of [
+    ['First name', 'Test'], ['Last name', 'User'], ['Email', 'user@example.com'],
+    ['Password', 'Password1!'], ['Confirm password', 'Password1!'],
+  ]) await userEvent.type(screen.getByLabelText(label), value)
+
+  const submit = screen.getByRole('button', { name: 'Create account' })
+  await userEvent.click(submit)
+  expect(register).not.toHaveBeenCalled()
+
+  await userEvent.click(screen.getByRole('checkbox', { name: /I want to receive church news/i }))
+  await userEvent.click(screen.getByRole('checkbox', { name: /I agree to the Terms of Use/i }))
+  await userEvent.click(submit)
+
+  expect(register).toHaveBeenCalledWith(expect.objectContaining({
+    newsletter_opt_in: true,
+    policy: { accepted: true, terms_version: 'terms-v1', privacy_notice_version: 'privacy-v1', locale: 'en' },
+  }))
+})
+
 it('clears a stale native continuation on ordinary registration', async () => {
   localStorage.setItem('hhc_native_auth_request_id', 'stale-request')
   const api: AuthApi = {
