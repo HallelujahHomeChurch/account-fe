@@ -13,7 +13,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 
 import { LanguageSelector } from '../components/LanguageSelector'
 import { SocialAuthOptions, useAuthCapabilities } from '../components/SocialAuthOptions'
-import { clearPostLoginReturnTo, safeReturnTo, savePostLoginReturnTo } from '../auth/auth-routes'
+import { clearPostLoginReturnTo, readPostLoginReturnTo, safeReturnTo, savePostLoginReturnTo } from '../auth/auth-routes'
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import { authErrorMessage } from '../auth/auth-form'
@@ -49,6 +49,13 @@ export function LoginPage() {
   const title = t.login.brandTitle
   const challenge = auth.mfaChallenge
   const mfaSubtitle = t.login.mfaVerificationSubtitle
+
+  useEffect(() => {
+    const pendingReturnTo = readPostLoginReturnTo()
+    if (authRequestId || (pendingReturnTo !== null && (pendingReturnTo === '/profile' || pendingReturnTo !== returnTo))) {
+      clearPostLoginReturnTo()
+    }
+  }, [authRequestId, returnTo])
 
   useEffect(() => {
     if (!signedOut && !passwordChanged && !oauthError) return
@@ -136,6 +143,7 @@ export function LoginPage() {
         if (!authRequestId) savePostLoginReturnTo(returnTo)
         navigate(`/policy/acceptance#token=${encodeURIComponent(response.policy_token)}`, { replace: true })
       } else if (response.access_token) {
+        clearPostLoginReturnTo()
         navigate(returnTo, { replace: true })
       } else if (!response.mfa_type) {
         setNotice(t.login.signedIn)
@@ -165,6 +173,7 @@ export function LoginPage() {
         if (!authRequestId) savePostLoginReturnTo(returnTo)
         navigate(`/policy/acceptance#token=${encodeURIComponent(response.policy_token)}`, { replace: true })
       } else if (response.access_token) {
+        clearPostLoginReturnTo()
         navigate(returnTo, { replace: true })
       }
     } catch (caught) {

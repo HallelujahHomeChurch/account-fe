@@ -26,6 +26,11 @@ export function hasPostLoginReturnTo(storage: Pick<Storage, 'getItem'> = session
   return storage.getItem(postLoginReturnToKey) !== null
 }
 
+export function readPostLoginReturnTo(storage: Pick<Storage, 'getItem'> = sessionStorage) {
+  const returnTo = storage.getItem(postLoginReturnToKey)
+  return returnTo === null ? null : safeReturnTo(returnTo)
+}
+
 export function clearPostLoginReturnTo(storage: Pick<Storage, 'removeItem'> = sessionStorage) {
   storage.removeItem(postLoginReturnToKey)
 }

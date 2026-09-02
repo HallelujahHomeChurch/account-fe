@@ -96,6 +96,27 @@ describe('DataRequestsPage', () => {
     expect(confirmDSRErasure).not.toHaveBeenCalled()
   })
 
+  it('starts a replacement erasure with blank confirmation state', async () => {
+    const erasureA = { ...baseRequest, id: 'erasure-a', request_type: 'erasure' as const, status: 'submitted' as const }
+    const erasureB = { ...erasureA, id: 'erasure-b' }
+    const createDSRRequest = vi.fn(async () => erasureB)
+    const cancelDSRRequest = vi.fn(async () => ({ ...erasureA, status: 'cancelled' as const, version: 2 }))
+    const confirmDSRErasure = vi.fn()
+    renderPage({ listDSRRequests: async () => [erasureA], createDSRRequest, cancelDSRRequest, confirmDSRErasure })
+
+    await userEvent.type(await screen.findByLabelText('Current email'), 'ray@example.com')
+    await userEvent.click(screen.getByLabelText('I understand this action removes account data'))
+    expect(screen.getByRole('button', { name: 'Confirm account erasure' })).toBeEnabled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel request' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Start account erasure' }))
+
+    expect(screen.getByLabelText('Current email')).toHaveValue('')
+    expect(screen.getByLabelText('I understand this action removes account data')).not.toBeChecked()
+    expect(screen.getByRole('button', { name: 'Confirm account erasure' })).toBeDisabled()
+    expect(confirmDSRErasure).not.toHaveBeenCalled()
+  })
+
   it('downloads and revokes the temporary object URL', async () => {
     const completed = { ...baseRequest, status: 'completed' as const }
     const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:export')

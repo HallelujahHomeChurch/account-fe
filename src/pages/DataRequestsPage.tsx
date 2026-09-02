@@ -20,12 +20,18 @@ export function DataRequestsPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
+  function resetErasure(next: DSRRequest | null) {
+    setErasure(next)
+    setEmail('')
+    setConfirmed(false)
+  }
+
   useEffect(() => {
     let active = true
     auth.api.listDSRRequests?.().then((value) => {
       if (active) {
         setRequests(value)
-        setErasure(value.find((request) => request.request_type === 'erasure' && request.status === 'submitted') ?? null)
+        resetErasure(value.find((request) => request.request_type === 'erasure' && request.status === 'submitted') ?? null)
       }
     }).catch(() => {
       if (active) { setRequests([]); setError(t.dataRequests.loadFailed) }
@@ -43,9 +49,10 @@ export function DataRequestsPage() {
 
   function reconcile(next: DSRRequest) {
     setRequests((current) => current?.map((item) => item.id === next.id ? next : item) ?? [next])
-    setErasure((current) => current?.id === next.id
-      ? next.request_type === 'erasure' && next.status === 'submitted' ? next : null
-      : current)
+    if (erasure?.id === next.id) {
+      if (next.request_type === 'erasure' && next.status === 'submitted') setErasure(next)
+      else resetErasure(null)
+    }
   }
 
   async function create(type: DSRRequestType) {
@@ -55,7 +62,7 @@ export function DataRequestsPage() {
     try {
       const next = await auth.api.createDSRRequest(type)
       setRequests((current) => [next, ...(current ?? [])])
-      if (type === 'erasure') setErasure(next)
+      if (type === 'erasure') resetErasure(next)
     } catch (caught) { handleError(caught) } finally { setBusy(false) }
   }
 
