@@ -84,6 +84,18 @@ describe('DataRequestsPage', () => {
     expect(await screen.findByRole('heading', { name: 'Confirm account erasure' })).toBeInTheDocument()
   })
 
+  it('removes stale erasure confirmation after cancellation', async () => {
+    const erasure = { ...baseRequest, request_type: 'erasure' as const, status: 'submitted' as const }
+    const cancelDSRRequest = vi.fn(async () => ({ ...erasure, status: 'cancelled' as const, version: 2 }))
+    const confirmDSRErasure = vi.fn()
+    renderPage({ listDSRRequests: async () => [erasure], cancelDSRRequest, confirmDSRErasure })
+
+    expect(await screen.findByRole('heading', { name: 'Confirm account erasure' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel request' }))
+    expect(screen.queryByRole('heading', { name: 'Confirm account erasure' })).not.toBeInTheDocument()
+    expect(confirmDSRErasure).not.toHaveBeenCalled()
+  })
+
   it('downloads and revokes the temporary object URL', async () => {
     const completed = { ...baseRequest, status: 'completed' as const }
     const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:export')

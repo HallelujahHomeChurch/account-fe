@@ -8,6 +8,7 @@ import { AuthProvider, type AuthApi } from './auth/auth-context'
 import { LocaleProvider } from './i18n/locale-context'
 import { ApiError } from './lib/api'
 import { clearLineLinkAutoContinue, markLineLinkAutoContinue } from './lib/line-link-intent'
+import { clearPostLoginReturnTo, hasPostLoginReturnTo, savePostLoginReturnTo } from './auth/auth-routes'
 
 const viewNonce = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
 const lineConfirmationNonce = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
@@ -24,7 +25,10 @@ const signedInApi: AuthApi = {
   refreshAccessToken: async () => 'token',
 }
 
-afterEach(clearLineLinkAutoContinue)
+afterEach(() => {
+  clearLineLinkAutoContinue()
+  clearPostLoginReturnTo()
+})
 
 describe('App layout', () => {
   it('hides data requests navigation and route while DSR is disabled', async () => {
@@ -41,6 +45,23 @@ describe('App layout', () => {
 
     await waitFor(() => expect(screen.getByTestId('route-path')).toHaveTextContent('/profile'))
     expect(screen.queryByRole('link', { name: 'Data requests' })).not.toBeInTheDocument()
+  })
+
+  it('consumes a social sign-in continuation after the authenticated profile return', async () => {
+    savePostLoginReturnTo('/data-requests')
+    render(
+      <MemoryRouter initialEntries={['/profile']}>
+        <LocaleProvider><AuthProvider api={{
+          ...signedInApi,
+          getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, dsr: { enabled: true } }),
+          listDSRRequests: async () => [],
+        }}><NavigationProbe /><App /></AuthProvider></LocaleProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { name: 'Data and privacy requests' })).toBeInTheDocument()
+    expect(screen.getByTestId('route-path')).toHaveTextContent('/data-requests')
+    expect(sessionStorage.getItem('hhc_account_post_login_return_to')).toBeNull()
   })
   it('uses the shared branded loading screen until protected-route bootstrap finishes', () => {
     render(
@@ -139,6 +160,7 @@ describe('App layout', () => {
 
   it('returns a social login callback from profile to the pending LINE intent', async () => {
     markLineLinkAutoContinue()
+    savePostLoginReturnTo('/data-requests')
     const prepareLineLinkIntent = vi.fn(async () => ({
       return_url: `https://line.me/R/oaMessage/%40hhc_official/?HHC_ACCOUNT_LINK_V1%3A${lineConfirmationNonce}`,
     }))
@@ -164,6 +186,7 @@ describe('App layout', () => {
 
     expect(await screen.findByRole('button', { name: 'Confirm link' })).toBeInTheDocument()
     expect(prepareLineLinkIntent).not.toHaveBeenCalled()
+    expect(hasPostLoginReturnTo()).toBe(true)
   })
 
   it.each([

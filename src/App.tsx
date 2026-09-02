@@ -1,9 +1,10 @@
 import { AccountMenu, BrandLoadingScreen, Button, Drawer, Toast, ToastProvider } from '@hallelujahhomechurch/ui'
 import { Bell, FileArchive, Menu, MonitorSmartphone, ShieldCheck, UserRound } from 'lucide-react'
-import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { useEffect, useRef } from 'react'
+import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 
 import { useAuth } from './auth/auth-context'
-import { isAuthRoutePath, loginPath } from './auth/auth-routes'
+import { consumePostLoginReturnTo, hasPostLoginReturnTo, isAuthRoutePath, loginPath } from './auth/auth-routes'
 import { useLocale } from './i18n/locale-context'
 import { accountGreetingName } from './lib/account-display'
 import { hasLineLinkAutoContinue } from './lib/line-link-intent'
@@ -91,6 +92,8 @@ function LayoutContent() {
   if (hasLineLinkAutoContinue()) {
     return <Navigate replace to="/line/bind" />
   }
+
+  if (hasPostLoginReturnTo()) return <PostLoginContinuation />
 
   return (
     <div className="app-shell">
@@ -238,6 +241,18 @@ function LayoutContent() {
       </div>
     </div>
   )
+}
+
+function PostLoginContinuation() {
+  const navigate = useNavigate()
+  const handled = useRef(false)
+  const { messages: t } = useLocale()
+  useEffect(() => {
+    if (handled.current) return
+    handled.current = true
+    navigate(consumePostLoginReturnTo(), { replace: true })
+  }, [navigate])
+  return <BrandLoadingScreen label={t.profile.loading} />
 }
 
 export default function Layout() {

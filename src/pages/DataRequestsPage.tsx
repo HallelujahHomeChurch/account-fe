@@ -41,6 +41,13 @@ export function DataRequestsPage() {
     setError(t.dataRequests.requestFailed)
   }
 
+  function reconcile(next: DSRRequest) {
+    setRequests((current) => current?.map((item) => item.id === next.id ? next : item) ?? [next])
+    setErasure((current) => current?.id === next.id
+      ? next.request_type === 'erasure' && next.status === 'submitted' ? next : null
+      : current)
+  }
+
   async function create(type: DSRRequestType) {
     if (type === 'correction') { navigate('/profile'); return }
     if (!auth.api.createDSRRequest) return
@@ -58,8 +65,7 @@ export function DataRequestsPage() {
     setBusy(true); setError('')
     try {
       const next = await auth.api.confirmDSRErasure(erasure.id, erasure.version, email.trim())
-      setRequests((current) => current?.map((item) => item.id === next.id ? next : item) ?? [next])
-      setErasure(null)
+      reconcile(next)
     } catch (caught) { handleError(caught) } finally { setBusy(false) }
   }
 
@@ -68,7 +74,7 @@ export function DataRequestsPage() {
     setBusy(true); setError('')
     try {
       const next = await auth.api.cancelDSRRequest(request.id, request.version)
-      setRequests((current) => current?.map((item) => item.id === next.id ? next : item) ?? [next])
+      reconcile(next)
     } catch (caught) { handleError(caught) } finally { setBusy(false) }
   }
 

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { useAuth } from '../auth/auth-context'
-import { loginPath } from '../auth/auth-routes'
+import { clearPostLoginReturnTo, loginPath } from '../auth/auth-routes'
 import { LanguageSelector } from '../components/LanguageSelector'
 import { useLocale } from '../i18n/locale-context'
 import {
@@ -28,6 +28,7 @@ export function OAuthCallbackPage() {
     const callbackError = params.get('error')
     if (callbackError) {
       clearAccountOAuthTransaction()
+      clearPostLoginReturnTo()
       navigate(`${loginPath(returnTo)}&oauth_error=${callbackError === 'access_denied' ? 'cancelled' : 'failed'}`, { replace: true })
       return
     }
@@ -35,13 +36,17 @@ export function OAuthCallbackPage() {
     const code = params.get('code')
     const state = params.get('state')
     if (!code || !state) {
+      clearPostLoginReturnTo()
       setError(t.oauthCallback.failed)
       return
     }
 
     auth.completeOAuthCallback(code, state)
       .then((destination) => navigate(destination, { replace: true }))
-      .catch(() => setError(t.oauthCallback.failed))
+      .catch(() => {
+        clearPostLoginReturnTo()
+        setError(t.oauthCallback.failed)
+      })
   }, [auth, navigate, params, returnTo, t.oauthCallback.failed])
 
   useEffect(() => {
