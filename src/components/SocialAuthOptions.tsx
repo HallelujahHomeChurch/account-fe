@@ -23,13 +23,14 @@ export function useAuthCapabilities() {
   return useAuthCapabilitiesState().capabilities
 }
 
-export function useAuthCapabilitiesState() {
+export function useAuthCapabilitiesState(enabled = true) {
   const auth = useAuth()
   const [capabilities, setCapabilities] = useState<AuthCapabilities | null>(null)
   const [error, setError] = useState(false)
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
+    if (!enabled) return
     let active = true
     const request = auth.api.getAuthCapabilities
       ? auth.api.getAuthCapabilities()
@@ -57,7 +58,7 @@ export function useAuthCapabilitiesState() {
     return () => {
       active = false
     }
-  }, [attempt, auth.api])
+  }, [attempt, auth.api, enabled])
 
   return { capabilities, error, retry: () => setAttempt((value) => value + 1) }
 }

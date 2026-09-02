@@ -1,5 +1,5 @@
 import { AccountMenu, BrandLoadingScreen, Button, Drawer, Toast, ToastProvider } from '@hallelujahhomechurch/ui'
-import { Bell, Menu, MonitorSmartphone, ShieldCheck, UserRound } from 'lucide-react'
+import { Bell, FileArchive, Menu, MonitorSmartphone, ShieldCheck, UserRound } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
 import { useAuth } from './auth/auth-context'
@@ -23,6 +23,8 @@ import { NotificationsPage } from './pages/NotificationsPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { NativeAuthCompletePage } from './pages/NativeAuthCompletePage'
 import { PolicyAcceptancePage } from './pages/PolicyAcceptancePage'
+import { DataRequestsPage } from './pages/DataRequestsPage'
+import { useAuthCapabilitiesState } from './components/SocialAuthOptions'
 
 function LayoutContent() {
   const auth = useAuth()
@@ -30,11 +32,14 @@ function LayoutContent() {
   const location = useLocation()
   const isAuthRoute = isAuthRoutePath(location.pathname)
   const publicSiteUrl = readRuntimeConfig().publicSiteUrl
+  const { capabilities, error: capabilitiesError } = useAuthCapabilitiesState(!isAuthRoute)
+  const dsrEnabled = capabilities?.dsr?.enabled === true
   const navigation = [
     { icon: UserRound, label: t.nav.personalInfo, path: '/profile' },
     { icon: ShieldCheck, label: t.nav.security, path: '/security' },
     { icon: MonitorSmartphone, label: t.nav.devices, path: '/devices' },
     { icon: Bell, label: t.nav.notificationSettings, path: '/notifications' },
+    ...(dsrEnabled ? [{ icon: FileArchive, label: t.nav.dataRequests, path: '/data-requests' }] : []),
   ]
 
   if (isAuthRoute) {
@@ -218,6 +223,14 @@ function LayoutContent() {
               <Route element={<SecurityPage />} path="/security" />
               <Route element={<DevicesPage />} path="/devices" />
               <Route element={<NotificationsPage />} path="/notifications" />
+              <Route
+                element={dsrEnabled
+                  ? <DataRequestsPage />
+                  : !capabilities && !capabilitiesError
+                    ? <BrandLoadingScreen label={t.dataRequests.loading} />
+                    : <Navigate replace to="/profile" />}
+                path="/data-requests"
+              />
               <Route element={<Navigate replace to="/profile" />} path="*" />
             </Routes>
           </main>

@@ -57,6 +57,39 @@ export type AuthCapabilities = {
   providers: string[]
   registrationEnabled: boolean
   policy?: PolicyCapabilities
+  dsr?: { enabled: boolean }
+}
+
+export type DSRRequestType = 'access_export' | 'correction' | 'restrict_processing' | 'erasure'
+export type DSRRequestStatus = 'submitted' | 'in_review' | 'processing' | 'action_required' | 'completed' | 'rejected' | 'cancelled'
+export type DSRExecutionStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'manual' | 'not_applicable'
+export type DSROwner = 'account' | 'engagement' | 'notification' | 'asset' | 'website_manual'
+
+export type DSRExecution = {
+  owner: DSROwner
+  action: 'export' | 'correct' | 'restrict_processing' | 'erase'
+  status: DSRExecutionStatus
+  attempt_count: number
+  result_summary: { record_count?: number; checksum?: string; reason_codes?: string[] }
+  last_error_code?: string
+  started_at?: string
+  completed_at?: string
+  updated_at?: string
+}
+
+export type DSRRequest = {
+  id: string
+  request_type: DSRRequestType
+  status: DSRRequestStatus
+  identity_verified_at: string
+  approved_at?: string
+  rejected_reason_code?: string
+  export_expires_at?: string
+  submitted_at: string
+  started_at?: string
+  completed_at?: string
+  version: number
+  executions?: DSRExecution[]
 }
 
 export type OAuthOnboardingStatus = {
@@ -318,6 +351,41 @@ export class AccountApi {
     return this.request<NewsletterPreference>('/notification-preferences/newsletter')
   }
 
+  async listDSRRequests() {
+    return (await this.request<{ requests: DSRRequest[] }>('/dsr/requests')).requests
+  }
+
+  getDSRRequest(requestId: string) {
+    return this.request<DSRRequest>(`/dsr/requests/${encodeURIComponent(requestId)}`)
+  }
+
+  createDSRRequest(requestType: DSRRequestType) {
+    return this.request<DSRRequest>('/dsr/requests', { method: 'POST', body: { request_type: requestType } })
+  }
+
+  cancelDSRRequest(requestId: string, version: number) {
+    return this.request<DSRRequest>(`/dsr/requests/${encodeURIComponent(requestId)}/cancel`, { method: 'POST', body: { version } })
+  }
+
+  confirmDSRErasure(requestId: string, version: number, confirmationEmail: string) {
+    return this.request<DSRRequest>(`/dsr/requests/${encodeURIComponent(requestId)}/confirm-erasure`, {
+      method: 'POST', body: { version, confirmation_email: confirmationEmail },
+    })
+  }
+
+  issueDSRDownload(requestId: string) {
+    return this.request<{ download_url: string }>(`/dsr/requests/${encodeURIComponent(requestId)}/download`, { method: 'POST' })
+  }
+
+  async redeemDSRDownload(downloadUrl: string): Promise<Blob> {
+    if (!/^\/api\/account\/v1\/dsr\/downloads\/[A-Za-z0-9_-]{43}=$/.test(downloadUrl)) {
+      throw new Error('Invalid DSR download URL')
+    }
+    const response = await this.authenticatedFetch(downloadUrl)
+    if (!response.ok) return this.readResponse<never>(response)
+    return response.blob()
+  }
+
   updateNewsletterPreference(subscribed: boolean) {
     return this.request<NewsletterPreference>('/notification-preferences/newsletter', {
       method: 'PUT',
@@ -424,7 +492,7 @@ export class AccountApi {
   }
 
   async getAuthCapabilities(): Promise<AuthCapabilities> {
-    const response = await this.request<{ providers?: string[]; registration_enabled?: boolean; policy?: PolicyCapabilities }>(
+    const response = await this.request<{ providers?: string[]; registration_enabled?: boolean; policy?: PolicyCapabilities; dsr?: { enabled: boolean } }>(
       '/oauth-providers',
       { auth: false },
     )
@@ -432,6 +500,7 @@ export class AccountApi {
       providers: response.providers ?? [],
       registrationEnabled: response.registration_enabled === true,
       policy: response.policy,
+      dsr: response.dsr,
     }
   }
 
@@ -492,6 +561,22 @@ export class AccountApi {
     }
 
     return this.readResponse<T>(response)
+  }
+
+  private async authenticatedFetch(url: string, retry = true): Promise<Response> {
+    const token = this.getAccessToken?.() ?? null
+    const headers: Record<string, string> = token ? { authorization: `Bearer ${token}` } : {}
+    const response = await this.fetcher(url, { credentials: 'include', headers })
+    recordRequestId(response)
+    if (response.status === 401 && retry) {
+      const nextToken = await this.refreshAccessToken()
+      const currentToken = this.getAccessToken?.() ?? null
+      if (nextToken && (currentToken === token || currentToken === nextToken)) {
+        this.setAccessToken?.(nextToken)
+        return this.authenticatedFetch(url, false)
+      }
+    }
+    return response
   }
 
   private async getCsrfToken() {

@@ -27,6 +27,21 @@ const signedInApi: AuthApi = {
 afterEach(clearLineLinkAutoContinue)
 
 describe('App layout', () => {
+  it('hides data requests navigation and route while DSR is disabled', async () => {
+    render(
+      <MemoryRouter initialEntries={['/data-requests']}>
+        <LocaleProvider>
+          <AuthProvider api={{ ...signedInApi, getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, dsr: { enabled: false } }) }}>
+            <NavigationProbe />
+            <App />
+          </AuthProvider>
+        </LocaleProvider>
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => expect(screen.getByTestId('route-path')).toHaveTextContent('/profile'))
+    expect(screen.queryByRole('link', { name: 'Data requests' })).not.toBeInTheDocument()
+  })
   it('uses the shared branded loading screen until protected-route bootstrap finishes', () => {
     render(
       <MemoryRouter initialEntries={['/profile']}>

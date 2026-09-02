@@ -1,4 +1,4 @@
-import { ApiError, type Device, type LineBindingSummary, type LinkedAccount, type MfaSetup, type Profile } from './api'
+import { ApiError, type Device, type DSRRequest, type DSRRequestType, type LineBindingSummary, type LinkedAccount, type MfaSetup, type Profile } from './api'
 
 const token = 'mock-access-token'
 const lineConfirmationNonce = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
@@ -53,6 +53,7 @@ export class MockAccountApi {
 
   private linkedAccounts: LinkedAccount[] = [{ provider: 'google', provider_id: 'mock-google' }]
   private avatarPolls = 0
+  private dsrRequests: DSRRequest[] = []
 
   async login(request: { email: string; password: string }) {
     if (request.email !== 'admin' || request.password !== 'admin123') {
@@ -191,6 +192,52 @@ export class MockAccountApi {
     return { status: 'not_subscribed' as const }
   }
 
+  async listDSRRequests() { return this.dsrRequests }
+
+  async getDSRRequest(requestId: string) {
+    const request = this.dsrRequests.find(({ id }) => id === requestId)
+    if (!request) throw new ApiError(404, 'Request not found.', 'ACC_DSR_NOT_FOUND')
+    return request
+  }
+
+  async createDSRRequest(requestType: DSRRequestType) {
+    const now = new Date().toISOString()
+    const request: DSRRequest = {
+      id: `mock-dsr-${this.dsrRequests.length + 1}`, request_type: requestType,
+      status: 'submitted', identity_verified_at: now, submitted_at: now, version: 1,
+      executions: requestType === 'correction' ? [] : [
+        { owner: 'account', action: requestType === 'access_export' ? 'export' : requestType === 'erasure' ? 'erase' : 'restrict_processing', status: 'pending', attempt_count: 0, result_summary: {} },
+      ],
+    }
+    this.dsrRequests = [request, ...this.dsrRequests]
+    return request
+  }
+
+  async cancelDSRRequest(requestId: string, version: number) {
+    return this.updateDSR(requestId, version, { status: 'cancelled' })
+  }
+
+  async confirmDSRErasure(requestId: string, version: number, confirmationEmail: string) {
+    if (confirmationEmail !== this.profile.email) throw new ApiError(400, 'Email mismatch.', 'ACC_DSR_ERASURE_CONFIRMATION_MISMATCH')
+    return this.updateDSR(requestId, version, { status: 'in_review' })
+  }
+
+  async issueDSRDownload(requestId: string) {
+    await this.getDSRRequest(requestId)
+    return { download_url: `/api/account/v1/dsr/downloads/mock-${requestId}` }
+  }
+
+  async redeemDSRDownload() { return new Blob(['mock account export'], { type: 'application/zip' }) }
+
+  private updateDSR(requestId: string, version: number, patch: Partial<DSRRequest>) {
+    const request = this.dsrRequests.find(({ id }) => id === requestId)
+    if (!request) throw new ApiError(404, 'Request not found.', 'ACC_DSR_NOT_FOUND')
+    if (request.version !== version) throw new ApiError(409, 'Request changed.', 'ACC_DSR_CONFLICT')
+    const next = { ...request, ...patch, version: version + 1 }
+    this.dsrRequests = this.dsrRequests.map((item) => item.id === requestId ? next : item)
+    return next
+  }
+
   async updateNewsletterPreference(subscribed: boolean) {
     return { status: subscribed ? 'subscribed' as const : 'unsubscribed' as const }
   }
@@ -250,6 +297,7 @@ export class MockAccountApi {
     return {
       providers: ['google', 'line', 'microsoft'], registrationEnabled: true,
       policy: { enforced: false, terms_version: '', privacy_notice_version: '' },
+      dsr: { enabled: true },
     }
   }
 }

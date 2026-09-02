@@ -1,5 +1,58 @@
 import type { Locale } from './locales'
 
+const dataRequestMessages = {
+  'zh-Hant': {
+    title: '資料與隱私請求', description: '管理可由 HHC 帳戶可靠歸屬的跨平台資料。', newRequest: '建立請求',
+    requestExport: '申請資料匯出', updateProfile: '更新個人資料', restrictProcessing: '限制資料處理', startErasure: '開始帳戶刪除',
+    confirmErasureTitle: '確認帳戶刪除', currentEmail: '目前的 Email', erasureAcknowledgement: '我了解此操作會移除帳戶資料', confirmErasure: '確認帳戶刪除',
+    loading: '正在載入資料請求', loadFailed: '目前無法載入資料請求。', requestFailed: '目前無法完成資料請求。', actionRequired: '此請求需要進一步處理。', ownerProgress: '資料負責系統進度', download: '下載資料匯出', cancel: '取消請求',
+    types: { access_export: '資料匯出', correction: '資料更正', restrict_processing: '限制處理', erasure: '帳戶刪除' },
+    statuses: { submitted: '已提交', in_review: '審核中', processing: '處理中', action_required: '需要處理', completed: '已完成', rejected: '未接受', cancelled: '已取消' },
+    executionStatuses: { pending: '等待中', running: '處理中', succeeded: '已完成', failed: '需重試', manual: '人工確認', not_applicable: '不適用' },
+    owners: { account: '帳戶', engagement: '互動偏好', notification: '通知', asset: '檔案', website_manual: '網站人工清查' },
+  },
+  'zh-Hans': {
+    title: '数据与隐私请求', description: '管理可由 HHC 帐户可靠归属的跨平台数据。', newRequest: '创建请求',
+    requestExport: '申请数据导出', updateProfile: '更新个人资料', restrictProcessing: '限制数据处理', startErasure: '开始帐户删除',
+    confirmErasureTitle: '确认帐户删除', currentEmail: '当前 Email', erasureAcknowledgement: '我了解此操作会移除帐户数据', confirmErasure: '确认帐户删除',
+    loading: '正在加载数据请求', loadFailed: '目前无法加载数据请求。', requestFailed: '目前无法完成数据请求。', actionRequired: '此请求需要进一步处理。', ownerProgress: '数据负责系统进度', download: '下载数据导出', cancel: '取消请求',
+    types: { access_export: '数据导出', correction: '数据更正', restrict_processing: '限制处理', erasure: '帐户删除' },
+    statuses: { submitted: '已提交', in_review: '审核中', processing: '处理中', action_required: '需要处理', completed: '已完成', rejected: '未接受', cancelled: '已取消' },
+    executionStatuses: { pending: '等待中', running: '处理中', succeeded: '已完成', failed: '需重试', manual: '人工确认', not_applicable: '不适用' },
+    owners: { account: '帐户', engagement: '互动偏好', notification: '通知', asset: '文件', website_manual: '网站人工清查' },
+  },
+  en: {
+    title: 'Data and privacy requests', description: 'Manage cross-platform data reliably attributed to your HHC account.', newRequest: 'Create a request',
+    requestExport: 'Request data export', updateProfile: 'Update personal info', restrictProcessing: 'Restrict data processing', startErasure: 'Start account erasure',
+    confirmErasureTitle: 'Confirm account erasure', currentEmail: 'Current email', erasureAcknowledgement: 'I understand this action removes account data', confirmErasure: 'Confirm account erasure',
+    loading: 'Loading data requests', loadFailed: 'Unable to load data requests.', requestFailed: 'Unable to complete the data request.', actionRequired: 'This request needs further action.', ownerProgress: 'Data owner progress', download: 'Download data export', cancel: 'Cancel request',
+    types: { access_export: 'Data export', correction: 'Data correction', restrict_processing: 'Processing restriction', erasure: 'Account erasure' },
+    statuses: { submitted: 'Submitted', in_review: 'In review', processing: 'Processing', action_required: 'Action required', completed: 'Completed', rejected: 'Not accepted', cancelled: 'Cancelled' },
+    executionStatuses: { pending: 'Pending', running: 'Running', succeeded: 'Completed', failed: 'Retry required', manual: 'Manual check', not_applicable: 'Not applicable' },
+    owners: { account: 'Account', engagement: 'Engagement', notification: 'Notifications', asset: 'Assets', website_manual: 'Website manual check' },
+  },
+  ja: {
+    title: 'データとプライバシーのリクエスト', description: 'HHCアカウントに確実に紐づくプラットフォーム横断データを管理します。', newRequest: 'リクエストを作成',
+    requestExport: 'データを書き出す', updateProfile: 'プロフィールを更新', restrictProcessing: 'データ処理を制限', startErasure: 'アカウント削除を開始',
+    confirmErasureTitle: 'アカウント削除の確認', currentEmail: '現在のメールアドレス', erasureAcknowledgement: 'この操作でアカウントデータが削除されることを理解しました', confirmErasure: 'アカウント削除を確認',
+    loading: 'データリクエストを読み込んでいます', loadFailed: 'データリクエストを読み込めません。', requestFailed: 'データリクエストを完了できません。', actionRequired: 'このリクエストには追加の対応が必要です。', ownerProgress: 'データ管理システムの進捗', download: 'データを書き出してダウンロード', cancel: 'リクエストをキャンセル',
+    types: { access_export: 'データ書き出し', correction: 'データ修正', restrict_processing: '処理制限', erasure: 'アカウント削除' },
+    statuses: { submitted: '送信済み', in_review: '確認中', processing: '処理中', action_required: '対応が必要', completed: '完了', rejected: '未受付', cancelled: 'キャンセル済み' },
+    executionStatuses: { pending: '待機中', running: '処理中', succeeded: '完了', failed: '再試行が必要', manual: '手動確認', not_applicable: '対象外' },
+    owners: { account: 'アカウント', engagement: '通知設定', notification: '通知', asset: 'ファイル', website_manual: 'ウェブサイト手動確認' },
+  },
+  ko: {
+    title: '데이터 및 개인정보 요청', description: 'HHC 계정에 확실히 연결된 플랫폼 간 데이터를 관리해요.', newRequest: '요청 만들기',
+    requestExport: '데이터 내보내기 요청', updateProfile: '개인정보 업데이트', restrictProcessing: '데이터 처리 제한', startErasure: '계정 삭제 시작',
+    confirmErasureTitle: '계정 삭제 확인', currentEmail: '현재 이메일', erasureAcknowledgement: '이 작업으로 계정 데이터가 삭제됨을 이해합니다', confirmErasure: '계정 삭제 확인',
+    loading: '데이터 요청을 불러오는 중', loadFailed: '데이터 요청을 불러올 수 없어요.', requestFailed: '데이터 요청을 완료할 수 없어요.', actionRequired: '이 요청은 추가 처리가 필요해요.', ownerProgress: '데이터 담당 시스템 진행 상태', download: '데이터 내보내기 다운로드', cancel: '요청 취소',
+    types: { access_export: '데이터 내보내기', correction: '데이터 수정', restrict_processing: '처리 제한', erasure: '계정 삭제' },
+    statuses: { submitted: '제출됨', in_review: '검토 중', processing: '처리 중', action_required: '처리 필요', completed: '완료', rejected: '접수 안 됨', cancelled: '취소됨' },
+    executionStatuses: { pending: '대기 중', running: '처리 중', succeeded: '완료', failed: '재시도 필요', manual: '수동 확인', not_applicable: '해당 없음' },
+    owners: { account: '계정', engagement: '알림 설정', notification: '알림', asset: '파일', website_manual: '웹사이트 수동 확인' },
+  },
+} as const
+
 const messageCatalog = {
   'zh-Hant': {
     site: {
@@ -23,6 +76,7 @@ const messageCatalog = {
       security: '安全性',
       devices: '裝置',
       notificationSettings: '通知',
+      dataRequests: '資料請求',
       signIn: '登入',
       signOut: '登出',
       accountMenu: '帳號選單',
@@ -195,6 +249,7 @@ const messageCatalog = {
       emailVerified: 'Email 已驗證',
       emailNotVerified: 'Email 尚未驗證',
     },
+    dataRequests: dataRequestMessages['zh-Hant'],
     security: {
       loading: '載入安全性設定中...',
       signInMethods: '登入方式',
@@ -299,6 +354,7 @@ const messageCatalog = {
       security: '安全性',
       devices: '设备',
       notificationSettings: '通知',
+      dataRequests: '数据请求',
       signIn: '登录',
       signOut: '退出登录',
       accountMenu: '帐号菜单',
@@ -471,6 +527,7 @@ const messageCatalog = {
       emailVerified: 'Email 已验证',
       emailNotVerified: 'Email 尚未验证',
     },
+    dataRequests: dataRequestMessages['zh-Hans'],
     security: {
       loading: '正在加载安全设置...',
       signInMethods: '登录方式',
@@ -575,6 +632,7 @@ const messageCatalog = {
       security: 'Security',
       devices: 'Devices',
       notificationSettings: 'Notifications',
+      dataRequests: 'Data requests',
       signIn: 'Sign in',
       signOut: 'Sign out',
       accountMenu: 'Account menu',
@@ -747,6 +805,7 @@ const messageCatalog = {
       emailVerified: 'Email verified',
       emailNotVerified: 'Email not verified',
     },
+    dataRequests: dataRequestMessages.en,
     security: {
       loading: 'Loading security...',
       signInMethods: 'Sign-in methods',
@@ -851,6 +910,7 @@ const messageCatalog = {
       security: 'セキュリティ',
       devices: 'デバイス',
       notificationSettings: '通知',
+      dataRequests: 'データリクエスト',
       signIn: 'ログイン',
       signOut: 'ログアウト',
       accountMenu: 'アカウントメニュー',
@@ -1023,6 +1083,7 @@ const messageCatalog = {
       emailVerified: 'メールアドレス確認済み',
       emailNotVerified: 'メールアドレス未確認',
     },
+    dataRequests: dataRequestMessages.ja,
     security: {
       loading: 'セキュリティ設定を読み込んでいます...',
       signInMethods: 'ログイン方法',
@@ -1127,6 +1188,7 @@ const messageCatalog = {
       security: '보안',
       devices: '기기',
       notificationSettings: '알림',
+      dataRequests: '데이터 요청',
       signIn: '로그인',
       signOut: '로그아웃',
       accountMenu: '계정 메뉴',
@@ -1299,6 +1361,7 @@ const messageCatalog = {
       emailVerified: '이메일 인증 완료',
       emailNotVerified: '이메일 미인증',
     },
+    dataRequests: dataRequestMessages.ko,
     security: {
       loading: '보안 설정을 불러오는 중이에요...',
       signInMethods: '로그인 방법',

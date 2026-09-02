@@ -1,10 +1,23 @@
 import { describe, expect, it } from 'vitest'
 
 import { detectLocale, getLocaleCookie, getStoredLocale, locales } from './locales'
+import { messages } from './messages'
+
+function topology(value: object): unknown {
+  return Object.fromEntries(Object.entries(value).map(([key, nested]) => [
+    key,
+    nested && typeof nested === 'object' ? topology(nested) : typeof nested,
+  ]))
+}
 
 describe('account locales', () => {
   it('matches hhc-web supported locale values', () => {
     expect(locales).toEqual(['zh-Hant', 'zh-Hans', 'en', 'ja', 'ko'])
+  })
+
+  it('keeps complete message topology across all locales', () => {
+    const expected = topology(messages.en)
+    for (const locale of locales) expect(topology(messages[locale])).toEqual(expected)
   })
 
   it('reads the shared hhc_locale cookie', () => {
