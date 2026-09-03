@@ -563,6 +563,65 @@ textarea::selection {
   display: grid;
 }
 
+.dsr-operation-grid,
+.dsr-request-list {
+  display: grid;
+  gap: 14px;
+}
+
+.dsr-operation-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dsr-owner-progress {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dsr-owner-progress li {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0 9px 22px;
+  color: var(--color-muted);
+}
+
+.dsr-owner-progress li::before {
+  position: absolute;
+  top: 16px;
+  left: 3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  content: '';
+}
+
+.dsr-owner-progress li:not(:last-child)::after {
+  position: absolute;
+  top: 23px;
+  bottom: -7px;
+  left: 6px;
+  width: 1px;
+  background: var(--color-line);
+  content: '';
+}
+
+.dsr-owner-progress strong {
+  color: var(--color-ink);
+  font-size: 13px;
+}
+
+.dsr-request-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
 .settings-row {
   display: flex;
   min-height: 76px;
@@ -1357,6 +1416,10 @@ textarea::selection {
 }
 
 @media (max-width: 600px) {
+  .dsr-operation-grid {
+    grid-template-columns: 1fr;
+  }
+
   .auth-main-panel {
     align-items: start;
     padding: 28px 0 86px;

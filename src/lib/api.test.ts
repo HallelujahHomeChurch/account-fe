@@ -10,6 +10,93 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 describe('AccountApi', () => {
+  it('maps DSR requests, mutations, capability, and bearer retry exactly', async () => {
+    const calls: Array<{ input: string; init?: RequestInit }> = []
+    let token = 'old-token'
+    let listAttempts = 0
+    const request = {
+      id: '018f0c1f-18d0-7e81-9f6f-69c456db7001',
+      request_type: 'access_export' as const,
+      status: 'processing' as const,
+      identity_verified_at: '2026-09-03T00:00:00Z',
+      submitted_at: '2026-09-03T00:00:00Z',
+      version: 2,
+      executions: [{ owner: 'account' as const, action: 'export' as const, status: 'succeeded' as const, attempt_count: 1, result_summary: { record_count: 1 } }],
+    }
+    const api = new AccountApi({
+      baseUrl: '/api/account/v1',
+      getAccessToken: () => token,
+      setAccessToken: (value) => { token = value ?? '' },
+      fetcher: async (input, init) => {
+        const url = String(input)
+        calls.push({ input: url, init })
+        if (url.endsWith('/csrf-token')) return jsonResponse({ csrf_token: 'csrf-123' })
+        if (url.endsWith('/refresh')) return jsonResponse({ access_token: 'new-token' })
+        if (url.endsWith('/oauth-providers')) return jsonResponse({ providers: [], registration_enabled: false, dsr: { enabled: true } })
+        if (url.endsWith('/dsr/requests') && (!init?.method || init.method === 'GET') && ++listAttempts === 1) return jsonResponse({ message: 'expired' }, 401)
+        if (url.endsWith('/dsr/requests') && (!init?.method || init.method === 'GET')) return jsonResponse({ requests: [request] })
+        if (url.endsWith('/download')) return jsonResponse({ download_url: '/api/account/v1/dsr/downloads/opaque' })
+        return jsonResponse(request, init?.method === 'POST' ? 201 : 200)
+      },
+    })
+
+    await expect(api.getAuthCapabilities()).resolves.toMatchObject({ dsr: { enabled: true } })
+    await expect(api.listDSRRequests()).resolves.toEqual([request])
+    await expect(api.getDSRRequest(request.id)).resolves.toEqual(request)
+    await api.createDSRRequest('access_export')
+    await api.cancelDSRRequest(request.id, 2)
+    await api.confirmDSRErasure(request.id, 2, ' User@Example.com ')
+    await expect(api.issueDSRDownload(request.id)).resolves.toEqual({ download_url: '/api/account/v1/dsr/downloads/opaque' })
+
+    expect(calls.filter(({ input }) => input.endsWith('/dsr/requests')).at(-1)?.init?.body).toBe(JSON.stringify({ request_type: 'access_export' }))
+    expect(calls.find(({ input }) => input.endsWith('/cancel'))?.init?.body).toBe(JSON.stringify({ version: 2 }))
+    expect(calls.find(({ input }) => input.endsWith('/confirm-erasure'))?.init?.body).toBe(JSON.stringify({ version: 2, confirmation_email: ' User@Example.com ' }))
+    expect(calls.filter(({ input }) => input.endsWith('/dsr/requests')).slice(0, 2).map(({ init }) => new Headers(init?.headers).get('authorization'))).toEqual(['Bearer old-token', 'Bearer new-token'])
+    for (const call of calls.filter(({ input, init }) => init?.method === 'POST' && !input.endsWith('/refresh'))) {
+      expect(new Headers(call.init?.headers).get('x-csrf-token')).toBe('csrf-123')
+    }
+  })
+
+  it('redeems a DSR download with bearer retry and returns the ZIP blob', async () => {
+    let token = 'old-token'
+    const authorizations: Array<string | null> = []
+    const api = new AccountApi({
+      baseUrl: '/api/account/v1', getAccessToken: () => token,
+      setAccessToken: (value) => { token = value ?? '' },
+      fetcher: async (input, init) => {
+        if (String(input).endsWith('/csrf-token')) return jsonResponse({ csrf_token: 'csrf' })
+        if (String(input).endsWith('/refresh')) return jsonResponse({ access_token: 'new-token' })
+        authorizations.push(new Headers(init?.headers).get('authorization'))
+        return authorizations.length === 1
+          ? jsonResponse({ message: 'expired' }, 401)
+          : new Response('zip', { headers: { 'content-type': 'application/zip' } })
+      },
+    })
+
+    await expect((await api.redeemDSRDownload('/api/account/v1/dsr/downloads/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=')).text()).resolves.toBe('zip')
+    expect(authorizations).toEqual(['Bearer old-token', 'Bearer new-token'])
+  })
+
+  it('rejects a non-gateway DSR download URL before sending credentials', async () => {
+    const fetcher = vi.fn()
+    const api = new AccountApi({ baseUrl: '/api/account/v1', getAccessToken: () => 'secret', fetcher })
+
+    await expect(api.redeemDSRDownload('https://evil.example/export')).rejects.toThrow('Invalid DSR download URL')
+    expect(fetcher).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    '//evil.example/api/account/v1/dsr/downloads/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+    '/api/account/v1/dsr/downloads/../secret',
+    '/api/account/v1/dsr/downloads/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=?next=1',
+    '/api/account/v1/dsr/downloads/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=#fragment',
+    '/api/account/v1/dsr/downloads/%2Fsecret',
+  ])('rejects unsafe DSR download URL %s', async (url) => {
+    const fetcher = vi.fn()
+    const api = new AccountApi({ baseUrl: '/api/account/v1', getAccessToken: () => 'secret', fetcher })
+    await expect(api.redeemDSRDownload(url)).rejects.toThrow('Invalid DSR download URL')
+    expect(fetcher).not.toHaveBeenCalled()
+  })
   it('reads the non-rotating account session summary', async () => {
     const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
     const api = new AccountApi({

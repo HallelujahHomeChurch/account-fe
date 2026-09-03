@@ -1,12 +1,13 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { expect, it, vi } from 'vitest'
 
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
 import { ApiError } from '../lib/api'
 import { PolicyAcceptancePage } from './PolicyAcceptancePage'
+import { hasPostLoginReturnTo, savePostLoginReturnTo } from '../auth/auth-routes'
 
 it('keeps the resume token in memory and rotates stale versions', async () => {
   document.cookie = 'hhc_locale=en; Path=/'
@@ -38,6 +39,8 @@ it('keeps the resume token in memory and rotates stale versions', async () => {
 })
 
 it('offers restart when the fragment token is missing', async () => {
+  sessionStorage.clear()
+  savePostLoginReturnTo('/data-requests')
   window.history.replaceState(null, '', '/policy/acceptance')
   const api: AuthApi = {
     login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
@@ -45,4 +48,25 @@ it('offers restart when the fragment token is missing', async () => {
   }
   render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><PolicyAcceptancePage /></AuthProvider></LocaleProvider></MemoryRouter>)
   expect(screen.getByRole('link', { name: 'Start sign-in again' })).toHaveAttribute('href', '/login')
+  expect(hasPostLoginReturnTo()).toBe(false)
+})
+
+it('consumes a social callback continuation after policy acceptance', async () => {
+  sessionStorage.clear()
+  savePostLoginReturnTo('/data-requests')
+  window.history.replaceState(null, '', '/policy/acceptance#token=policy-token')
+  const api: AuthApi = {
+    login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+    refreshAccessToken: async () => null, logout: async () => ({}),
+    confirmPolicyAcceptance: async () => ({ access_token: 'access-token', redirect_type: 'profile' }),
+    getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, policy: { enforced: true, terms_version: 'terms-v1', privacy_notice_version: 'privacy-v1' } }),
+  }
+  render(<MemoryRouter initialEntries={['/policy/acceptance']}><LocaleProvider><AuthProvider api={api} restoreSession={false}><Routes>
+    <Route path="/policy/acceptance" element={<PolicyAcceptancePage />} />
+    <Route path="/data-requests" element={<h1>Data requests restored</h1>} />
+  </Routes></AuthProvider></LocaleProvider></MemoryRouter>)
+  await userEvent.click(await screen.findByRole('checkbox', { name: /I agree to the Terms of Use/i }))
+  await userEvent.click(screen.getByRole('button', { name: 'Continue' }))
+  expect(await screen.findByRole('heading', { name: 'Data requests restored' })).toBeInTheDocument()
+  expect(sessionStorage.getItem('hhc_account_post_login_return_to')).toBeNull()
 })

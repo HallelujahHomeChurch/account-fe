@@ -13,7 +13,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 
 import { LanguageSelector } from '../components/LanguageSelector'
 import { SocialAuthOptions, useAuthCapabilities } from '../components/SocialAuthOptions'
-import { safeReturnTo } from '../auth/auth-routes'
+import { clearPostLoginReturnTo, readPostLoginReturnTo, safeReturnTo, savePostLoginReturnTo } from '../auth/auth-routes'
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import { authErrorMessage } from '../auth/auth-form'
@@ -51,6 +51,13 @@ export function LoginPage() {
   const mfaSubtitle = t.login.mfaVerificationSubtitle
 
   useEffect(() => {
+    const pendingReturnTo = readPostLoginReturnTo()
+    if (authRequestId || (pendingReturnTo !== null && (pendingReturnTo === '/profile' || pendingReturnTo !== returnTo))) {
+      clearPostLoginReturnTo()
+    }
+  }, [authRequestId, returnTo])
+
+  useEffect(() => {
     if (!signedOut && !passwordChanged && !oauthError) return
 
     if (signedOut) {
@@ -62,6 +69,7 @@ export function LoginPage() {
       setIsSuccessNotice(true)
     }
     if (oauthError) {
+      clearPostLoginReturnTo()
       const message = {
         account_conflict: t.login.oauthAccountConflict,
         cancelled: t.login.oauthCancelled,
@@ -132,8 +140,10 @@ export function LoginPage() {
         authRequestId,
       })
       if (response.policy_acceptance_required && response.policy_token) {
+        if (!authRequestId) savePostLoginReturnTo(returnTo)
         navigate(`/policy/acceptance#token=${encodeURIComponent(response.policy_token)}`, { replace: true })
       } else if (response.access_token) {
+        clearPostLoginReturnTo()
         navigate(returnTo, { replace: true })
       } else if (!response.mfa_type) {
         setNotice(t.login.signedIn)
@@ -160,8 +170,10 @@ export function LoginPage() {
     try {
       const response = await auth.verifyMfa(code)
       if (response.policy_acceptance_required && response.policy_token) {
+        if (!authRequestId) savePostLoginReturnTo(returnTo)
         navigate(`/policy/acceptance#token=${encodeURIComponent(response.policy_token)}`, { replace: true })
       } else if (response.access_token) {
+        clearPostLoginReturnTo()
         navigate(returnTo, { replace: true })
       }
     } catch (caught) {
@@ -245,6 +257,7 @@ export function LoginPage() {
               authRequestId={authRequestId}
               dividerLabel={t.login.socialDivider}
               providerIds={capabilities?.providers ?? null}
+              returnTo={returnTo}
             />
           ) : null}
         </div>

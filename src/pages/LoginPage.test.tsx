@@ -7,6 +7,7 @@ import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
 import { LoginPage } from './LoginPage'
 import { ApiError } from '../lib/api'
+import { consumePostLoginReturnTo, hasPostLoginReturnTo, savePostLoginReturnTo } from '../auth/auth-routes'
 
 describe('LoginPage', () => {
   it.each([
@@ -241,11 +242,12 @@ describe('LoginPage', () => {
   })
 
   it('navigates a policy-required response with the token in the fragment', async () => {
+    sessionStorage.clear()
     const api: AuthApi = {
       login: async () => ({ policy_acceptance_required: true, policy_token: 'policy-token', terms_version: 'terms-v1', privacy_notice_version: 'privacy-v1' }),
       me: async () => ({ id: 'u1', email: 'admin' }), refreshAccessToken: async () => null, logout: async () => ({}),
     }
-    render(<MemoryRouter initialEntries={['/login']}><AuthProvider api={api} restoreSession={false}><Routes>
+    render(<MemoryRouter initialEntries={['/login?return_to=/data-requests']}><AuthProvider api={api} restoreSession={false}><Routes>
       <Route element={<LoginPage />} path="/login" />
       <Route element={<LocationHash />} path="/policy/acceptance" />
     </Routes></AuthProvider></MemoryRouter>)
@@ -253,6 +255,38 @@ describe('LoginPage', () => {
     await userEvent.type(screen.getByLabelText('Password'), 'admin123')
     await userEvent.click(screen.getByRole('button', { name: /next/i }))
     expect(await screen.findByTestId('location-hash')).toHaveTextContent('#token=policy-token')
+    expect(hasPostLoginReturnTo()).toBe(true)
+    expect(consumePostLoginReturnTo()).toBe('/data-requests')
+  })
+
+  it('preserves the safe return path when MFA leads to policy acceptance', async () => {
+    sessionStorage.clear()
+    const api: AuthApi = {
+      login: async () => ({ mfa_type: 'verification_required', mfa_token: 'mfa-123' }),
+      verifyMfa: async () => ({ policy_acceptance_required: true, policy_token: 'policy-token' }),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }), refreshAccessToken: async () => null, logout: async () => ({}),
+    }
+    render(<MemoryRouter initialEntries={['/login?return_to=/data-requests']}><AuthProvider api={api} restoreSession={false}><Routes>
+      <Route element={<LoginPage />} path="/login" />
+      <Route element={<LocationHash />} path="/policy/acceptance" />
+    </Routes></AuthProvider></MemoryRouter>)
+    await userEvent.type(screen.getByLabelText('Email'), 'admin@example.com')
+    await userEvent.type(screen.getByLabelText('Password'), 'secret123')
+    await userEvent.click(screen.getByRole('button', { name: /next/i }))
+    await userEvent.type(await screen.findByLabelText('Verification code'), '123456')
+    await userEvent.click(screen.getByRole('button', { name: /next/i }))
+
+    expect(await screen.findByTestId('location-hash')).toHaveTextContent('#token=policy-token')
+    expect(consumePostLoginReturnTo()).toBe('/data-requests')
+  })
+
+  it('clears a social continuation after a cancelled provider login', async () => {
+    sessionStorage.clear()
+    savePostLoginReturnTo('/data-requests')
+    const api: AuthApi = { login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }), refreshAccessToken: async () => null, logout: async () => ({}) }
+    render(<MemoryRouter initialEntries={['/login?oauth_error=cancelled']}><LocaleProvider><AuthProvider api={api} restoreSession={false}><LoginPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+    await screen.findByText('Sign-in was not completed. You can choose an account and try again.')
+    expect(hasPostLoginReturnTo()).toBe(false)
   })
 
   it('continues an existing account session without showing a refresh error', async () => {
@@ -339,6 +373,8 @@ describe('LoginPage', () => {
   })
 
   it('passes auth_request_id from the URL into account-api login', async () => {
+    sessionStorage.clear()
+    savePostLoginReturnTo('/data-requests')
     let requestAuthId = ''
     const api: AuthApi = {
       login: async (request) => {
@@ -364,6 +400,7 @@ describe('LoginPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /next/i }))
 
     expect(requestAuthId).toBe('req-123')
+    expect(hasPostLoginReturnTo()).toBe(false)
     expect(await screen.findByRole('heading', { name: /multi-factor authentication/i })).toBeInTheDocument()
     expect(screen.queryByText(/MFA setup required/i)).not.toBeInTheDocument()
   })
@@ -462,6 +499,79 @@ describe('LoginPage', () => {
     expect(await screen.findByRole('heading', { name: /profile reached/i })).toBeInTheDocument()
   })
 
+  it('clears a stale continuation before a password login returns elsewhere', async () => {
+    sessionStorage.clear()
+    savePostLoginReturnTo('/data-requests')
+    const api: AuthApi = {
+      login: async () => ({ access_token: 'access-123' }),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken: async () => null, logout: async () => ({}),
+    }
+    render(<MemoryRouter initialEntries={['/login?return_to=/security']}><AuthProvider api={api} restoreSession={false}><Routes>
+      <Route element={<LoginPage />} path="/login" />
+      <Route element={<h1>Security reached</h1>} path="/security" />
+    </Routes></AuthProvider></MemoryRouter>)
+
+    await userEvent.type(screen.getByLabelText('Email'), 'admin@example.com')
+    await userEvent.type(screen.getByLabelText('Password'), 'secret123')
+    await userEvent.click(screen.getByRole('button', { name: /next/i }))
+
+    expect(await screen.findByRole('heading', { name: 'Security reached' })).toBeInTheDocument()
+    expect(hasPostLoginReturnTo()).toBe(false)
+  })
+
+  it('clears a stale continuation before an MFA login returns elsewhere', async () => {
+    sessionStorage.clear()
+    savePostLoginReturnTo('/data-requests')
+    const api: AuthApi = {
+      login: async () => ({ mfa_type: 'verification_required', mfa_token: 'mfa-123' }),
+      verifyMfa: async () => ({ access_token: 'access-123' }),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken: async () => null, logout: async () => ({}),
+    }
+    render(<MemoryRouter initialEntries={['/login?return_to=/security']}><AuthProvider api={api} restoreSession={false}><Routes>
+      <Route element={<LoginPage />} path="/login" />
+      <Route element={<h1>Security reached</h1>} path="/security" />
+    </Routes></AuthProvider></MemoryRouter>)
+
+    await userEvent.type(screen.getByLabelText('Email'), 'admin@example.com')
+    await userEvent.type(screen.getByLabelText('Password'), 'secret123')
+    await userEvent.click(screen.getByRole('button', { name: /next/i }))
+    await userEvent.type(await screen.findByLabelText('Verification code'), '123456')
+    await userEvent.click(screen.getByRole('button', { name: /next/i }))
+
+    expect(await screen.findByRole('heading', { name: 'Security reached' })).toBeInTheDocument()
+    expect(hasPostLoginReturnTo()).toBe(false)
+  })
+
+  it.each(['password', 'mfa'])('clears a matching DSR continuation after direct %s success', async (flow) => {
+    sessionStorage.clear()
+    savePostLoginReturnTo('/data-requests')
+    const api: AuthApi = {
+      login: async () => flow === 'mfa'
+        ? { mfa_type: 'verification_required', mfa_token: 'mfa-123' }
+        : { access_token: 'access-123' },
+      verifyMfa: async () => ({ access_token: 'access-123' }),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken: async () => null, logout: async () => ({}),
+    }
+    render(<MemoryRouter initialEntries={['/login?return_to=/data-requests']}><AuthProvider api={api} restoreSession={false}><Routes>
+      <Route element={<LoginPage />} path="/login" />
+      <Route element={<h1>Data requests reached</h1>} path="/data-requests" />
+    </Routes></AuthProvider></MemoryRouter>)
+
+    await userEvent.type(screen.getByLabelText('Email'), 'admin@example.com')
+    await userEvent.type(screen.getByLabelText('Password'), 'secret123')
+    await userEvent.click(screen.getByRole('button', { name: /next/i }))
+    if (flow === 'mfa') {
+      await userEvent.type(await screen.findByLabelText('Verification code'), '123456')
+      await userEvent.click(screen.getByRole('button', { name: /next/i }))
+    }
+
+    expect(await screen.findByRole('heading', { name: 'Data requests reached' })).toBeInTheDocument()
+    expect(hasPostLoginReturnTo()).toBe(false)
+  })
+
   it('renders OAuth provider links as circular icon buttons below the email login flow', async () => {
     const api: AuthApi = {
       login: async () => ({ access_token: 'token' }),
@@ -505,6 +615,24 @@ describe('LoginPage', () => {
       'href',
       '/api/account/v1/oauth2/microsoft/login',
     )
+  })
+
+  it('stores a safe one-time return path only for direct social sign-in', async () => {
+    sessionStorage.clear()
+    const api: AuthApi = {
+      login: async () => ({}), me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken: async () => null, logout: async () => ({}),
+      getAuthCapabilities: async () => ({ providers: ['google'], registrationEnabled: false }),
+      getSocialLoginUrl: () => '#',
+    }
+    const first = render(<MemoryRouter initialEntries={['/login?return_to=/data-requests']}><LocaleProvider><AuthProvider api={api} restoreSession={false}><LoginPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+    await userEvent.click(await screen.findByLabelText('Continue with Google'))
+    expect(consumePostLoginReturnTo()).toBe('/data-requests')
+    first.unmount()
+
+    render(<MemoryRouter initialEntries={['/login?return_to=/data-requests&auth_request_id=req-1']}><LocaleProvider><AuthProvider api={api} restoreSession={false}><LoginPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+    await userEvent.click(await screen.findByLabelText('Continue with Google'))
+    expect(consumePostLoginReturnTo()).toBe('/profile')
   })
 
   it('shows account registration on the regular login flow when enabled', async () => {

@@ -8,6 +8,7 @@ import { LegalAcceptance } from '../components/LegalAcceptance'
 import { useAuthCapabilitiesState } from '../components/SocialAuthOptions'
 import { useLocale } from '../i18n/locale-context'
 import { ApiError, type PolicyCapabilities } from '../lib/api'
+import { clearPostLoginReturnTo, consumePostLoginReturnTo } from '../auth/auth-routes'
 
 export function PolicyAcceptancePage() {
   const auth = useAuth()
@@ -24,8 +25,9 @@ export function PolicyAcceptancePage() {
   const policyReady = Boolean(policy?.terms_version && policy.privacy_notice_version)
 
   useEffect(() => {
+    if (!token) clearPostLoginReturnTo()
     if (window.location.hash) window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
-  }, [])
+  }, [token])
 
   async function submit() {
     if (!token || !policy?.terms_version || !policy.privacy_notice_version || !accepted || !auth.api.confirmPolicyAcceptance) return
@@ -39,7 +41,7 @@ export function PolicyAcceptancePage() {
         locale,
       })
       await auth.completeLogin(response)
-      if (response.redirect_type !== 'oauth') navigate('/profile', { replace: true })
+      if (response.redirect_type !== 'oauth') navigate(consumePostLoginReturnTo(), { replace: true })
     } catch (caught) {
       if (caught instanceof ApiError && caught.code === 'ACC_POLICY_VERSION_CHANGED') {
         const data = caught.data as Partial<PolicyCapabilities & { policy_token: string }>
@@ -55,6 +57,7 @@ export function PolicyAcceptancePage() {
         }
       }
       if (caught instanceof ApiError && ['ACC_POLICY_TOKEN_INVALID', 'ACC_AUTH_INVALID'].includes(caught.code ?? '')) {
+        clearPostLoginReturnTo()
         setInvalid(true)
       } else {
         setError(t.policyAcceptance.failed)

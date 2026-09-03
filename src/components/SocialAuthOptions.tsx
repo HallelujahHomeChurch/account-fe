@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { useAuth } from '../auth/auth-context'
+import { savePostLoginReturnTo } from '../auth/auth-routes'
 import { useLocale } from '../i18n/locale-context'
 import type { AuthCapabilities } from '../lib/api'
 import { SocialIcon } from './SocialIcon'
@@ -17,19 +18,21 @@ type SocialAuthOptionsProps = {
   authRequestId?: string
   dividerLabel: string
   dividerPosition?: 'before' | 'after'
+  returnTo?: string
 }
 
 export function useAuthCapabilities() {
   return useAuthCapabilitiesState().capabilities
 }
 
-export function useAuthCapabilitiesState() {
+export function useAuthCapabilitiesState(enabled = true) {
   const auth = useAuth()
   const [capabilities, setCapabilities] = useState<AuthCapabilities | null>(null)
   const [error, setError] = useState(false)
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
+    if (!enabled) return
     let active = true
     const request = auth.api.getAuthCapabilities
       ? auth.api.getAuthCapabilities()
@@ -57,7 +60,7 @@ export function useAuthCapabilitiesState() {
     return () => {
       active = false
     }
-  }, [attempt, auth.api])
+  }, [attempt, auth.api, enabled])
 
   return { capabilities, error, retry: () => setAttempt((value) => value + 1) }
 }
@@ -67,6 +70,7 @@ export function SocialAuthOptions({
   authRequestId,
   dividerLabel,
   dividerPosition = 'before',
+  returnTo,
 }: SocialAuthOptionsProps) {
   const auth = useAuth()
   const { messages: t } = useLocale()
@@ -99,6 +103,9 @@ export function SocialAuthOptions({
               aria-label={label}
               className={`social-icon-button social-icon-button--${link.id}`}
               href={link.href}
+              onClick={() => {
+                if (returnTo && !authRequestId) savePostLoginReturnTo(returnTo)
+              }}
               title={label}
             >
               <SocialIcon provider={link.id} />
