@@ -75,7 +75,7 @@ describe('DataRequestsPage', () => {
   it('redirects stale authentication to normal login with return path', async () => {
     renderPage({ createDSRRequest: async () => { throw new ApiError(401, 'reauth', 'ACC_DSR_REAUTH_REQUIRED') } })
     await userEvent.click(await screen.findByRole('button', { name: 'Request data export' }))
-    expect(await screen.findByTestId('location')).toHaveTextContent('/login?return_to=%2Fdata-requests')
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/login?return_to=%2Fdata-requests'))
   })
 
   it('resumes a submitted erasure confirmation after returning from sign-in', async () => {
