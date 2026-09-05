@@ -1,4 +1,4 @@
-import { AccountMenu, BrandLoadingScreen, Button, Drawer, Toast, ToastProvider } from '@hallelujahhomechurch/ui'
+import { AccountMenu, BrandLoadingScreen, Button, Drawer, Skeleton, Toast, ToastProvider } from '@hallelujahhomechurch/ui'
 import { Bell, FileArchive, Menu, MonitorSmartphone, ShieldCheck, UserRound } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
@@ -92,8 +92,6 @@ function LayoutContent() {
   if (hasLineLinkAutoContinue()) {
     return <Navigate replace to="/line/bind" />
   }
-
-  if (hasPostLoginReturnTo()) return <PostLoginContinuation />
 
   return (
     <div className="app-shell">
@@ -221,7 +219,7 @@ function LayoutContent() {
             ) : null}
           </header>
           <main className="main-panel">
-            <Routes>
+            {hasPostLoginReturnTo() ? <PostLoginContinuation /> : <Routes>
               <Route element={<ProfilePage />} path="/profile" />
               <Route element={<SecurityPage />} path="/security" />
               <Route element={<DevicesPage />} path="/devices" />
@@ -230,12 +228,12 @@ function LayoutContent() {
                 element={dsrEnabled
                   ? <DataRequestsPage />
                   : !capabilities && !capabilitiesError
-                    ? <BrandLoadingScreen label={t.dataRequests.loading} />
+                    ? <Skeleton className="account-page-skeleton" label={t.dataRequests.loading} />
                     : <Navigate replace to="/profile" />}
                 path="/data-requests"
               />
               <Route element={<Navigate replace to="/profile" />} path="*" />
-            </Routes>
+            </Routes>}
           </main>
         </div>
       </div>
@@ -243,7 +241,7 @@ function LayoutContent() {
   )
 }
 
-function PostLoginContinuation() {
+export function PostLoginContinuation() {
   const navigate = useNavigate()
   const handled = useRef(false)
   const { messages: t } = useLocale()
@@ -252,7 +250,7 @@ function PostLoginContinuation() {
     handled.current = true
     navigate(consumePostLoginReturnTo(), { replace: true })
   }, [navigate])
-  return <BrandLoadingScreen label={t.profile.loading} />
+  return <Skeleton className="account-page-skeleton" label={t.profile.loading} />
 }
 
 export default function Layout() {
