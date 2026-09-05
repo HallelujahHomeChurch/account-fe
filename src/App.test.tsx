@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import App from './App'
+import App, { PostLoginContinuation } from './App'
 import { AuthProvider, type AuthApi } from './auth/auth-context'
 import { LocaleProvider } from './i18n/locale-context'
 import { ApiError } from './lib/api'
@@ -31,6 +31,34 @@ afterEach(() => {
 })
 
 describe('App layout', () => {
+  it('keeps post-login continuation inside the account content area', () => {
+    savePostLoginReturnTo('/security')
+    render(
+      <MemoryRouter initialEntries={['/profile']}>
+        <LocaleProvider><PostLoginContinuation /></LocaleProvider>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('status', { name: 'Loading account...' })).toHaveClass('account-page-skeleton')
+    expect(document.querySelector('.hhc-brand-loading-screen')).not.toBeInTheDocument()
+  })
+
+  it('keeps capability loading inside the account content area', async () => {
+    render(
+      <MemoryRouter initialEntries={['/data-requests']}>
+        <LocaleProvider>
+          <AuthProvider api={{ ...signedInApi, getAuthCapabilities: () => new Promise(() => undefined) }}>
+            <App />
+          </AuthProvider>
+        </LocaleProvider>
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('navigation', { name: 'Account navigation' })
+    expect(screen.getByRole('status', { name: 'Loading data requests' })).toHaveClass('account-page-skeleton')
+    expect(document.querySelector('.hhc-brand-loading-screen')).not.toBeInTheDocument()
+  })
+
   it('hides data requests navigation and route while DSR is disabled', async () => {
     render(
       <MemoryRouter initialEntries={['/data-requests']}>
