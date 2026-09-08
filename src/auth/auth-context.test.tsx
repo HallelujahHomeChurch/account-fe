@@ -92,7 +92,7 @@ describe('AuthProvider', () => {
     const api: AuthApi = {
       getSession: async () => ({
         authenticated: true as const,
-        user: { id: 'u1', email: 'admin@example.com', display_name: 'Initial', avatar_url: null },
+        user: { id: 'u1', email: 'admin@example.com', display_name: 'Initial', avatar_url: null, permissions: [] },
       }),
       issueAccessToken: async () => 'access-123',
       login: async () => ({}),
@@ -158,7 +158,7 @@ describe('AuthProvider', () => {
     const api: AuthApi = {
       getSession: async () => ({
         authenticated: true as const,
-        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null, permissions: [] },
       }),
       issueAccessToken: async () => 'access-123',
       login: async () => ({}),
@@ -346,7 +346,7 @@ describe('AuthProvider', () => {
   it('issues a non-rotating access token and loads the profile when a session exists', async () => {
     const getSession = vi.fn(async () => ({
       authenticated: true as const,
-      user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+      user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null, permissions: [] },
     }))
     const refreshAccessToken = vi.fn(async () => 'access-123')
     const issueAccessToken = vi.fn(async () => 'access-123')
@@ -486,7 +486,7 @@ describe('AuthProvider', () => {
     const api: AuthApi = {
       getSession: async () => ({
         authenticated: true as const,
-        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null, permissions: [] },
       }),
       login: async () => ({}),
       me,
@@ -515,11 +515,11 @@ describe('AuthProvider', () => {
     vi.useFakeTimers()
     let finishSession!: (session: {
       authenticated: true
-      user: { id: string; email: string; display_name: string; avatar_url: null }
+      user: { id: string; email: string; display_name: string; avatar_url: null; permissions: string[] }
     }) => void
     const getSession = vi.fn(() => new Promise<{
       authenticated: true
-      user: { id: string; email: string; display_name: string; avatar_url: null }
+      user: { id: string; email: string; display_name: string; avatar_url: null; permissions: string[] }
     }>((resolve) => {
       finishSession = resolve
     }))
@@ -551,7 +551,7 @@ describe('AuthProvider', () => {
       await act(async () => {
         finishSession({
           authenticated: true,
-          user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+          user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null, permissions: [] },
         })
         await vi.advanceTimersByTimeAsync(0)
       })
@@ -567,7 +567,7 @@ describe('AuthProvider', () => {
   it('ignores non-persisted pageshow session revalidation', async () => {
     const getSession = vi.fn(async () => ({
       authenticated: true as const,
-      user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+      user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null, permissions: [] },
     }))
     const refreshAccessToken = vi.fn(async () => 'access-123')
     const issueAccessToken = vi.fn(async () => 'access-123')
@@ -601,7 +601,7 @@ describe('AuthProvider', () => {
   it('debounces focus and visibility session revalidation after bootstrap', async () => {
     const getSession = vi.fn(async () => ({
       authenticated: true as const,
-      user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+      user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null, permissions: [] },
     }))
     const refreshAccessToken = vi.fn(async () => 'access-123')
     const issueAccessToken = vi.fn(async () => 'access-123')
@@ -636,7 +636,7 @@ describe('AuthProvider', () => {
     const api: AuthApi = {
       getSession: async () => ({
         authenticated: true as const,
-        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null, permissions: [] },
       }),
       login: async () => ({}),
       me,
@@ -750,7 +750,7 @@ describe('AuthProvider', () => {
     const api: AuthApi = {
       getSession: async () => ({
         authenticated: true as const,
-        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null, permissions: [] },
       }),
       login: async () => ({}),
       me: async () => ({ id: 'u1', email: 'admin@example.com' }),
