@@ -273,10 +273,15 @@ describe('App layout', () => {
     )
 
     await user.click(await screen.findByLabelText(/account menu/i))
-    expect(await screen.findByRole('menuitem', { name: 'Official site' })).toHaveAttribute(
-      'href',
-      'https://www.alive.org.tw/en',
-    )
+    const productLinks = await screen.findAllByRole('menuitem')
+    expect(productLinks.map((item) => item.textContent)).toEqual([
+      'Official site',
+      'Projection system',
+      'Sign out',
+    ])
+    expect(productLinks[0]).toHaveAttribute('href', 'https://www.alive.org.tw/en')
+    expect(productLinks[1]).toHaveAttribute('href', 'https://client.alive.org.tw/')
+    expect(screen.queryByRole('menuitem', { name: 'Admin' })).not.toBeInTheDocument()
     expect(
       document.querySelector('.hhc-account-menu__identity-text[title="ray@example.com"]'),
     ).toBeInTheDocument()
@@ -294,6 +299,41 @@ describe('App layout', () => {
     expect(
       document.querySelector('.hhc-account-menu__identity-text[title="ray@example.com"]'),
     ).not.toBeInTheDocument()
+  })
+
+  it('shows admin management only for an account with admin access', async () => {
+    const user = userEvent.setup()
+    const adminApi: AuthApi = {
+      ...signedInApi,
+      me: async () => ({
+        id: 'u1',
+        email: 'ray@example.com',
+        first_name: 'Ray',
+        last_name: 'Self',
+        permissions: ['cms:read'],
+      }),
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/profile']}>
+        <AuthProvider api={adminApi}>
+          <App />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    await user.click(await screen.findByLabelText(/account menu/i))
+    const productLinks = await screen.findAllByRole('menuitem')
+    expect(productLinks.map((item) => item.textContent)).toEqual([
+      'Official site',
+      'Projection system',
+      'Admin',
+      'Sign out',
+    ])
+    expect(screen.getByRole('menuitem', { name: 'Admin' })).toHaveAttribute(
+      'href',
+      'https://admin.alive.org.tw/',
+    )
   })
 
   it('opens and dismisses the mobile account navigation drawer', async () => {
