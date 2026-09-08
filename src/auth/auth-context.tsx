@@ -127,6 +127,10 @@ function defaultNavigateExternal(url: string) {
   window.location.assign(url)
 }
 
+function hasSharedSignOut() {
+  return document.cookie.split(';').some((cookie) => cookie.trim() === 'hhc_sso_hint=0')
+}
+
 export function AuthProvider({
   children,
   api: injectedApi,
@@ -357,6 +361,21 @@ export function AuthProvider({
     navigateAfterLogout(redirectTo)
   }, [commitState, navigateAfterLogout])
 
+  const resolveSharedSignOut = useCallback(async (): Promise<AuthState | null> => {
+    if (config.mockApi || !hasSharedSignOut()) return null
+    try {
+      await (api.logoutAll ? api.logoutAll() : api.logout())
+      return { ...emptyAuthState, status: 'anonymous' }
+    } catch {
+      return {
+        ...stateRef.current,
+        status: 'unavailable',
+        accessToken: null,
+        bootstrapError: errorLabelsRef.current.sessionCheckFailed,
+      }
+    }
+  }, [api, config.mockApi])
+
   const resolveState = useCallback(async (revision: number): Promise<AuthState> => {
     const session = api.getSession
       ? await resolveAccountAuth({ getSession: api.getSession })
@@ -369,6 +388,8 @@ export function AuthProvider({
         bootstrapError: errorLabelsRef.current.sessionCheckFailed,
       }
     }
+    const sharedSignOut = await resolveSharedSignOut()
+    if (sharedSignOut) return sharedSignOut
 
     try {
       const token = api.issueAccessToken
@@ -403,7 +424,7 @@ export function AuthProvider({
         bootstrapError: errorLabelsRef.current.sessionCheckFailed,
       }
     }
-  }, [api, setTokenRef])
+  }, [api, resolveSharedSignOut, setTokenRef])
 
   const revalidateSession = useCallback(() => {
     if (revalidationRef.current) return revalidationRef.current
@@ -415,6 +436,8 @@ export function AuthProvider({
       if (stateRef.current.status !== 'authenticated' || !tokenRef.current) {
         return resolveState(revision)
       }
+      const sharedSignOut = await resolveSharedSignOut()
+      if (sharedSignOut) return sharedSignOut
       try {
         const profile = await api.me()
         return { ...stateRef.current, accessToken: tokenRef.current, profile, bootstrapError: null }
@@ -455,6 +478,7 @@ export function AuthProvider({
           next.status === 'anonymous'
           && authorizeMissingSession
           && !config.mockApi
+          && !hasSharedSignOut()
           && !isAuthRoutePath(window.location.pathname)
         ) {
           await beginAuthorization(currentReturnTo(window.location))
@@ -467,7 +491,7 @@ export function AuthProvider({
       })
     revalidationRef.current = request
     return request
-  }, [api, authorizeMissingSession, beginAuthorization, commitState, config.mockApi, resolveState, setTokenRef])
+  }, [api, authorizeMissingSession, beginAuthorization, commitState, config.mockApi, resolveSharedSignOut, resolveState, setTokenRef])
 
   useEffect(() => {
     let alive = true
@@ -494,6 +518,7 @@ export function AuthProvider({
         if (!alive || bootstrapRef.current?.revision !== authRevisionRef.current) return
         const shouldAuthorize = authorizeMissingSession
           && !config.mockApi
+          && !hasSharedSignOut()
           && !isAuthRoutePath(initialRouteRef.current.pathname)
         if (result.status === 'anonymous' && shouldAuthorize) {
           await beginAuthorization(currentReturnTo(initialRouteRef.current))

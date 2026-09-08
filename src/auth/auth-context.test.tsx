@@ -2,7 +2,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { StrictMode } from 'react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider, RoutedAuthProvider, useAuth, type AuthApi } from './auth-context'
 import { LocaleProvider, useLocale } from '../i18n/locale-context'
@@ -84,6 +84,10 @@ function LocaleRefreshProbe() {
 }
 
 describe('AuthProvider', () => {
+  afterEach(() => {
+    document.cookie = 'hhc_sso_hint=; Max-Age=0; Path=/'
+  })
+
   it('does not restore a cached bootstrap profile when the locale changes', async () => {
     document.cookie = 'hhc_locale=en; Path=/'
     const me = vi.fn()
@@ -629,6 +633,35 @@ describe('AuthProvider', () => {
     expect(getSession).toHaveBeenCalledTimes(1)
     expect(issueAccessToken).toHaveBeenCalledTimes(1)
     expect(refreshAccessToken).not.toHaveBeenCalled()
+  })
+
+  it('clears a host session when another HHC site publishes the shared sign-out marker', async () => {
+    const logoutAll = vi.fn(async () => undefined)
+    const api: AuthApi = {
+      getSession: async () => ({
+        authenticated: true as const,
+        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null, permissions: [] },
+      }),
+      login: async () => ({}),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      issueAccessToken: async () => 'access-123',
+      refreshAccessToken: async () => 'access-123',
+      logout: async () => ({}),
+      logoutAll,
+    }
+
+    render(
+      <AuthProvider api={api}>
+        <LoginProbe />
+      </AuthProvider>,
+    )
+    expect(await screen.findByTestId('status')).toHaveTextContent('authenticated')
+
+    document.cookie = 'hhc_sso_hint=0; Path=/'
+    window.dispatchEvent(new Event('focus'))
+
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('anonymous'))
+    expect(logoutAll).toHaveBeenCalledOnce()
   })
 
   it('revalidates once after a persisted pageshow', async () => {
