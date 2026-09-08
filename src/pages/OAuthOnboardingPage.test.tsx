@@ -103,7 +103,7 @@ it('verifies email before confirming an existing account link', async () => {
   const api: AuthApi = {
     login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
     refreshAccessToken: async () => 'access-token', logout: async () => ({}),
-    getSession: async () => ({ authenticated: true, user: { id: 'u1', email: 'user@example.com', display_name: 'Test', avatar_url: '' } }),
+    getSession: async () => ({ authenticated: true, user: { id: 'u1', email: 'user@example.com', display_name: 'Test', avatar_url: '', permissions: [] } }),
     issueAccessToken: async () => 'access-token', sendOAuthOnboardingCode: send,
     verifyOAuthOnboardingCode: verify, completeOAuthOnboarding: complete,
   }

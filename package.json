@@ -18,7 +18,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@hallelujahhomechurch/account-client": "0.6.7",
+    "@hallelujahhomechurch/account-client": "0.7.0",
     "@hallelujahhomechurch/preferences": "0.6.7",
     "@hallelujahhomechurch/ui": "0.6.7",
     "@sentry/react": "10.69.0",

@@ -73,6 +73,7 @@ export class MockAccountApi {
             email: this.profile.email,
             display_name: [this.profile.first_name, this.profile.last_name].filter(Boolean).join(' '),
             avatar_url: this.profile.avatar_url ?? null,
+            permissions: this.profile.permissions ?? [],
           },
         }
       : { authenticated: false as const }
