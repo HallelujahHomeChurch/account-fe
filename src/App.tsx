@@ -1,4 +1,5 @@
 import { AccountMenu, BrandLoadingScreen, Button, Drawer, Skeleton, Toast, ToastProvider } from '@hallelujahhomechurch/ui'
+import { canAccessAdmin } from '@hallelujahhomechurch/account-client'
 import { Bell, FileArchive, Menu, MonitorSmartphone, ShieldCheck, UserRound } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
@@ -201,10 +202,15 @@ function LayoutContent() {
               labels={{
                 greeting: `Hi ${accountGreetingName(auth.profile)}`,
                 menu: t.nav.accountMenu,
-                manageAccount: t.nav.churchSite,
                 signOut: t.nav.signOut,
               }}
-              manageAccountHref={`${publicSiteUrl}/${locale}`}
+              links={[
+                { id: 'official-site', label: t.nav.churchSite, href: `${publicSiteUrl}/${locale}` },
+                { id: 'projection', label: t.nav.projectionSystem, href: 'https://client.alive.org.tw/' },
+                ...(canAccessAdmin(auth.profile.permissions ?? [])
+                  ? [{ id: 'admin', label: t.nav.adminManagement, href: 'https://admin.alive.org.tw/' }]
+                  : []),
+              ]}
               user={{
                 avatarUrl: auth.profile.avatar_url,
                 email: auth.profile.email,
