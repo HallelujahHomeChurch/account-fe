@@ -7,6 +7,23 @@ import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
 import { RegisterPage } from './RegisterPage'
 
+it('shows the Privacy Notice while policy enforcement is disabled', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  const api: AuthApi = {
+    login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+    refreshAccessToken: async () => null, logout: async () => ({}), register: async () => ({}),
+    getAuthCapabilities: async () => ({
+      providers: [], registrationEnabled: true,
+      policy: { enforced: false, terms_version: 'terms-v1', privacy_notice_version: 'privacy-v1' },
+    }),
+  }
+
+  render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><RegisterPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+  expect(await screen.findByRole('link', { name: 'Privacy Notice' })).toHaveAttribute('href', 'https://www.alive.org.tw/en/privacy-policy')
+  expect(screen.queryByRole('checkbox', { name: /I agree to the Terms of Use/i })).not.toBeInTheDocument()
+})
+
 it('requires current policy acceptance without coupling newsletter consent', async () => {
   document.cookie = 'hhc_locale=en; Path=/'
   const register = vi.fn(async () => ({}))
