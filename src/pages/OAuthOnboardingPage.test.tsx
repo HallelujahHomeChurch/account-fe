@@ -8,7 +8,7 @@ import { LocaleProvider } from '../i18n/locale-context'
 import { OAuthOnboardingPage } from './OAuthOnboardingPage'
 import { ApiError } from '../lib/api'
 
-it('shows the Privacy Notice and omits policy evidence while enforcement is disabled', async () => {
+it('omits duplicate Privacy Notice and policy evidence while enforcement is disabled', async () => {
   document.cookie = 'hhc_locale=en; Path=/'
   window.history.replaceState(null, '', '/oauth/onboarding#token=pending-token')
   const complete = vi.fn(async () => ({ success: true, redirect_type: 'profile' as const }))
@@ -20,7 +20,7 @@ it('shows the Privacy Notice and omits policy evidence while enforcement is disa
   }
   render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><OAuthOnboardingPage /></AuthProvider></LocaleProvider></MemoryRouter>)
 
-  expect(await screen.findByRole('link', { name: 'Privacy Notice' })).toHaveAttribute('href', 'https://www.alive.org.tw/en/privacy-policy')
+  expect(screen.queryByRole('link', { name: 'Privacy Notice' })).not.toBeInTheDocument()
   await userEvent.click(await screen.findByRole('button', { name: 'Continue' }))
 
   expect(complete).toHaveBeenCalledWith('pending-token', false)

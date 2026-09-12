@@ -23,6 +23,7 @@ export type LoginRequest = {
   email: string
   password: string
   authRequestId?: string
+  turnstileToken?: string
 }
 
 export type LoginResponse = {
@@ -213,6 +214,7 @@ export class AccountApi {
       body: {
         email: request.email,
         password: request.password,
+        turnstile_token: request.turnstileToken,
       },
     })
   }

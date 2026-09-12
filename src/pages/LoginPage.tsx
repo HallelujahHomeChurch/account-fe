@@ -8,7 +8,7 @@ import {
   REGEXP_ONLY_DIGITS,
   TextField,
 } from '@hallelujahhomechurch/ui'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { LanguageSelector } from '../components/LanguageSelector'
@@ -17,6 +17,8 @@ import { clearPostLoginReturnTo, readPostLoginReturnTo, safeReturnTo, savePostLo
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import { authErrorMessage } from '../auth/auth-form'
+import { Turnstile } from '../components/Turnstile'
+import { readRuntimeConfig } from '../lib/redirects'
 
 export function LoginPage() {
   const auth = useAuth()
@@ -45,6 +47,10 @@ export function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const capabilities = useAuthCapabilities()
   const registrationEnabled = capabilities?.registrationEnabled === true
+  const [turnstileToken, setTurnstileToken] = useState('')
+  const [turnstileAttempt, setTurnstileAttempt] = useState(0)
+  const [turnstileSiteKey] = useState(() => readRuntimeConfig().turnstileSiteKey ?? '')
+  const handleTurnstileToken = useCallback((token: string) => setTurnstileToken(token), [])
 
   const title = t.login.brandTitle
   const challenge = auth.mfaChallenge
@@ -126,6 +132,7 @@ export function LoginPage() {
 
   async function submitLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (turnstileSiteKey && !turnstileToken) return
     setError('')
     setNotice('')
     setIsSuccessNotice(false)
@@ -138,6 +145,7 @@ export function LoginPage() {
         email: String(form.get('email') ?? ''),
         password: String(form.get('password') ?? ''),
         authRequestId,
+        turnstileToken: turnstileToken || undefined,
       })
       if (response.policy_acceptance_required && response.policy_token) {
         if (!authRequestId) savePostLoginReturnTo(returnTo)
@@ -154,6 +162,10 @@ export function LoginPage() {
         ACC_AUTH_INVALID_CREDENTIALS: t.login.invalidCredentials,
         ACC_AUTH_RATE_LIMITED: t.login.rateLimited,
       }))
+      if (turnstileSiteKey) {
+        setTurnstileToken('')
+        setTurnstileAttempt((attempt) => attempt + 1)
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -241,11 +253,12 @@ export function LoginPage() {
               <Link className="muted-link forgot-password-link" to="/forgot-password">
                 {t.login.forgotPassword}
               </Link>
+              <Turnstile key={turnstileAttempt} siteKey={turnstileSiteKey} onToken={handleTurnstileToken} />
               <div className="login-actions">
                 {registrationEnabled ? (
                   <Link className="muted-link" to={`/register${authRequestSearch}`}>{t.login.createAccount}</Link>
                 ) : null}
-                <Button isPending={isSubmitting} type="submit">
+                <Button isDisabled={Boolean(turnstileSiteKey && !turnstileToken)} isPending={isSubmitting} type="submit">
                   {t.login.next}
                 </Button>
               </div>

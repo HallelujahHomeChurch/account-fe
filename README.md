@@ -33,9 +33,9 @@ corepack pnpm dev
 
 The Vite dev server proxies `/api/account/*` to `http://127.0.0.1:8080`.
 
-Set `VITE_TURNSTILE_SITE_KEY` when public registration is enabled. Without it,
-the widget stays hidden for local development and registration remains governed
-by the API feature flag.
+Set `VITE_TURNSTILE_SITE_KEY` for public registration and password login. Without
+it, the widget stays hidden for local development and server verification remains
+governed by the Account API configuration.
 
 ## Production delivery
 

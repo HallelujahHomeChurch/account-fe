@@ -193,7 +193,7 @@ describe('AccountApi', () => {
       },
     })
 
-    await api.login({ email: 'admin@example.com', password: 'secret123' })
+    await api.login({ email: 'admin@example.com', password: 'secret123', turnstileToken: 'captcha-token' })
 
     expect(String(calls[0].input)).toBe('/api/account/v1/csrf-token')
     expect(String(calls[1].input)).toBe('/api/account/v1/login')
@@ -202,6 +202,9 @@ describe('AccountApi', () => {
       'content-type': 'application/json',
       'x-csrf-token': 'csrf-123',
     })
+    expect(calls[1].init?.body).toBe(JSON.stringify({
+      email: 'admin@example.com', password: 'secret123', turnstile_token: 'captcha-token',
+    }))
   })
 
 	it('uses the current-device global logout endpoint', async () => {
