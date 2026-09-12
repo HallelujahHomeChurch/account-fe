@@ -409,6 +409,17 @@ textarea::selection {
 	font-size: 13px;
 }
 
+.privacy-collection-notice {
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.privacy-collection-notice a {
+  color: inherit;
+  text-decoration: underline;
+}
+
 .legal-acceptance a {
   color: inherit;
   text-decoration: underline;

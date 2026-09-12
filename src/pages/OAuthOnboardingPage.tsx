@@ -3,7 +3,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { LanguageSelector } from '../components/LanguageSelector'
-import { LegalAcceptance } from '../components/LegalAcceptance'
+import { LegalAcceptance, PrivacyCollectionNotice } from '../components/LegalAcceptance'
 import { useAuthCapabilitiesState } from '../components/SocialAuthOptions'
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
@@ -126,6 +126,7 @@ export function OAuthOnboardingPage() {
           <p>{description}</p>
         </div>
         <div className="login-form-panel">
+          <PrivacyCollectionNotice />
           {notice && step === 'code' ? <p className="form-notice">{notice}</p> : null}
           {error || !token ? <p className="form-error">{error || t.oauthOnboarding.invalid}</p> : null}
           {capabilitiesError || (capabilities && !policyReady) ? (

@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { LanguageSelector } from '../components/LanguageSelector'
 import { SocialAuthOptions, useAuthCapabilitiesState } from '../components/SocialAuthOptions'
-import { LegalAcceptance } from '../components/LegalAcceptance'
+import { LegalAcceptance, PrivacyCollectionNotice } from '../components/LegalAcceptance'
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import { readRuntimeConfig } from '../lib/redirects'
@@ -141,6 +141,7 @@ export function RegisterPage() {
 					<small>{t.registration.newsletterOptOut}</small>
 				</span>
 			</label>
+            <PrivacyCollectionNotice />
             {policy?.enforced ? <LegalAcceptance checked={policyAccepted} onChange={setPolicyAccepted} /> : null}
             <Turnstile siteKey={turnstileSiteKey} onToken={handleTurnstileToken} />
             <div className="login-actions auth-actions-between">

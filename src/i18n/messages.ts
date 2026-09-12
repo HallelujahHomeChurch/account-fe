@@ -68,6 +68,7 @@ const messageCatalog = {
     },
     validation: { invalidEmail: '請輸入有效的 Email。' },
     legalAcceptance: { prefix: '我同意', terms: '使用條款', middle: '並確認已閱讀', privacy: '隱私權聲明', suffix: '。', loadFailed: '目前無法載入條款資訊。', retry: '重試' },
+    privacyCollectionNotice: { prefix: '建立或連結 HHC 帳戶時，我們會依', privacy: '隱私權保護政策', suffix: '蒐集及處理您提供的帳戶資料。' },
     policyAcceptance: { title: '確認條款', description: '請先確認目前的使用條款與隱私權聲明，再繼續登入。', continue: '繼續', invalid: '此確認要求無效或已過期。', restart: '重新登入', failed: '目前無法記錄確認，請稍後再試。' },
     nav: {
       accountSections: '帳號區段',
@@ -348,6 +349,7 @@ const messageCatalog = {
     },
     validation: { invalidEmail: '请输入有效的 Email。' },
     legalAcceptance: { prefix: '我同意', terms: '使用条款', middle: '并确认已阅读', privacy: '隐私权声明', suffix: '。', loadFailed: '目前无法载入条款信息。', retry: '重试' },
+    privacyCollectionNotice: { prefix: '建立或关联 HHC 帐户时，我们会依', privacy: '隐私权保护政策', suffix: '收集及处理您提供的帐户资料。' },
     policyAcceptance: { title: '确认条款', description: '请先确认目前的使用条款与隐私权声明，再继续登录。', continue: '继续', invalid: '此确认请求无效或已过期。', restart: '重新登录', failed: '目前无法记录确认，请稍后重试。' },
     nav: {
       accountSections: '帐号区段',
@@ -628,6 +630,7 @@ const messageCatalog = {
     },
     validation: { invalidEmail: 'Enter a valid email.' },
     legalAcceptance: { prefix: 'I agree to the', terms: 'Terms of Use', middle: 'and acknowledge the', privacy: 'Privacy Notice', suffix: '.', loadFailed: 'Unable to load policy information.', retry: 'Retry' },
+    privacyCollectionNotice: { prefix: 'When you create or link an HHC Account, we process the account information you provide as described in our', privacy: 'Privacy Notice', suffix: '.' },
     policyAcceptance: { title: 'Review account policies', description: 'Review the current Terms of Use and Privacy Notice before continuing sign-in.', continue: 'Continue', invalid: 'This review request is invalid or expired.', restart: 'Start sign-in again', failed: 'Unable to record your acknowledgement. Try again later.' },
     nav: {
       accountSections: 'Account sections',
@@ -908,6 +911,7 @@ const messageCatalog = {
     },
     validation: { invalidEmail: '有効なメールアドレスを入力してください。' },
     legalAcceptance: { prefix: '', terms: '利用規約', middle: 'に同意し、', privacy: 'プライバシー通知', suffix: 'を確認しました。', loadFailed: '規約情報を読み込めませんでした。', retry: '再試行' },
+    privacyCollectionNotice: { prefix: 'HHCアカウントの作成または連携時に提供されるアカウント情報は、', privacy: 'プライバシー通知', suffix: 'に従って取り扱います。' },
     policyAcceptance: { title: '規約を確認', description: 'ログインを続ける前に、現在の利用規約とプライバシー通知をご確認ください。', continue: '続ける', invalid: 'この確認リクエストは無効か期限切れです。', restart: 'ログインをやり直す', failed: '確認を記録できませんでした。しばらくしてからもう一度お試しください。' },
     nav: {
       accountSections: 'アカウントの項目',
@@ -1188,6 +1192,7 @@ const messageCatalog = {
     },
     validation: { invalidEmail: '올바른 이메일 주소를 입력해 주세요.' },
     legalAcceptance: { prefix: '', terms: '이용약관', middle: '에 동의하고', privacy: '개인정보 처리방침', suffix: '을 확인했습니다.', loadFailed: '정책 정보를 불러올 수 없어요.', retry: '다시 시도' },
+    privacyCollectionNotice: { prefix: 'HHC 계정을 만들거나 연결할 때 제공한 계정 정보는', privacy: '개인정보 처리방침', suffix: '에 따라 처리합니다.' },
     policyAcceptance: { title: '약관 확인', description: '로그인을 계속하기 전에 현재 이용약관과 개인정보 처리방침을 확인해 주세요.', continue: '계속', invalid: '이 확인 요청은 유효하지 않거나 만료되었어요.', restart: '다시 로그인하기', failed: '확인을 기록할 수 없어요. 잠시 후 다시 시도해 주세요.' },
     nav: {
       accountSections: '계정 항목',

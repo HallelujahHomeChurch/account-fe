@@ -8,6 +8,21 @@ type LegalAcceptanceProps = {
   onChange: (checked: boolean) => void
 }
 
+export function PrivacyCollectionNotice() {
+  const { locale, messages: t } = useLocale()
+  const baseUrl = readRuntimeConfig().publicSiteUrl
+
+  return (
+    <p className="privacy-collection-notice">
+      {t.privacyCollectionNotice.prefix}{' '}
+      <a href={`${baseUrl}/${locale}/privacy-policy`} rel="noopener noreferrer" target="_blank">
+        {t.privacyCollectionNotice.privacy}
+      </a>
+      {t.privacyCollectionNotice.suffix}
+    </p>
+  )
+}
+
 export function LegalAcceptance({ checked, onChange }: LegalAcceptanceProps) {
   const { locale, messages: t } = useLocale()
   const baseUrl = readRuntimeConfig().publicSiteUrl
