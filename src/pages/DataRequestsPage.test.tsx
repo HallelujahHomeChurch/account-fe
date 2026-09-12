@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -49,12 +49,14 @@ describe('DataRequestsPage', () => {
     expect(screen.getByText('Running')).toBeInTheDocument()
   })
 
-  it('routes ordinary correction to profile without creating a case', async () => {
-    const createDSRRequest = vi.fn()
-    renderPage({ createDSRRequest })
-    await userEvent.click(await screen.findByRole('button', { name: 'Update personal info' }))
-    expect(screen.getByTestId('location')).toHaveTextContent('/profile')
-    expect(createDSRRequest).not.toHaveBeenCalled()
+  it('presents only the three data-request operations as action cards', async () => {
+    renderPage()
+    const operations = await screen.findByRole('region', { name: 'Create a request' })
+    expect(within(operations).getAllByRole('article')).toHaveLength(3)
+    expect(within(operations).getByRole('button', { name: 'Request data export' })).toBeInTheDocument()
+    expect(within(operations).getByRole('button', { name: 'Restrict data processing' })).toBeInTheDocument()
+    expect(within(operations).getByRole('button', { name: 'Start account erasure' })).toBeInTheDocument()
+    expect(within(operations).queryByRole('button', { name: 'Update personal info' })).not.toBeInTheDocument()
   })
 
   it('requires exact email and confirmation for erasure', async () => {

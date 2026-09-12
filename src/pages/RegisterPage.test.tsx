@@ -7,7 +7,7 @@ import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
 import { RegisterPage } from './RegisterPage'
 
-it('shows the Privacy Notice while policy enforcement is disabled', async () => {
+it('does not add a second Privacy Notice outside policy acceptance', async () => {
   document.cookie = 'hhc_locale=en; Path=/'
   const api: AuthApi = {
     login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
@@ -20,7 +20,8 @@ it('shows the Privacy Notice while policy enforcement is disabled', async () => 
 
   render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><RegisterPage /></AuthProvider></LocaleProvider></MemoryRouter>)
 
-  expect(await screen.findByRole('link', { name: 'Privacy Notice' })).toHaveAttribute('href', 'https://www.alive.org.tw/en/privacy-policy')
+  await screen.findByRole('heading', { name: 'Create your HHC account' })
+  expect(screen.queryByRole('link', { name: 'Privacy Notice' })).not.toBeInTheDocument()
   expect(screen.queryByRole('checkbox', { name: /I agree to the Terms of Use/i })).not.toBeInTheDocument()
 })
 

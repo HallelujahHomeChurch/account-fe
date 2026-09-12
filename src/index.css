@@ -409,17 +409,6 @@ textarea::selection {
 	font-size: 13px;
 }
 
-.privacy-collection-notice {
-  color: var(--color-muted);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.privacy-collection-notice a {
-  color: inherit;
-  text-decoration: underline;
-}
-
 .legal-acceptance a {
   color: inherit;
   text-decoration: underline;
@@ -574,14 +563,80 @@ textarea::selection {
   display: grid;
 }
 
-.dsr-operation-grid,
+.dsr-request-operations,
+.dsr-request-history,
 .dsr-request-list {
   display: grid;
   gap: 14px;
 }
 
+.dsr-request-operations h2,
+.dsr-request-history h2,
+.dsr-operation-card h3,
+.dsr-operation-card p {
+  margin: 0;
+}
+
+.dsr-request-operations h2,
+.dsr-request-history h2 {
+  font-size: 20px;
+  font-weight: 650;
+}
+
 .dsr-operation-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.dsr-operation-card {
+  display: grid;
+  min-width: 0;
+  min-height: 230px;
+  grid-template-rows: auto 1fr auto;
+  gap: 18px;
+  border: 1px solid var(--color-line);
+  border-radius: 16px;
+  background: var(--color-paper-raised);
+  box-shadow: var(--shadow-warm);
+  padding: 20px;
+}
+
+.dsr-operation-card > svg {
+  width: 24px;
+  height: 24px;
+  color: var(--color-primary);
+  stroke-width: 1.8;
+}
+
+.dsr-operation-card h3 {
+  color: var(--color-ink);
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.dsr-operation-card p {
+  margin-top: 8px;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.dsr-operation-card > .hhc-button {
+  width: 100%;
+}
+
+.dsr-operation-card.is-danger > svg {
+  color: var(--color-danger);
+}
+
+.dsr-empty-state {
+  margin: 0;
+  border: 1px dashed var(--color-line);
+  border-radius: 16px;
+  color: var(--color-muted);
+  padding: 28px;
+  text-align: center;
 }
 
 .dsr-owner-progress {
@@ -1429,6 +1484,10 @@ textarea::selection {
 @media (max-width: 600px) {
   .dsr-operation-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dsr-operation-card {
+    min-height: 0;
   }
 
   .auth-main-panel {

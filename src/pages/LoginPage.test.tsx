@@ -1,13 +1,18 @@
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
 import { LoginPage } from './LoginPage'
 import { ApiError } from '../lib/api'
 import { consumePostLoginReturnTo, hasPostLoginReturnTo, savePostLoginReturnTo } from '../auth/auth-routes'
+
+afterEach(() => {
+  vi.unstubAllEnvs()
+  delete window.turnstile
+})
 
 describe('LoginPage', () => {
   it.each([
@@ -49,6 +54,34 @@ describe('LoginPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Email or password is incorrect.')
     expect(screen.queryByText('Login failed')).not.toBeInTheDocument()
+  })
+
+  it('requires a fresh Turnstile token for password login', async () => {
+    vi.stubEnv('VITE_TURNSTILE_SITE_KEY', 'site-key')
+    let renderCount = 0
+    const remove = vi.fn()
+    window.turnstile = {
+      render: (_target, options) => {
+        renderCount += 1
+        options.callback(`captcha-${renderCount}`)
+        return `widget-${renderCount}`
+      },
+      remove,
+    }
+    const login = vi.fn(async () => { throw new ApiError(401, 'Login failed', 'ACC_AUTH_INVALID_CREDENTIALS') })
+    const api: AuthApi = {
+      login, me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken: async () => null, logout: async () => ({}),
+    }
+    render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><LoginPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+    await userEvent.type(screen.getByLabelText('Email'), 'user@example.com')
+    await userEvent.type(screen.getByLabelText('Password'), 'wrong')
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+
+    expect(login).toHaveBeenCalledWith(expect.objectContaining({ turnstileToken: 'captcha-1' }))
+    await vi.waitFor(() => expect(renderCount).toBe(2))
+    expect(remove).toHaveBeenCalledWith('widget-1')
   })
 
   it('shows a one-time signed-out notice without refreshing the session', async () => {

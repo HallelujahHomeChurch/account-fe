@@ -1,6 +1,7 @@
 import { Button, Card, Form, Input, Label, Skeleton, TextField } from '@hallelujahhomechurch/ui'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Download, ShieldOff, UserRoundX } from 'lucide-react'
 
 import { useAuth } from '../auth/auth-context'
 import { loginPath } from '../auth/auth-routes'
@@ -56,7 +57,6 @@ export function DataRequestsPage() {
   }
 
   async function create(type: DSRRequestType) {
-    if (type === 'correction') { navigate('/profile'); return }
     if (!auth.api.createDSRRequest) return
     setBusy(true); setError('')
     try {
@@ -105,14 +105,14 @@ export function DataRequestsPage() {
   return <section className="account-document">
     <div className="page-heading"><h1>{t.dataRequests.title}</h1><p>{t.dataRequests.description}</p></div>
     {error ? <p className="form-error" role="alert">{error}</p> : null}
-    <Card className="panel-card settings-card"><Card.Header><Card.Title>{t.dataRequests.newRequest}</Card.Title></Card.Header>
-      <Card.Content className="dsr-operation-grid">
-        <Button isPending={busy} onPress={() => void create('access_export')}>{t.dataRequests.requestExport}</Button>
-        <Button variant="secondary" onPress={() => void create('correction')}>{t.dataRequests.updateProfile}</Button>
-        <Button isPending={busy} variant="secondary" onPress={() => void create('restrict_processing')}>{t.dataRequests.restrictProcessing}</Button>
-        <Button isPending={busy} variant="danger" onPress={() => void create('erasure')}>{t.dataRequests.startErasure}</Button>
-      </Card.Content>
-    </Card>
+    <section aria-labelledby="dsr-new-request" className="dsr-request-operations">
+      <h2 id="dsr-new-request">{t.dataRequests.newRequest}</h2>
+      <div className="dsr-operation-grid">
+        <article className="dsr-operation-card"><Download aria-hidden="true" /><div><h3>{t.dataRequests.requestExport}</h3><p>{t.dataRequests.exportDescription}</p></div><Button isPending={busy} onPress={() => void create('access_export')}>{t.dataRequests.requestExport}</Button></article>
+        <article className="dsr-operation-card"><ShieldOff aria-hidden="true" /><div><h3>{t.dataRequests.restrictProcessing}</h3><p>{t.dataRequests.restrictDescription}</p></div><Button isPending={busy} variant="secondary" onPress={() => void create('restrict_processing')}>{t.dataRequests.restrictProcessing}</Button></article>
+        <article className="dsr-operation-card is-danger"><UserRoundX aria-hidden="true" /><div><h3>{t.dataRequests.startErasure}</h3><p>{t.dataRequests.erasureDescription}</p></div><Button isPending={busy} variant="danger" onPress={() => void create('erasure')}>{t.dataRequests.startErasure}</Button></article>
+      </div>
+    </section>
     {erasure ? <Card className="panel-card"><Card.Header><Card.Title>{t.dataRequests.confirmErasureTitle}</Card.Title></Card.Header>
       <Card.Content><Form className="form-stack" onSubmit={confirmErasure}>
         <TextField isRequired name="confirmation_email" value={email} onChange={setEmail}><Label>{t.dataRequests.currentEmail}</Label><Input autoComplete="email" /></TextField>
@@ -120,7 +120,8 @@ export function DataRequestsPage() {
         <Button isDisabled={!emailMatches || !confirmed} isPending={busy} type="submit" variant="danger">{t.dataRequests.confirmErasure}</Button>
       </Form></Card.Content>
     </Card> : null}
-    <div aria-live="polite" className="dsr-request-list">
+    <section aria-labelledby="dsr-request-history" className="dsr-request-history"><h2 id="dsr-request-history">{t.dataRequests.requestHistory}</h2><div aria-live="polite" className="dsr-request-list">
+      {requests.length === 0 ? <p className="dsr-empty-state">{t.dataRequests.noRequests}</p> : null}
       {requests.map((request) => <Card className="panel-card" key={request.id}>
         <Card.Header><Card.Title>{t.dataRequests.types[request.request_type]}</Card.Title><span className="status-pill">{t.dataRequests.statuses[request.status]}</span></Card.Header>
         <Card.Content>
@@ -134,6 +135,6 @@ export function DataRequestsPage() {
           </div>
         </Card.Content>
       </Card>)}
-    </div>
+    </div></section>
   </section>
 }

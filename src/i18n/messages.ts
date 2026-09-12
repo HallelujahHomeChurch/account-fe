@@ -3,7 +3,7 @@ import type { Locale } from './locales'
 const dataRequestMessages = {
   'zh-Hant': {
     title: '資料與隱私請求', description: '管理可由 HHC 帳戶可靠歸屬的跨平台資料。', newRequest: '建立請求',
-    requestExport: '申請資料匯出', updateProfile: '更新個人資料', restrictProcessing: '限制資料處理', startErasure: '開始帳戶刪除',
+    requestExport: '申請資料匯出', exportDescription: '取得與此帳戶可靠歸戶的資料副本。', restrictProcessing: '限制資料處理', restrictDescription: '要求暫停特定用途的資料處理。', startErasure: '開始帳戶刪除', erasureDescription: '要求刪除帳戶與可歸戶資料。', requestHistory: '我的請求', noRequests: '尚未建立任何資料請求。',
     confirmErasureTitle: '確認帳戶刪除', currentEmail: '目前的 Email', erasureAcknowledgement: '我了解此操作會移除帳戶資料', confirmErasure: '確認帳戶刪除',
     loading: '正在載入資料請求', loadFailed: '目前無法載入資料請求。', requestFailed: '目前無法完成資料請求。', actionRequired: '此請求需要進一步處理。', ownerProgress: '資料負責系統進度', download: '下載資料匯出', cancel: '取消請求',
     types: { access_export: '資料匯出', correction: '資料更正', restrict_processing: '限制處理', erasure: '帳戶刪除' },
@@ -13,7 +13,7 @@ const dataRequestMessages = {
   },
   'zh-Hans': {
     title: '数据与隐私请求', description: '管理可由 HHC 帐户可靠归属的跨平台数据。', newRequest: '创建请求',
-    requestExport: '申请数据导出', updateProfile: '更新个人资料', restrictProcessing: '限制数据处理', startErasure: '开始帐户删除',
+    requestExport: '申请数据导出', exportDescription: '取得与此帐户可靠归属的数据副本。', restrictProcessing: '限制数据处理', restrictDescription: '请求暂停特定用途的数据处理。', startErasure: '开始帐户删除', erasureDescription: '请求删除帐户与可归属数据。', requestHistory: '我的请求', noRequests: '尚未创建任何数据请求。',
     confirmErasureTitle: '确认帐户删除', currentEmail: '当前 Email', erasureAcknowledgement: '我了解此操作会移除帐户数据', confirmErasure: '确认帐户删除',
     loading: '正在加载数据请求', loadFailed: '目前无法加载数据请求。', requestFailed: '目前无法完成数据请求。', actionRequired: '此请求需要进一步处理。', ownerProgress: '数据负责系统进度', download: '下载数据导出', cancel: '取消请求',
     types: { access_export: '数据导出', correction: '数据更正', restrict_processing: '限制处理', erasure: '帐户删除' },
@@ -23,7 +23,7 @@ const dataRequestMessages = {
   },
   en: {
     title: 'Data and privacy requests', description: 'Manage cross-platform data reliably attributed to your HHC account.', newRequest: 'Create a request',
-    requestExport: 'Request data export', updateProfile: 'Update personal info', restrictProcessing: 'Restrict data processing', startErasure: 'Start account erasure',
+    requestExport: 'Request data export', exportDescription: 'Get a copy of data reliably attributed to this account.', restrictProcessing: 'Restrict data processing', restrictDescription: 'Ask us to pause processing for specific purposes.', startErasure: 'Start account erasure', erasureDescription: 'Request removal of the account and attributable data.', requestHistory: 'My requests', noRequests: 'You have not created a data request yet.',
     confirmErasureTitle: 'Confirm account erasure', currentEmail: 'Current email', erasureAcknowledgement: 'I understand this action removes account data', confirmErasure: 'Confirm account erasure',
     loading: 'Loading data requests', loadFailed: 'Unable to load data requests.', requestFailed: 'Unable to complete the data request.', actionRequired: 'This request needs further action.', ownerProgress: 'Data owner progress', download: 'Download data export', cancel: 'Cancel request',
     types: { access_export: 'Data export', correction: 'Data correction', restrict_processing: 'Processing restriction', erasure: 'Account erasure' },
@@ -33,7 +33,7 @@ const dataRequestMessages = {
   },
   ja: {
     title: 'データとプライバシーのリクエスト', description: 'HHCアカウントに確実に紐づくプラットフォーム横断データを管理します。', newRequest: 'リクエストを作成',
-    requestExport: 'データを書き出す', updateProfile: 'プロフィールを更新', restrictProcessing: 'データ処理を制限', startErasure: 'アカウント削除を開始',
+    requestExport: 'データを書き出す', exportDescription: 'このアカウントに確実に紐づくデータのコピーを取得します。', restrictProcessing: 'データ処理を制限', restrictDescription: '特定の目的でのデータ処理の停止を依頼します。', startErasure: 'アカウント削除を開始', erasureDescription: 'アカウントと紐づくデータの削除を依頼します。', requestHistory: '自分のリクエスト', noRequests: 'データリクエストはまだありません。',
     confirmErasureTitle: 'アカウント削除の確認', currentEmail: '現在のメールアドレス', erasureAcknowledgement: 'この操作でアカウントデータが削除されることを理解しました', confirmErasure: 'アカウント削除を確認',
     loading: 'データリクエストを読み込んでいます', loadFailed: 'データリクエストを読み込めません。', requestFailed: 'データリクエストを完了できません。', actionRequired: 'このリクエストには追加の対応が必要です。', ownerProgress: 'データ管理システムの進捗', download: 'データを書き出してダウンロード', cancel: 'リクエストをキャンセル',
     types: { access_export: 'データ書き出し', correction: 'データ修正', restrict_processing: '処理制限', erasure: 'アカウント削除' },
@@ -43,7 +43,7 @@ const dataRequestMessages = {
   },
   ko: {
     title: '데이터 및 개인정보 요청', description: 'HHC 계정에 확실히 연결된 플랫폼 간 데이터를 관리해요.', newRequest: '요청 만들기',
-    requestExport: '데이터 내보내기 요청', updateProfile: '개인정보 업데이트', restrictProcessing: '데이터 처리 제한', startErasure: '계정 삭제 시작',
+    requestExport: '데이터 내보내기 요청', exportDescription: '이 계정에 확실히 연결된 데이터 사본을 받아요.', restrictProcessing: '데이터 처리 제한', restrictDescription: '특정 목적의 데이터 처리를 중지하도록 요청해요.', startErasure: '계정 삭제 시작', erasureDescription: '계정과 연결된 데이터 삭제를 요청해요.', requestHistory: '내 요청', noRequests: '아직 만든 데이터 요청이 없어요.',
     confirmErasureTitle: '계정 삭제 확인', currentEmail: '현재 이메일', erasureAcknowledgement: '이 작업으로 계정 데이터가 삭제됨을 이해합니다', confirmErasure: '계정 삭제 확인',
     loading: '데이터 요청을 불러오는 중', loadFailed: '데이터 요청을 불러올 수 없어요.', requestFailed: '데이터 요청을 완료할 수 없어요.', actionRequired: '이 요청은 추가 처리가 필요해요.', ownerProgress: '데이터 담당 시스템 진행 상태', download: '데이터 내보내기 다운로드', cancel: '요청 취소',
     types: { access_export: '데이터 내보내기', correction: '데이터 수정', restrict_processing: '처리 제한', erasure: '계정 삭제' },
@@ -68,7 +68,6 @@ const messageCatalog = {
     },
     validation: { invalidEmail: '請輸入有效的 Email。' },
     legalAcceptance: { prefix: '我同意', terms: '使用條款', middle: '並確認已閱讀', privacy: '隱私權聲明', suffix: '。', loadFailed: '目前無法載入條款資訊。', retry: '重試' },
-    privacyCollectionNotice: { prefix: '建立或連結 HHC 帳戶時，我們會依', privacy: '隱私權保護政策', suffix: '蒐集及處理您提供的帳戶資料。' },
     policyAcceptance: { title: '確認條款', description: '請先確認目前的使用條款與隱私權聲明，再繼續登入。', continue: '繼續', invalid: '此確認要求無效或已過期。', restart: '重新登入', failed: '目前無法記錄確認，請稍後再試。' },
     nav: {
       accountSections: '帳號區段',
@@ -349,7 +348,6 @@ const messageCatalog = {
     },
     validation: { invalidEmail: '请输入有效的 Email。' },
     legalAcceptance: { prefix: '我同意', terms: '使用条款', middle: '并确认已阅读', privacy: '隐私权声明', suffix: '。', loadFailed: '目前无法载入条款信息。', retry: '重试' },
-    privacyCollectionNotice: { prefix: '建立或关联 HHC 帐户时，我们会依', privacy: '隐私权保护政策', suffix: '收集及处理您提供的帐户资料。' },
     policyAcceptance: { title: '确认条款', description: '请先确认目前的使用条款与隐私权声明，再继续登录。', continue: '继续', invalid: '此确认请求无效或已过期。', restart: '重新登录', failed: '目前无法记录确认，请稍后重试。' },
     nav: {
       accountSections: '帐号区段',
@@ -630,7 +628,6 @@ const messageCatalog = {
     },
     validation: { invalidEmail: 'Enter a valid email.' },
     legalAcceptance: { prefix: 'I agree to the', terms: 'Terms of Use', middle: 'and acknowledge the', privacy: 'Privacy Notice', suffix: '.', loadFailed: 'Unable to load policy information.', retry: 'Retry' },
-    privacyCollectionNotice: { prefix: 'When you create or link an HHC Account, we process the account information you provide as described in our', privacy: 'Privacy Notice', suffix: '.' },
     policyAcceptance: { title: 'Review account policies', description: 'Review the current Terms of Use and Privacy Notice before continuing sign-in.', continue: 'Continue', invalid: 'This review request is invalid or expired.', restart: 'Start sign-in again', failed: 'Unable to record your acknowledgement. Try again later.' },
     nav: {
       accountSections: 'Account sections',
@@ -911,7 +908,6 @@ const messageCatalog = {
     },
     validation: { invalidEmail: '有効なメールアドレスを入力してください。' },
     legalAcceptance: { prefix: '', terms: '利用規約', middle: 'に同意し、', privacy: 'プライバシー通知', suffix: 'を確認しました。', loadFailed: '規約情報を読み込めませんでした。', retry: '再試行' },
-    privacyCollectionNotice: { prefix: 'HHCアカウントの作成または連携時に提供されるアカウント情報は、', privacy: 'プライバシー通知', suffix: 'に従って取り扱います。' },
     policyAcceptance: { title: '規約を確認', description: 'ログインを続ける前に、現在の利用規約とプライバシー通知をご確認ください。', continue: '続ける', invalid: 'この確認リクエストは無効か期限切れです。', restart: 'ログインをやり直す', failed: '確認を記録できませんでした。しばらくしてからもう一度お試しください。' },
     nav: {
       accountSections: 'アカウントの項目',
@@ -1192,7 +1188,6 @@ const messageCatalog = {
     },
     validation: { invalidEmail: '올바른 이메일 주소를 입력해 주세요.' },
     legalAcceptance: { prefix: '', terms: '이용약관', middle: '에 동의하고', privacy: '개인정보 처리방침', suffix: '을 확인했습니다.', loadFailed: '정책 정보를 불러올 수 없어요.', retry: '다시 시도' },
-    privacyCollectionNotice: { prefix: 'HHC 계정을 만들거나 연결할 때 제공한 계정 정보는', privacy: '개인정보 처리방침', suffix: '에 따라 처리합니다.' },
     policyAcceptance: { title: '약관 확인', description: '로그인을 계속하기 전에 현재 이용약관과 개인정보 처리방침을 확인해 주세요.', continue: '계속', invalid: '이 확인 요청은 유효하지 않거나 만료되었어요.', restart: '다시 로그인하기', failed: '확인을 기록할 수 없어요. 잠시 후 다시 시도해 주세요.' },
     nav: {
       accountSections: '계정 항목',
