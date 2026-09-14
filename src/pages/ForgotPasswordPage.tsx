@@ -1,6 +1,6 @@
 import { Button, FieldError, Form, Input, Label, TextField } from '@hallelujahhomechurch/ui'
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
@@ -12,6 +12,9 @@ export function ForgotPasswordPage() {
   const auth = useAuth()
   const { messages: t } = useLocale()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const authRequestId = searchParams.get('auth_request_id')
+  const loginPath = authRequestId ? `/login?${new URLSearchParams({ auth_request_id: authRequestId })}` : '/login'
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -54,7 +57,7 @@ export function ForgotPasswordPage() {
               <FieldError />
             </TextField>
             <div className="login-actions">
-              <Link className="muted-link" to="/login">
+              <Link className="muted-link" to={loginPath}>
                 {t.passwordRecovery.backToLogin}
               </Link>
               <Button isPending={isSubmitting} type="submit">
@@ -64,7 +67,7 @@ export function ForgotPasswordPage() {
           </Form> : (
             <>
               <AuthResultState>{message}</AuthResultState>
-              <Button onPress={() => navigate('/login', { replace: true })}>
+              <Button onPress={() => navigate(loginPath, { replace: true })}>
                 {t.passwordRecovery.backToLogin}
               </Button>
             </>

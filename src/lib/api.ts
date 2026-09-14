@@ -41,6 +41,13 @@ export type LoginResponse = {
   privacy_notice_version?: string
 }
 
+export type AuthRequestStatus = {
+  status: 'active'
+  client_id: string
+  client_name: string
+  expires_at: string
+}
+
 export type PolicyCapabilities = {
   enforced: boolean
   terms_version: string
@@ -219,6 +226,12 @@ export class AccountApi {
     })
   }
 
+  getAuthRequestStatus(authRequestId: string) {
+    return this.request<AuthRequestStatus>('/oauth/request/status', {
+      method: 'POST', auth: false, body: { auth_request_id: authRequestId },
+    })
+  }
+
   getSession(): Promise<AccountSession> {
     return createAccountSessionClient({
       baseUrl: this.baseUrl,
@@ -303,6 +316,12 @@ export class AccountApi {
       method: 'POST',
       auth: false,
       body: { token },
+    })
+  }
+
+  resendVerificationEmail(email: string, turnstileToken?: string) {
+    return this.request<{ message?: string }>('/verification-email/resend', {
+      method: 'POST', auth: false, body: { email, turnstile_token: turnstileToken },
     })
   }
 

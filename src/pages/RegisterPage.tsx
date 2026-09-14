@@ -71,9 +71,9 @@ export function RegisterPage() {
           locale,
         } : undefined,
       })
-      navigate(`/login${authRequestSearch}`, {
+      navigate(`/register/check-email${authRequestSearch}`, {
         replace: true,
-        state: { registrationComplete: true, registrationEmail: email },
+        state: { registrationEmail: email },
       })
     } catch (caught) {
       setError(authErrorMessage(caught, t.registration.failed, {

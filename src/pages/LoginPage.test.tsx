@@ -15,6 +15,84 @@ afterEach(() => {
 })
 
 describe('LoginPage', () => {
+  it('turns an expired authorization request into terminal recovery instead of a password error', async () => {
+    document.cookie = 'hhc_locale=en; Path=/'
+    const api: AuthApi = {
+      login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken: async () => null, logout: async () => ({}),
+      getAuthRequestStatus: async () => { throw new ApiError(410, 'expired', 'ACC_AUTH_REQUEST_INVALID') },
+    }
+    render(<MemoryRouter initialEntries={['/login?auth_request_id=consumed']}><LocaleProvider><AuthProvider api={api} restoreSession={false}><LoginPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('This sign-in request has expired or was already used')
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument()
+    expect(screen.queryByText('Unable to sign in. Try again later.')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Open a new sign-in' })).toBeInTheDocument()
+  })
+
+  it('checks an active authorization request before enabling login', async () => {
+    let resolveStatus: (value: { status: 'active'; client_id: string; client_name: string; expires_at: string }) => void = () => undefined
+    const api: AuthApi = {
+      login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken: async () => null, logout: async () => ({}),
+      getAuthRequestStatus: () => new Promise((resolve) => { resolveStatus = resolve }),
+    }
+    render(<MemoryRouter initialEntries={['/login?auth_request_id=req-1']}><LocaleProvider><AuthProvider api={api} restoreSession={false}><LoginPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+    expect(screen.getByRole('status')).toHaveTextContent('Checking this sign-in request')
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument()
+    resolveStatus({ status: 'active', client_id: 'www-web', client_name: 'HHC Website', expires_at: new Date(Date.now() + 60_000).toISOString() })
+    expect(await screen.findByLabelText('Password')).toBeInTheDocument()
+  })
+
+  it('rechecks a restored Safari page and removes a consumed login form', async () => {
+    let active = true
+    const api: AuthApi = {
+      login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken: async () => null, logout: async () => ({}),
+      getAuthRequestStatus: async () => {
+        if (!active) throw new ApiError(410, 'consumed', 'ACC_AUTH_REQUEST_INVALID')
+        return { status: 'active', client_id: 'presenter', client_name: 'HHC Presenter', expires_at: new Date(Date.now() + 60_000).toISOString() }
+      },
+    }
+    render(<MemoryRouter initialEntries={['/login?auth_request_id=req-1']}><LocaleProvider><AuthProvider api={api} restoreSession={false}><LoginPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+    expect(await screen.findByLabelText('Password')).toBeInTheDocument()
+    active = false
+    window.dispatchEvent(new Event('pageshow'))
+    expect(await screen.findByRole('alert')).toHaveTextContent('This sign-in request has expired or was already used')
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument()
+  })
+
+  it('offers status retry without treating an outage as a credential failure', async () => {
+    const api: AuthApi = {
+      login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken: async () => null, logout: async () => ({}),
+      getAuthRequestStatus: async () => { throw new ApiError(503, 'unavailable', 'ACC_SERVICE_UNAVAILABLE') },
+    }
+    render(<MemoryRouter initialEntries={['/login?auth_request_id=req-1']}><LocaleProvider><AuthProvider api={api} restoreSession={false}><LoginPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to check this sign-in request')
+    expect(screen.getByRole('button', { name: 'Check again' })).toBeInTheDocument()
+    expect(screen.queryByText('Email or password is incorrect.')).not.toBeInTheDocument()
+  })
+
+  it('disables a login form when its active authorization request expires', async () => {
+    const api: AuthApi = {
+      login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken: async () => null, logout: async () => ({}),
+      getAuthRequestStatus: async () => ({
+        status: 'active', client_id: 'presenter', client_name: 'HHC Presenter',
+        expires_at: new Date(Date.now() + 300).toISOString(),
+      }),
+    }
+    render(<MemoryRouter initialEntries={['/login?auth_request_id=req-1']}><LocaleProvider><AuthProvider api={api} restoreSession={false}><LoginPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+    expect(await screen.findByLabelText('Password')).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent('This sign-in request has expired or was already used')
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument()
+  })
+
   it.each([
     ['ja', 'ハレルヤ家の教会', '次へ', 'Google アカウントで続ける', 'パスワード'],
     ['ko', '할렐루야 가정교회', '다음', 'Google 계정으로 계속하기', '비밀번호'],

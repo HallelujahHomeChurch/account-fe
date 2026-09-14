@@ -72,8 +72,10 @@ type AuthContextValue = {
   logout: () => Promise<void>
   retrySession: () => Promise<void>
   clearLocalSession: (redirectTo?: string) => void
-  navigateExternal: (url: string) => void
+  navigateExternal: NavigateExternal
 }
+
+type NavigateExternal = (url: string, mode?: 'assign' | 'replace') => void
 
 export type AuthStatus = 'loading' | 'authenticated' | 'anonymous' | 'mfa' | 'unavailable'
 
@@ -113,7 +115,7 @@ type AuthProviderProps = {
   config?: RuntimeConfig
   restoreSession?: boolean
   navigateAfterLogout?: (url: string) => void
-  navigateExternal?: (url: string) => void
+  navigateExternal?: NavigateExternal
   route?: Pick<Location, 'pathname' | 'search' | 'hash'>
   authorizeMissingSession?: boolean
   errorLabels?: AuthErrorLabels
@@ -123,8 +125,8 @@ function defaultNavigateAfterLogout(url: string) {
   window.location.replace(url)
 }
 
-function defaultNavigateExternal(url: string) {
-  window.location.assign(url)
+function defaultNavigateExternal(url: string, mode: 'assign' | 'replace' = 'assign') {
+  window.location[mode](url)
 }
 
 function hasSharedSignOut() {
@@ -275,9 +277,9 @@ export function AuthProvider({
           response.state,
           config,
         )
-        window.location.assign(callback.startsWith('hhc-presenter:')
+        navigateExternal(callback.startsWith('hhc-presenter:')
           ? buildNativeAuthCompletionPath(callback, config)
-          : callback)
+          : callback, 'replace')
         return response
       }
 
@@ -308,7 +310,7 @@ export function AuthProvider({
 
       return response
     },
-    [api, commitState, config, setTokenRef],
+    [api, commitState, config, navigateExternal, setTokenRef],
   )
 
   const login = useCallback(

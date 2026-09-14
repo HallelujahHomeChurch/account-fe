@@ -8,7 +8,7 @@ import {
   REGEXP_ONLY_DIGITS,
   TextField,
 } from '@hallelujahhomechurch/ui'
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { LanguageSelector } from '../components/LanguageSelector'
@@ -19,6 +19,8 @@ import { useLocale } from '../i18n/locale-context'
 import { authErrorMessage } from '../auth/auth-form'
 import { Turnstile } from '../components/Turnstile'
 import { readRuntimeConfig } from '../lib/redirects'
+import { clearNativeAuthContinuation, saveNativeAuthContinuation } from '../lib/native-auth-continuation'
+import { ApiError } from '../lib/api'
 
 export function LoginPage() {
   const auth = useAuth()
@@ -49,8 +51,56 @@ export function LoginPage() {
   const registrationEnabled = capabilities?.registrationEnabled === true
   const [turnstileToken, setTurnstileToken] = useState('')
   const [turnstileAttempt, setTurnstileAttempt] = useState(0)
+  const [transactionState, setTransactionState] = useState<'checking' | 'active' | 'invalid' | 'unavailable'>(authRequestId ? 'checking' : 'active')
+  const authRequestCheckRef = useRef(0)
+  const authRequestTimerRef = useRef<number | undefined>(undefined)
   const [turnstileSiteKey] = useState(() => readRuntimeConfig().turnstileSiteKey ?? '')
   const handleTurnstileToken = useCallback((token: string) => setTurnstileToken(token), [])
+
+  const checkAuthRequest = useCallback(async () => {
+    const revision = ++authRequestCheckRef.current
+    if (authRequestTimerRef.current !== undefined) window.clearTimeout(authRequestTimerRef.current)
+    if (!authRequestId || !auth.api.getAuthRequestStatus) {
+      setTransactionState('active')
+      return
+    }
+    setTransactionState('checking')
+    try {
+      const status = await auth.api.getAuthRequestStatus(authRequestId)
+      if (revision !== authRequestCheckRef.current) return
+      const expiresAt = Date.parse(status.expires_at)
+      if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+        clearNativeAuthContinuation()
+        setTransactionState('invalid')
+        return
+      }
+      saveNativeAuthContinuation(authRequestId, { clientId: status.client_id, clientName: status.client_name })
+      setTransactionState('active')
+      authRequestTimerRef.current = window.setTimeout(() => {
+        clearNativeAuthContinuation()
+        setTransactionState('invalid')
+      }, expiresAt - Date.now())
+    } catch (caught) {
+      if (revision !== authRequestCheckRef.current) return
+      if (caught instanceof ApiError && caught.code === 'ACC_AUTH_REQUEST_INVALID') {
+        clearNativeAuthContinuation()
+        setTransactionState('invalid')
+      } else {
+        setTransactionState('unavailable')
+      }
+    }
+  }, [auth.api, authRequestId])
+
+  useEffect(() => {
+    void checkAuthRequest()
+    const recheck = () => void checkAuthRequest()
+    window.addEventListener('pageshow', recheck)
+    return () => {
+      authRequestCheckRef.current += 1
+      if (authRequestTimerRef.current !== undefined) window.clearTimeout(authRequestTimerRef.current)
+      window.removeEventListener('pageshow', recheck)
+    }
+  }, [checkAuthRequest])
 
   const title = t.login.brandTitle
   const challenge = auth.mfaChallenge
@@ -83,6 +133,7 @@ export function LoginPage() {
         registration_unavailable: t.login.oauthRegistrationUnavailable,
         state_expired: t.login.oauthStateExpired,
         workspace_not_allowed: t.login.oauthWorkspaceNotAllowed,
+        auth_request_invalid: t.login.authRequestInvalid,
       }[oauthError] ?? t.login.oauthFailed
 
       if (oauthError === 'cancelled') {
@@ -113,6 +164,7 @@ export function LoginPage() {
     t.login.oauthRegistrationUnavailable,
     t.login.oauthStateExpired,
     t.login.oauthWorkspaceNotAllowed,
+    t.login.authRequestInvalid,
     t.login.signedOut,
     t.security.passwordChanged,
   ])
@@ -158,6 +210,11 @@ export function LoginPage() {
         setIsSuccessNotice(true)
       }
     } catch (caught) {
+      if (caught instanceof ApiError && caught.code === 'ACC_AUTH_REQUEST_INVALID') {
+        clearNativeAuthContinuation()
+        setTransactionState('invalid')
+        return
+      }
       setError(authErrorMessage(caught, t.login.failed, {
         ACC_AUTH_INVALID_CREDENTIALS: t.login.invalidCredentials,
         ACC_AUTH_RATE_LIMITED: t.login.rateLimited,
@@ -189,10 +246,38 @@ export function LoginPage() {
         navigate(returnTo, { replace: true })
       }
     } catch (caught) {
+      if (caught instanceof ApiError && caught.code === 'ACC_AUTH_REQUEST_INVALID') {
+        clearNativeAuthContinuation()
+        setTransactionState('invalid')
+        return
+      }
       setError(authErrorMessage(caught, t.login.mfaFailed))
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (transactionState !== 'active') {
+    const invalid = transactionState === 'invalid'
+    return (
+      <section className="login-shell" aria-labelledby="login-title">
+        <div className="login-card">
+          <div className="login-copy">
+            <img className="login-brand-mark" src="/assets/brand/logo.png" alt="" />
+            <h1 id="login-title">{title}</h1>
+          </div>
+          <div className="login-form-panel">
+            {transactionState === 'checking' ? <p className="inline-status" role="status">{t.login.authRequestChecking}</p> : null}
+            {invalid ? <p className="form-error" role="alert">{t.login.authRequestInvalid}</p> : null}
+            {transactionState === 'unavailable' ? <p className="form-error" role="alert">{t.login.authRequestUnavailable}</p> : null}
+            <Button onPress={() => invalid ? navigate('/login', { replace: true }) : void checkAuthRequest()}>
+              {invalid ? t.login.authRequestRestart : t.login.authRequestRetry}
+            </Button>
+          </div>
+        </div>
+        <div className="login-footer"><LanguageSelector /></div>
+      </section>
+    )
   }
 
   return (
@@ -242,7 +327,7 @@ export function LoginPage() {
             <Form className="form-stack" onSubmit={submitLogin}>
               <TextField isRequired defaultValue={initialEmail} name="email">
                 <Label>{t.login.accountLabel}</Label>
-                <Input autoComplete="username" placeholder="you@example.com" type="text" />
+                <Input autoComplete="username" inputMode="email" placeholder="you@example.com" type="text" />
                 <FieldError />
               </TextField>
               <TextField isRequired name="password" type="password">
@@ -250,7 +335,7 @@ export function LoginPage() {
                 <Input autoComplete="current-password" />
                 <FieldError />
               </TextField>
-              <Link className="muted-link forgot-password-link" to="/forgot-password">
+              <Link className="muted-link forgot-password-link" to={`/forgot-password${authRequestSearch}`}>
                 {t.login.forgotPassword}
               </Link>
               <Turnstile key={turnstileAttempt} siteKey={turnstileSiteKey} onToken={handleTurnstileToken} />

@@ -88,6 +88,28 @@ describe('AuthProvider', () => {
     document.cookie = 'hhc_sso_hint=; Max-Age=0; Path=/'
   })
 
+  it('replaces the completed authorization page in browser history', async () => {
+    const navigateExternal = vi.fn()
+    const api: AuthApi = {
+      login: async () => ({
+        redirect_type: 'oauth', redirect_uri: 'http://localhost/oauth/callback', code: 'code-1', state: 'state-1',
+      }),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken: async () => null,
+      logout: async () => ({}),
+    }
+    const config: RuntimeConfig = {
+      accountApiBaseUrl: '/api/account/v1', accountAuthorizeBaseUrl: '/api/account/v1', accountClientId: 'account-console',
+      redirectUri: 'http://localhost/oauth/callback', oauthScope: 'openid profile email', mockApi: false,
+      allowedRedirectOrigins: ['http://localhost'], allowedRedirectSchemes: ['hhc-presenter'], publicSiteUrl: 'https://www.alive.org.tw',
+    }
+    render(<AuthProvider api={api} config={config} navigateExternal={navigateExternal} restoreSession={false}><LoginProbe /></AuthProvider>)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Login' }))
+
+    await waitFor(() => expect(navigateExternal).toHaveBeenCalledWith('http://localhost/oauth/callback?code=code-1&state=state-1', 'replace'))
+  })
+
   it('does not restore a cached bootstrap profile when the locale changes', async () => {
     document.cookie = 'hhc_locale=en; Path=/'
     const me = vi.fn()

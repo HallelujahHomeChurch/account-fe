@@ -563,6 +563,29 @@ describe('AccountApi', () => {
     )
   })
 
+  it('calls authorization lifecycle and verification resend endpoints', async () => {
+    const calls: Array<{ input: string; init?: RequestInit }> = []
+    const api = new AccountApi({
+      baseUrl: '/api/account/v1',
+      fetcher: async (input, init) => {
+        calls.push({ input: String(input), init })
+        if (String(input).endsWith('/csrf-token')) return jsonResponse({ csrf_token: 'csrf-123' })
+        if (String(input).endsWith('/status')) return jsonResponse({
+          status: 'active', client_id: 'www-web', client_name: 'HHC Website', expires_at: '2026-09-15T12:00:00Z',
+        })
+        return jsonResponse({ message: 'accepted' }, 202)
+      },
+    })
+
+    await expect(api.getAuthRequestStatus('request-id')).resolves.toMatchObject({ status: 'active', client_name: 'HHC Website' })
+    await api.resendVerificationEmail('user@example.com', 'turnstile')
+
+    expect(calls.filter(({ input }) => input.endsWith('/oauth/request/status'))[0]?.init?.body).toBe(JSON.stringify({ auth_request_id: 'request-id' }))
+    expect(calls.filter(({ input }) => input.endsWith('/verification-email/resend'))[0]?.init?.body).toBe(JSON.stringify({
+      email: 'user@example.com', turnstile_token: 'turnstile',
+    }))
+  })
+
   it('lists OAuth providers enabled by the API', async () => {
     const api = new AccountApi({
       baseUrl: '/api/account/v1',

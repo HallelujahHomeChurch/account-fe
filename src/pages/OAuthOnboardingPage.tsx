@@ -10,7 +10,7 @@ import { useLocale } from '../i18n/locale-context'
 import { ApiError, type OAuthOnboardingStatus } from '../lib/api'
 import { validateEmail } from '../auth/auth-form'
 
-type Step = 'loading' | 'email' | 'code' | 'confirm'
+type Step = 'loading' | 'email' | 'code' | 'confirm' | 'invalid'
 
 export function OAuthOnboardingPage() {
   const auth = useAuth()
@@ -105,6 +105,7 @@ export function OAuthOnboardingPage() {
         retryCapabilities()
         return
       }
+      if (caught instanceof ApiError && caught.code === 'ACC_AUTH_REQUEST_INVALID') setStep('invalid')
       setError(onboardingError(caught, t.oauthOnboarding.invalid, t.oauthOnboarding.failed))
     } finally {
       setIsSubmitting(false)
@@ -127,7 +128,7 @@ export function OAuthOnboardingPage() {
         </div>
         <div className="login-form-panel">
           {notice && step === 'code' ? <p className="form-notice">{notice}</p> : null}
-          {error || !token ? <p className="form-error">{error || t.oauthOnboarding.invalid}</p> : null}
+          {error || !token ? <p className="form-error" role="alert">{error || t.oauthOnboarding.invalid}</p> : null}
           {capabilitiesError || (capabilities && !policyReady) ? (
             <div role="alert"><p className="form-error">{t.legalAcceptance.loadFailed}</p><Button onPress={retryCapabilities} variant="secondary">{t.legalAcceptance.retry}</Button></div>
           ) : null}
@@ -164,6 +165,6 @@ export function OAuthOnboardingPage() {
 }
 
 function onboardingError(caught: unknown, invalid: string, fallback: string) {
-  if (caught instanceof ApiError && caught.code === 'ACC_OAUTH_ONBOARDING_INVALID') return invalid
+  if (caught instanceof ApiError && ['ACC_OAUTH_ONBOARDING_INVALID', 'ACC_AUTH_REQUEST_INVALID'].includes(caught.code ?? '')) return invalid
   return fallback
 }

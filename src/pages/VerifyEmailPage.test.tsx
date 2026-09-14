@@ -1,12 +1,15 @@
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
 import { VerifyEmailPage } from './VerifyEmailPage'
+import { ApiError } from '../lib/api'
 
 describe('VerifyEmailPage', () => {
+  beforeEach(() => localStorage.clear())
+
   it.each([
     ['ja', 'メールアドレスを確認', 'この確認リンクは無効か、有効期限が切れています。'],
     ['ko', '이메일 인증', '이 인증 링크가 유효하지 않거나 만료되었어요.'],
@@ -36,6 +39,7 @@ describe('VerifyEmailPage', () => {
       refreshAccessToken: async () => null,
       logout: async () => ({}),
       verifyEmail,
+      getAuthRequestStatus: async () => ({ status: 'active', client_id: 'presenter', client_name: 'HHC Presenter', expires_at: new Date(Date.now() + 60_000).toISOString() }),
     }
 
     render(
@@ -61,6 +65,38 @@ describe('VerifyEmailPage', () => {
     expect(screen.getByTestId('location-search')).toHaveTextContent(
       '?auth_request_id=req%2F%3F%23+%2B%26',
     )
+  })
+
+  it('keeps verification successful but drops an expired sign-in request', async () => {
+    localStorage.setItem('hhc_native_auth_request_id', 'expired-request')
+    window.history.replaceState(null, '', '/verify-email#token=verify-token')
+    const api: AuthApi = {
+      login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken: async () => null, logout: async () => ({}), verifyEmail: async () => ({}),
+      getAuthRequestStatus: async () => { throw new ApiError(410, 'expired', 'ACC_AUTH_REQUEST_INVALID') },
+    }
+    render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><VerifyEmailPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+    expect(await screen.findByRole('heading', { name: 'Email verified' })).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent('This sign-in request has expired or was already used')
+    expect(localStorage.getItem('hhc_native_auth_request_id')).toBeNull()
+  })
+
+  it('lets users retry a temporary continuation status failure', async () => {
+    localStorage.setItem('hhc_native_auth_request_id', 'request')
+    window.history.replaceState(null, '', '/verify-email#token=verify-token')
+    const status = vi.fn()
+      .mockRejectedValueOnce(new ApiError(503, 'unavailable', 'ACC_SERVICE_UNAVAILABLE'))
+      .mockResolvedValueOnce({ status: 'active', client_id: 'presenter', client_name: 'HHC Presenter', expires_at: new Date(Date.now() + 60_000).toISOString() })
+    const api: AuthApi = {
+      login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken: async () => null, logout: async () => ({}), verifyEmail: async () => ({}), getAuthRequestStatus: status,
+    }
+    render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><VerifyEmailPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Check again' }))
+    expect(await screen.findByRole('button', { name: 'Back to sign in' })).toBeInTheDocument()
+    expect(status).toHaveBeenCalledTimes(2)
   })
 })
 

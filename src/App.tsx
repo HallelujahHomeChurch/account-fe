@@ -19,6 +19,7 @@ import { OAuthOnboardingPage } from './pages/OAuthOnboardingPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { RegistrationPendingPage } from './pages/RegistrationPendingPage'
 import { SecurityPage } from './pages/SecurityPage'
 import { DevicesPage } from './pages/DevicesPage'
 import { NotificationsPage } from './pages/NotificationsPage'
@@ -51,6 +52,7 @@ function LayoutContent() {
           <Routes>
             <Route element={<LoginPage />} path="/login" />
             <Route element={<RegisterPage />} path="/register" />
+            <Route element={<RegistrationPendingPage />} path="/register/check-email" />
             <Route element={<ForgotPasswordPage />} path="/forgot-password" />
             <Route element={<ResetPasswordPage />} path="/reset-password" />
             <Route element={<VerifyEmailPage />} path="/verify-email" />
