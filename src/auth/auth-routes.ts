@@ -1,6 +1,6 @@
 import { safeReturnTo as sharedSafeReturnTo } from '@hallelujahhomechurch/account-client'
 
-const authRoutePaths = new Set(['/login', '/register', '/forgot-password', '/reset-password', '/verify-email', '/native-auth-complete', '/oauth/callback', '/oauth/link', '/oauth/onboarding', '/policy/acceptance', '/line/bind'])
+const authRoutePaths = new Set(['/login', '/register', '/register/check-email', '/forgot-password', '/reset-password', '/verify-email', '/native-auth-complete', '/oauth/callback', '/oauth/link', '/oauth/onboarding', '/policy/acceptance', '/line/bind'])
 const postLoginReturnToKey = 'hhc_account_post_login_return_to'
 
 export function isAuthRoutePath(pathname: string) {

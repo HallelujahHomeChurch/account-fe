@@ -277,6 +277,10 @@ export class MockAccountApi {
     return { message: 'Email verified successfully' }
   }
 
+  async resendVerificationEmail() {
+    return { message: 'If the account needs verification, a new email has been sent.' }
+  }
+
   async logout() {
     this.authenticated = false
     return { message: 'Signed out.' }

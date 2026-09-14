@@ -109,6 +109,7 @@ export function SocialAuthOptions({
               title={label}
             >
               <SocialIcon provider={link.id} />
+              <span>{label}</span>
             </a>
           )
         })}

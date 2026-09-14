@@ -1293,18 +1293,21 @@ textarea::selection {
 
 .social-icon-list {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 14px;
 }
 
 .social-icon-button {
-  display: inline-grid;
-  width: 52px;
-  height: 52px;
-  place-items: center;
+  display: inline-flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   border: 1px solid var(--color-panel-border);
-  border-radius: 50%;
+  border-radius: 10px;
   background: var(--color-paper);
   color: var(--color-muted);
   box-shadow: var(--shadow-control);

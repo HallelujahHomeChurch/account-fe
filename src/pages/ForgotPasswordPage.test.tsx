@@ -82,4 +82,19 @@ describe('ForgotPasswordPage', () => {
     )
     expect(messages.ja.passwordRecovery.requestAnotherLink).toBe('再設定リンクを再送')
   })
+
+  it('keeps the browser authorization request out of the reset request', async () => {
+    document.cookie = 'hhc_locale=en; Path=/'
+    const forgotPassword = vi.fn(async () => ({}))
+    const api: AuthApi = {
+      login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+      refreshAccessToken: async () => null, logout: async () => ({}), forgotPassword,
+    }
+    render(<MemoryRouter initialEntries={['/forgot-password?auth_request_id=req-1']}><LocaleProvider><AuthProvider api={api} restoreSession={false}><ForgotPasswordPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+    expect(screen.getByRole('link', { name: 'Back to sign in' })).toHaveAttribute('href', '/login?auth_request_id=req-1')
+    await userEvent.type(screen.getByRole('textbox'), 'user@example.com')
+    await userEvent.click(screen.getByRole('button', { name: 'Send reset link' }))
+    expect(forgotPassword).toHaveBeenCalledWith('user@example.com')
+  })
 })

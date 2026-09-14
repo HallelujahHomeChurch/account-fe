@@ -133,7 +133,7 @@ it('submits a new account and shows the verification next step', async () => {
         <AuthProvider api={api} restoreSession={false}>
           <Routes>
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="/login" element={<><p>Registration complete</p><LocationSearch /></>} />
+            <Route path="/register/check-email" element={<><p>Check your email</p><LocationSearch /></>} />
           </Routes>
         </AuthProvider>
       </LocaleProvider>
@@ -148,7 +148,7 @@ it('submits a new account and shows the verification next step', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Create account' }))
 
   expect(register).toHaveBeenCalledWith({ email: 'user@example.com', password: 'Password1!', first_name: 'Test', last_name: 'User', newsletter_opt_in: false, turnstile_token: undefined })
-  expect(await screen.findByText('Registration complete')).toBeInTheDocument()
+  expect(await screen.findByText('Check your email')).toBeInTheDocument()
   expect(screen.getByTestId('location-search')).toHaveTextContent('')
   expect(screen.queryByText(/Unable to create/)).not.toBeInTheDocument()
 })
@@ -245,7 +245,7 @@ it('preserves auth_request_id after registration succeeds', async () => {
       <LocaleProvider>
         <AuthProvider api={api} restoreSession={false}>
           <Routes>
-            <Route path="/login" element={<LocationSearch />} />
+            <Route path="/register/check-email" element={<LocationSearch />} />
             <Route path="/register" element={<RegisterPage />} />
           </Routes>
         </AuthProvider>

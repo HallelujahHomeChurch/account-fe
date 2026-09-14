@@ -145,3 +145,21 @@ it('verifies email before confirming an existing account link', async () => {
   expect(complete).toHaveBeenCalledWith('pending-token', true)
   expect(await screen.findByRole('heading', { name: 'Profile' })).toBeInTheDocument()
 })
+
+it('stops onboarding when its authorization request has expired', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  window.history.replaceState(null, '', '/oauth/onboarding#token=pending-token')
+  const api: AuthApi = {
+    login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+    refreshAccessToken: async () => null, logout: async () => ({}),
+    getAuthCapabilities: async () => ({ providers: ['google'], registrationEnabled: true, policy: { enforced: false, terms_version: '', privacy_notice_version: '' } }),
+    getOAuthOnboardingStatus: async () => ({ provider: 'google', masked_email: 'u***@example.com', email_verification_required: false, link_confirmation_required: false }),
+    completeOAuthOnboarding: async () => { throw new ApiError(410, 'expired', 'ACC_AUTH_REQUEST_INVALID') },
+  }
+  render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><OAuthOnboardingPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+  await userEvent.click(await screen.findByRole('button', { name: 'Continue' }))
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('This social sign-in request is invalid or expired. Sign in again.')
+  expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument()
+})
