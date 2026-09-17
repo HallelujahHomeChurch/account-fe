@@ -1,6 +1,8 @@
 /* oxlint-disable react/only-export-components */
 import {
   createOAuthTransaction,
+  createAccountSessionClient,
+  createBrowserAccountAuthRuntime,
   currentReturnTo,
   resolveAccountAuth,
   validateOAuthState,
@@ -178,6 +180,15 @@ export function AuthProvider({
     commitState({ ...stateRef.current, ...patch })
   }, [commitState])
 
+  const sessionClient = useMemo(() => {
+    if (injectedApi || config.mockApi) return null
+    return createAccountSessionClient({ baseUrl: config.accountApiBaseUrl })
+  }, [config.accountApiBaseUrl, config.mockApi, injectedApi])
+  const authRuntime = useMemo(
+    () => sessionClient ? createBrowserAccountAuthRuntime({ client: sessionClient }) : null,
+    [sessionClient],
+  )
+
   const api = useMemo<AuthApi>(() => {
     if (injectedApi) return injectedApi
     if (config.mockApi) return new MockAccountApi() as AuthApi
@@ -186,8 +197,11 @@ export function AuthProvider({
       baseUrl: config.accountApiBaseUrl,
       getAccessToken: () => tokenRef.current,
       setAccessToken: setTokenRef,
+      refreshAfterUnauthorized: authRuntime
+        ? (rejectedToken) => authRuntime.refreshAfterUnauthorized(rejectedToken)
+        : undefined,
     }) as AuthApi
-  }, [config.accountApiBaseUrl, config.mockApi, injectedApi, setTokenRef])
+  }, [authRuntime, config.accountApiBaseUrl, config.mockApi, injectedApi, setTokenRef])
 
   const refreshProfile = useCallback(async () => {
     const revision = authRevisionRef.current
@@ -342,6 +356,7 @@ export function AuthProvider({
     patchState({ logoutError: null })
     try {
       await (api.logoutAll ? api.logoutAll() : api.logout())
+      authRuntime?.clear()
       commitState({ ...emptyAuthState, status: 'anonymous' })
       navigateAfterLogout('/login?signed_out=1')
     } catch {
@@ -355,13 +370,14 @@ export function AuthProvider({
       }
       patchState({ logoutError: errorLabelsRef.current.signOutFailed })
     }
-  }, [api, commitState, navigateAfterLogout, patchState])
+  }, [api, authRuntime, commitState, navigateAfterLogout, patchState])
 
   const clearLocalSession = useCallback((redirectTo = '/login?signed_out=1') => {
     authRevisionRef.current += 1
+    authRuntime?.clear()
     commitState({ ...emptyAuthState, status: 'anonymous' })
     navigateAfterLogout(redirectTo)
-  }, [commitState, navigateAfterLogout])
+  }, [authRuntime, commitState, navigateAfterLogout])
 
   const resolveSharedSignOut = useCallback(async (): Promise<AuthState | null> => {
     if (config.mockApi || !hasSharedSignOut()) return null
@@ -379,9 +395,11 @@ export function AuthProvider({
   }, [api, config.mockApi])
 
   const resolveState = useCallback(async (revision: number): Promise<AuthState> => {
-    const session = api.getSession
-      ? await resolveAccountAuth({ getSession: api.getSession })
-      : { status: 'authenticated' as const }
+    const session = authRuntime
+      ? await authRuntime.start()
+      : api.getSession
+        ? await resolveAccountAuth({ getSession: api.getSession })
+        : { status: 'authenticated' as const }
     if (session.status === 'anonymous') return { ...emptyAuthState, status: 'anonymous' }
     if (session.status === 'unavailable') {
       return {
@@ -394,9 +412,11 @@ export function AuthProvider({
     if (sharedSignOut) return sharedSignOut
 
     try {
-      const token = api.issueAccessToken
-        ? await api.issueAccessToken()
-        : await api.refreshAccessToken()
+      const token = authRuntime
+        ? await authRuntime.getAccessToken()
+        : api.issueAccessToken
+          ? await api.issueAccessToken()
+          : await api.refreshAccessToken()
       if (!token) return { ...emptyAuthState, status: 'anonymous' }
       if (revision !== authRevisionRef.current) {
         setTokenRef(stateRef.current.accessToken)
@@ -426,7 +446,7 @@ export function AuthProvider({
         bootstrapError: errorLabelsRef.current.sessionCheckFailed,
       }
     }
-  }, [api, resolveSharedSignOut, setTokenRef])
+  }, [api, authRuntime, resolveSharedSignOut, setTokenRef])
 
   const revalidateSession = useCallback(() => {
     if (revalidationRef.current) return revalidationRef.current
@@ -450,7 +470,9 @@ export function AuthProvider({
       }
       try {
         const previousToken = tokenRef.current
-        const token = await api.refreshAccessToken()
+        const token = authRuntime
+          ? await authRuntime.refreshAfterUnauthorized(previousToken)
+          : await api.refreshAccessToken()
         if (!token) return { ...emptyAuthState, status: 'anonymous' as const }
         if (revision !== authRevisionRef.current) return stateRef.current
         setTokenRef(token)
@@ -493,7 +515,20 @@ export function AuthProvider({
       })
     revalidationRef.current = request
     return request
-  }, [api, authorizeMissingSession, beginAuthorization, commitState, config.mockApi, resolveSharedSignOut, resolveState, setTokenRef])
+  }, [api, authRuntime, authorizeMissingSession, beginAuthorization, commitState, config.mockApi, resolveSharedSignOut, resolveState, setTokenRef])
+
+  useEffect(() => {
+    if (!authRuntime) return
+    const unsubscribe = authRuntime.subscribe(() => {
+      if (authRuntime.getSnapshot().status === 'anonymous') {
+        commitState({ ...emptyAuthState, status: 'anonymous' })
+      }
+    })
+    return () => {
+      unsubscribe()
+      authRuntime.dispose()
+    }
+  }, [authRuntime, commitState])
 
   useEffect(() => {
     let alive = true
@@ -535,7 +570,7 @@ export function AuthProvider({
   }, [api, authorizeMissingSession, beginAuthorization, commitState, config.mockApi, resolveState, restoreSession])
 
   useEffect(() => {
-    if (!restoreSession) return
+    if (!restoreSession || authRuntime) return
     let timer: ReturnType<typeof setTimeout> | undefined
     const schedule = () => {
       clearTimeout(timer)
@@ -559,7 +594,7 @@ export function AuthProvider({
       window.removeEventListener('pageshow', onPageShow)
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
-  }, [restoreSession, revalidateSession])
+  }, [authRuntime, restoreSession, revalidateSession])
 
   const value = useMemo(
     () => ({
