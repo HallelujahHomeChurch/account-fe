@@ -1,5 +1,5 @@
 import { AccountMenu, BrandLoadingScreen, Button, Drawer, Skeleton, Toast, ToastProvider } from '@hallelujahhomechurch/ui'
-import { canAccessAdmin } from '@hallelujahhomechurch/account-client'
+import { canAccessAdmin } from '@hallelujahhomechurch/account-client/admin-access'
 import { Bell, FileArchive, Menu, MonitorSmartphone, ShieldCheck, UserRound } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'

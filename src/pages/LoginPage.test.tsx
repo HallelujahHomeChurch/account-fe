@@ -405,7 +405,9 @@ describe('LoginPage', () => {
     const api: AuthApi = {
       getSession: async () => ({
         authenticated: true,
-        user: { id: 'u1', email: 'admin', display_name: 'Admin', avatar_url: null, permissions: [] },
+        user: { id: 'u1', email: 'admin', display_name: 'Admin', avatar_url: null },
+        permissions: [],
+        permission_availability: { status: 'available' },
       }),
       login: async () => ({}),
       me: async () => ({ id: 'u1', email: 'admin' }),

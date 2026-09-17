@@ -3,6 +3,7 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { StrictMode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { AccountSession } from '@hallelujahhomechurch/account-client'
 
 import { AuthProvider, RoutedAuthProvider, useAuth, type AuthApi } from './auth-context'
 import { LocaleProvider, useLocale } from '../i18n/locale-context'
@@ -118,7 +119,9 @@ describe('AuthProvider', () => {
     const api: AuthApi = {
       getSession: async () => ({
         authenticated: true as const,
-        user: { id: 'u1', email: 'admin@example.com', display_name: 'Initial', avatar_url: null, permissions: [] },
+        user: { id: 'u1', email: 'admin@example.com', display_name: 'Initial', avatar_url: null },
+        permissions: [],
+        permission_availability: { status: 'available' },
       }),
       issueAccessToken: async () => 'access-123',
       login: async () => ({}),
@@ -184,7 +187,9 @@ describe('AuthProvider', () => {
     const api: AuthApi = {
       getSession: async () => ({
         authenticated: true as const,
-        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null, permissions: [] },
+        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+        permissions: [],
+        permission_availability: { status: 'available' },
       }),
       issueAccessToken: async () => 'access-123',
       login: async () => ({}),
@@ -372,7 +377,9 @@ describe('AuthProvider', () => {
   it('issues a non-rotating access token and loads the profile when a session exists', async () => {
     const getSession = vi.fn(async () => ({
       authenticated: true as const,
-      user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null, permissions: [] },
+      user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+      permissions: [],
+      permission_availability: { status: 'available' as const },
     }))
     const refreshAccessToken = vi.fn(async () => 'access-123')
     const issueAccessToken = vi.fn(async () => 'access-123')
@@ -512,7 +519,9 @@ describe('AuthProvider', () => {
     const api: AuthApi = {
       getSession: async () => ({
         authenticated: true as const,
-        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null, permissions: [] },
+        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+        permissions: [],
+        permission_availability: { status: 'available' },
       }),
       login: async () => ({}),
       me,
@@ -539,14 +548,8 @@ describe('AuthProvider', () => {
 
   it('joins lifecycle revalidation to the unresolved cold bootstrap', async () => {
     vi.useFakeTimers()
-    let finishSession!: (session: {
-      authenticated: true
-      user: { id: string; email: string; display_name: string; avatar_url: null; permissions: string[] }
-    }) => void
-    const getSession = vi.fn(() => new Promise<{
-      authenticated: true
-      user: { id: string; email: string; display_name: string; avatar_url: null; permissions: string[] }
-    }>((resolve) => {
+    let finishSession!: (session: AccountSession) => void
+    const getSession = vi.fn(() => new Promise<AccountSession>((resolve) => {
       finishSession = resolve
     }))
     const issueAccessToken = vi.fn(async () => 'access-123')
@@ -577,7 +580,9 @@ describe('AuthProvider', () => {
       await act(async () => {
         finishSession({
           authenticated: true,
-          user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null, permissions: [] },
+          user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+          permissions: [],
+          permission_availability: { status: 'available' },
         })
         await vi.advanceTimersByTimeAsync(0)
       })
@@ -593,7 +598,9 @@ describe('AuthProvider', () => {
   it('ignores non-persisted pageshow session revalidation', async () => {
     const getSession = vi.fn(async () => ({
       authenticated: true as const,
-      user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null, permissions: [] },
+      user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+      permissions: [],
+      permission_availability: { status: 'available' as const },
     }))
     const refreshAccessToken = vi.fn(async () => 'access-123')
     const issueAccessToken = vi.fn(async () => 'access-123')
@@ -627,7 +634,9 @@ describe('AuthProvider', () => {
   it('debounces focus and visibility session revalidation after bootstrap', async () => {
     const getSession = vi.fn(async () => ({
       authenticated: true as const,
-      user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null, permissions: [] },
+      user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+      permissions: [],
+      permission_availability: { status: 'available' as const },
     }))
     const refreshAccessToken = vi.fn(async () => 'access-123')
     const issueAccessToken = vi.fn(async () => 'access-123')
@@ -662,7 +671,9 @@ describe('AuthProvider', () => {
     const api: AuthApi = {
       getSession: async () => ({
         authenticated: true as const,
-        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null, permissions: [] },
+        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+        permissions: [],
+        permission_availability: { status: 'available' },
       }),
       login: async () => ({}),
       me: async () => ({ id: 'u1', email: 'admin@example.com' }),
@@ -691,7 +702,9 @@ describe('AuthProvider', () => {
     const api: AuthApi = {
       getSession: async () => ({
         authenticated: true as const,
-        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null, permissions: [] },
+        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+        permissions: [],
+        permission_availability: { status: 'available' },
       }),
       login: async () => ({}),
       me,
@@ -805,7 +818,9 @@ describe('AuthProvider', () => {
     const api: AuthApi = {
       getSession: async () => ({
         authenticated: true as const,
-        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null, permissions: [] },
+        user: { id: 'u1', email: 'admin@example.com', display_name: 'Admin', avatar_url: null },
+        permissions: [],
+        permission_availability: { status: 'available' },
       }),
       login: async () => ({}),
       me: async () => ({ id: 'u1', email: 'admin@example.com' }),
