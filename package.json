@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@hallelujahhomechurch/account-client": "1.0.4",
+    "@hallelujahhomechurch/operations-client": "1.0.4",
     "@hallelujahhomechurch/preferences": "1.0.4",
     "@hallelujahhomechurch/ui": "1.0.4",
     "@sentry/react": "10.69.0",

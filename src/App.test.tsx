@@ -75,6 +75,21 @@ describe('App layout', () => {
     expect(screen.queryByRole('link', { name: 'Data requests' })).not.toBeInTheDocument()
   })
 
+  it('shows the resource destination only when Operations returns an eligible resource', async () => {
+    const operationsApi = {
+      listMyResources: vi.fn<() => Promise<Array<{ id: string; key: string; name: string; timezone: string }>>>(async () => []), getAvailability: vi.fn(), createReservation: vi.fn(), listMyReservations: vi.fn(), cancelReservation: vi.fn(),
+    }
+    const first = render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+    await screen.findByRole('navigation', { name: 'Account navigation' })
+    await waitFor(() => expect(operationsApi.listMyResources).toHaveBeenCalledOnce())
+    expect(screen.queryByRole('link', { name: 'Resource requests' })).not.toBeInTheDocument()
+    first.unmount()
+
+    operationsApi.listMyResources.mockResolvedValue([{ id: 'resource-1', key: 'main-hall', name: 'Main hall', timezone: 'Asia/Taipei' }])
+    render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+    expect(await screen.findByRole('link', { name: 'Resource requests' })).toHaveAttribute('href', '/resources')
+  })
+
   it('consumes a social sign-in continuation after the authenticated profile return', async () => {
     savePostLoginReturnTo('/data-requests')
     render(

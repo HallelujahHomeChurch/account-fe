@@ -10,6 +10,7 @@ import {
   type OAuthTokenResponse,
   type OAuthTransaction,
 } from '@hallelujahhomechurch/account-client'
+import { createOperationsClient } from '@hallelujahhomechurch/operations-client'
 import {
   createContext,
   useCallback,
@@ -24,6 +25,7 @@ import { useLocation } from 'react-router-dom'
 import { useLocale } from '../i18n/locale-context'
 import { AccountApi, ApiError, type LoginRequest, type LoginResponse, type Profile } from '../lib/api'
 import { MockAccountApi } from '../lib/mock-account-api'
+import { OperationsApi, type OperationsApiClient } from '../lib/operations-api'
 import {
   accountOAuthConfig,
   buildAccountAuthorizeUrl,
@@ -65,6 +67,7 @@ type AuthContextValue = {
   bootstrapError: string | null
   logoutError: string | null
   api: AuthApi
+  operationsApi: OperationsApiClient
   login: (request: LoginRequest) => Promise<LoginResponse>
   completeLogin: (response: LoginResponse) => Promise<LoginResponse>
   verifyMfa: (code: string) => Promise<LoginResponse>
@@ -114,6 +117,7 @@ const defaultAuthErrorLabels: AuthErrorLabels = {
 type AuthProviderProps = {
   children: ReactNode
   api?: AuthApi
+  operationsApi?: OperationsApiClient
   config?: RuntimeConfig
   restoreSession?: boolean
   navigateAfterLogout?: (url: string) => void
@@ -138,6 +142,7 @@ function hasSharedSignOut() {
 export function AuthProvider({
   children,
   api: injectedApi,
+  operationsApi: injectedOperationsApi,
   config: suppliedConfig,
   restoreSession = true,
   navigateAfterLogout = defaultNavigateAfterLogout,
@@ -202,6 +207,20 @@ export function AuthProvider({
         : undefined,
     }) as AuthApi
   }, [authRuntime, config.accountApiBaseUrl, config.mockApi, injectedApi, setTokenRef])
+
+  const refreshOperationsToken = useCallback(async (rejectedToken: string) => {
+    const token = authRuntime
+      ? await authRuntime.refreshAfterUnauthorized(rejectedToken)
+      : await api.refreshAccessToken()
+    if (token) setTokenRef(token)
+    return token
+  }, [api, authRuntime, setTokenRef])
+
+  const operationsApi = useMemo<OperationsApiClient>(() => injectedOperationsApi ?? new OperationsApi(createOperationsClient({
+    baseUrl: config.operationsApiBaseUrl ?? '/api/operations',
+    getAccessToken: async () => tokenRef.current,
+    refreshAfterUnauthorized: refreshOperationsToken,
+  })), [config.operationsApiBaseUrl, injectedOperationsApi, refreshOperationsToken])
 
   const refreshProfile = useCallback(async () => {
     const revision = authRevisionRef.current
@@ -601,6 +620,7 @@ export function AuthProvider({
       ...state,
       isBootstrapping: state.status === 'loading',
       api,
+      operationsApi,
       login,
       completeLogin,
       verifyMfa,
@@ -612,7 +632,7 @@ export function AuthProvider({
       clearLocalSession,
       navigateExternal,
     }),
-    [api, beginAuthorization, clearLocalSession, completeLogin, completeOAuthCallback, login, logout, navigateExternal, refreshProfile, revalidateSession, state, verifyMfa],
+    [api, beginAuthorization, clearLocalSession, completeLogin, completeOAuthCallback, login, logout, navigateExternal, operationsApi, refreshProfile, revalidateSession, state, verifyMfa],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

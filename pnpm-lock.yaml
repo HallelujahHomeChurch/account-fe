@@ -11,6 +11,9 @@ importers:
       '@hallelujahhomechurch/account-client':
         specifier: 1.0.4
         version: 1.0.4
+      '@hallelujahhomechurch/operations-client':
+        specifier: 1.0.4
+        version: 1.0.4
       '@hallelujahhomechurch/preferences':
         specifier: 1.0.4
         version: 1.0.4
@@ -233,6 +236,9 @@ packages:
 
   '@hallelujahhomechurch/account-client@1.0.4':
     resolution: {integrity: sha512-kTBZgtm0fzwEXt5ImkHTWbfVqXF4yL0fPVflir2rFh6KhUX1CojYpAy2XRi6RM1tZhyD3ARCf7dJCgVSY+OiRg==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/account-client/1.0.4/aee3abac9e46d7ba4671e7a975fc21f3d6f6531b}
+
+  '@hallelujahhomechurch/operations-client@1.0.4':
+    resolution: {integrity: sha512-B4shPRDvnqwN3zR9C2SxshRdhSFEm5WIKuGayhR8+2uoqDK47Q1Pynkyp1/KjGm2Az44nyRtTuRPd13MaAYIVQ==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/operations-client/1.0.4/7f4c91d508c21deb26e30c9f5944da814ce8664a}
 
   '@hallelujahhomechurch/preferences@1.0.4':
     resolution: {integrity: sha512-LVo/4Mx/XIjI34FHKFq+zXBMJ/OB1GX12JvPMGrcEMQwVjEqSBRV+zAHyMY0ksT0NAi0io8+pA29K9zR9MpZeQ==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/preferences/1.0.4/966f03dc2a3e33f3ab9dbeecefa1faa535f728e2}
@@ -1212,6 +1218,12 @@ packages:
     resolution: {integrity: sha512-4a+OsYv9UktOJKE+l1A4OufDgdRF9PifWj+tJnHURo/P+WOxpG4GzUFL9qCalmWauao6ogiG+QvnCovwPoyAWA==}
     engines: {node: '>=12.20.0'}
 
+  openapi-fetch@0.15.2:
+    resolution: {integrity: sha512-rdYTzUmSsJevmNqg7fwUVGuKc2Gfb9h6ph74EVPkPfIGJaZTfqdIbJahtbJ3qg1LKinln30hqZniLnKpH0RJBg==}
+
+  openapi-typescript-helpers@0.0.15:
+    resolution: {integrity: sha512-opyTPaunsklCBpTK8JGef6mfPhLSnyy5a0IN9vKtx3+4aExf+KxEqYwIy3hqkedXIB97u357uLMJsOnm3GVjsw==}
+
   oxlint@1.76.0:
     resolution: {integrity: sha512-6QoFioEU4fNdiUx/2Eo6TRd6NG7H7njnRCz8rhB66cZmMHDTqcm1Rjvl8Wry+ZTQMBAmyb4Mlf62Mk5X+eHSOw==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -1744,6 +1756,11 @@ snapshots:
   '@exodus/bytes@1.15.1': {}
 
   '@hallelujahhomechurch/account-client@1.0.4': {}
+
+  '@hallelujahhomechurch/operations-client@1.0.4':
+    dependencies:
+      '@hallelujahhomechurch/account-client': 1.0.4
+      openapi-fetch: 0.15.2
 
   '@hallelujahhomechurch/preferences@1.0.4': {}
 
@@ -2527,6 +2544,12 @@ snapshots:
   normalize-wheel@1.0.1: {}
 
   obug@2.1.4: {}
+
+  openapi-fetch@0.15.2:
+    dependencies:
+      openapi-typescript-helpers: 0.0.15
+
+  openapi-typescript-helpers@0.0.15: {}
 
   oxlint@1.76.0:
     optionalDependencies:

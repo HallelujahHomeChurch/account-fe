@@ -1,7 +1,7 @@
 import { AccountMenu, BrandLoadingScreen, Button, Drawer, Skeleton, Toast, ToastProvider } from '@hallelujahhomechurch/ui'
 import { canAccessAdmin } from '@hallelujahhomechurch/account-client/admin-access'
-import { Bell, FileArchive, Menu, MonitorSmartphone, ShieldCheck, UserRound } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { Bell, CalendarDays, FileArchive, Menu, MonitorSmartphone, ShieldCheck, UserRound } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 
 import { useAuth } from './auth/auth-context'
@@ -27,6 +27,9 @@ import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { NativeAuthCompletePage } from './pages/NativeAuthCompletePage'
 import { PolicyAcceptancePage } from './pages/PolicyAcceptancePage'
 import { DataRequestsPage } from './pages/DataRequestsPage'
+import { MyResourceReservationsPage } from './pages/MyResourceReservationsPage'
+import { ResourceListPage } from './pages/ResourceListPage'
+import { ResourceReservationPage } from './pages/ResourceReservationPage'
 import { useAuthCapabilitiesState } from './components/SocialAuthOptions'
 
 function LayoutContent() {
@@ -37,12 +40,24 @@ function LayoutContent() {
   const publicSiteUrl = readRuntimeConfig().publicSiteUrl
   const { capabilities, error: capabilitiesError } = useAuthCapabilitiesState(!isAuthRoute)
   const dsrEnabled = capabilities?.dsr?.enabled === true
+  const [hasReservableResources, setHasReservableResources] = useState(false)
+
+  useEffect(() => {
+    if (isAuthRoute || !auth.profile) return
+    let active = true
+    auth.operationsApi.listMyResources()
+      .then((resources) => { if (active) setHasReservableResources(resources.length > 0) })
+      .catch(() => { if (active) setHasReservableResources(false) })
+    return () => { active = false }
+  }, [auth.operationsApi, auth.profile, isAuthRoute])
+
   const navigation = [
     { icon: UserRound, label: t.nav.personalInfo, path: '/profile' },
     { icon: ShieldCheck, label: t.nav.security, path: '/security' },
     { icon: MonitorSmartphone, label: t.nav.devices, path: '/devices' },
     { icon: Bell, label: t.nav.notificationSettings, path: '/notifications' },
     ...(dsrEnabled ? [{ icon: FileArchive, label: t.nav.dataRequests, path: '/data-requests' }] : []),
+    ...(hasReservableResources ? [{ icon: CalendarDays, label: t.nav.resourceReservations, path: '/resources' }] : []),
   ]
 
   if (isAuthRoute) {
@@ -240,6 +255,9 @@ function LayoutContent() {
                     : <Navigate replace to="/profile" />}
                 path="/data-requests"
               />
+              <Route element={<ResourceListPage />} path="/resources" />
+              <Route element={<MyResourceReservationsPage />} path="/resources/reservations" />
+              <Route element={<ResourceReservationPage />} path="/resources/:resourceKey" />
               <Route element={<Navigate replace to="/profile" />} path="*" />
             </Routes>}
           </main>
