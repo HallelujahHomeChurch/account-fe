@@ -1,4 +1,4 @@
-import { Button } from '@hallelujahhomechurch/ui'
+import { BrandLoadingScreen, Button } from '@hallelujahhomechurch/ui'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -18,7 +18,6 @@ export function OAuthCallbackPage() {
   const navigate = useNavigate()
   const handled = useRef(false)
   const [error, setError] = useState('')
-  const [showPending, setShowPending] = useState(false)
   const returnTo = readAccountOAuthTransaction()?.returnTo ?? '/profile'
 
   useEffect(() => {
@@ -49,14 +48,7 @@ export function OAuthCallbackPage() {
       })
   }, [auth, navigate, params, returnTo, t.oauthCallback.failed])
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => setShowPending(true), 350)
-    return () => window.clearTimeout(timer)
-  }, [])
-
-  if (!error && !showPending) {
-    return <span className="hhc-sr-only" role="status">{t.oauthCallback.completing}</span>
-  }
+  if (!error) return <BrandLoadingScreen label={t.oauthCallback.completing} />
 
   return (
     <section className="login-shell" aria-labelledby="oauth-callback-title">
@@ -66,24 +58,18 @@ export function OAuthCallbackPage() {
           <h1 id="oauth-callback-title">{t.login.brandTitle}</h1>
         </div>
         <div className="login-form-panel auth-result-state">
-          {error ? (
-            <>
-              <p className="form-error" role="alert">{error}</p>
-              <div className="login-actions">
-                <Button
-                  variant="primary"
-                  onPress={() => {
-                    clearAccountOAuthTransaction()
-                    void auth.startAuthorization(returnTo)
-                  }}
-                >
-                  {t.oauthCallback.retry}
-                </Button>
-              </div>
-            </>
-          ) : (
-            <p className="inline-status" role="status">{t.oauthCallback.completing}</p>
-          )}
+          <p className="form-error" role="alert">{error}</p>
+          <div className="login-actions">
+            <Button
+              variant="primary"
+              onPress={() => {
+                clearAccountOAuthTransaction()
+                void auth.startAuthorization(returnTo)
+              }}
+            >
+              {t.oauthCallback.retry}
+            </Button>
+          </div>
         </div>
       </div>
       <div className="login-footer"><LanguageSelector /></div>
