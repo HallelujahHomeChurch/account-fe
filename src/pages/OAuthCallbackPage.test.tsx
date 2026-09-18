@@ -10,6 +10,32 @@ import { OAuthCallbackPage } from './OAuthCallbackPage'
 import { hasPostLoginReturnTo, savePostLoginReturnTo } from '../auth/auth-routes'
 
 describe('OAuthCallbackPage', () => {
+  it('keeps a pending callback on the neutral branded loader', async () => {
+    sessionStorage.clear()
+    const transaction = await createOAuthTransaction('/profile', {
+      randomBytes: () => new Uint8Array(32).fill(7),
+    })
+    saveAccountOAuthTransaction(transaction)
+    const api: AuthApi = {
+      exchangeCode: () => new Promise(() => {}),
+      login: async () => ({}),
+      me: async () => ({ id: 'u1', email: 'admin@example.com' }),
+      refreshAccessToken: async () => null,
+      logout: async () => ({}),
+    }
+
+    render(
+      <MemoryRouter initialEntries={[`/oauth/callback?code=code-1&state=${transaction.state}`]}>
+        <AuthProvider api={api} restoreSession={false}>
+          <OAuthCallbackPage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('status')).toBeInTheDocument()
+    expect(document.querySelector('.login-card')).not.toBeInTheDocument()
+  })
+
   it.each([
     ['ja', 'ログインを完了できませんでした。もう一度お試しください。'],
     ['ko', '로그인을 완료할 수 없어요. 다시 시도해 주세요.'],
