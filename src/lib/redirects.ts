@@ -9,6 +9,7 @@ import {
 
 export type RuntimeConfig = {
   accountApiBaseUrl: string
+  operationsApiBaseUrl?: string
   accountAuthorizeBaseUrl: string
   accountClientId: string
   redirectUri: string
@@ -51,6 +52,7 @@ export function readRuntimeConfig(
   const accountApiBaseUrl = stringEnv(env.VITE_ACCOUNT_API_BASE_URL, '/api/account/v1')
   return {
     accountApiBaseUrl,
+    operationsApiBaseUrl: stringEnv(env.VITE_OPERATIONS_API_BASE_URL, '/api/operations'),
     accountAuthorizeBaseUrl: stringEnv(env.VITE_ACCOUNT_AUTHORIZE_BASE_URL, accountApiBaseUrl),
     accountClientId: stringEnv(env.VITE_ACCOUNT_CLIENT_ID, 'account-console'),
     redirectUri: stringEnv(env.VITE_ACCOUNT_REDIRECT_URI, `${currentUrl.origin}/oauth/callback`),

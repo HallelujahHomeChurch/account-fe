@@ -77,6 +77,7 @@ const messageCatalog = {
       devices: '裝置',
       notificationSettings: '通知',
       dataRequests: '資料請求',
+      resourceReservations: '資源申請',
       signIn: '登入',
       signOut: '登出',
       accountMenu: '帳號選單',
@@ -92,6 +93,9 @@ const messageCatalog = {
       loading: '正在載入通知設定', emailTitle: 'Email 通知', newsletter: '教會電子報',
       newsletterDescription: '接收教會近況、活動與週報通知。', updated: '通知設定已更新。',
       loadFailed: '目前無法載入通知設定。', updateFailed: '目前無法更新通知設定。', retry: '重試',
+    },
+    resources: {
+      title: '資源申請', description: '查看目前可申請的教會資源。', myReservations: '我的申請', loading: '正在載入資源', loadFailed: '目前無法載入資源。', retry: '重試', noResources: '你目前沒有可申請的資源。', chooseResource: '選擇資源', requestTitle: '申請資源', purpose: '用途', start: '開始時間', end: '結束時間', checkAvailability: '查看時段', availability: '已佔用時段', noBusyIntervals: '此時段目前沒有已知衝突。', submit: '送出申請', submitting: '正在送出申請', requested: '已送出申請。', requestFailed: '目前無法送出申請。', noLongerEligible: '你目前不符合申請此資源的資格。', conflict: '此申請與既有請求衝突。', stale: '資料已更新，請重新確認。', reservationHistory: '我的資源申請', noReservations: '你尚未建立資源申請。', cancel: '取消申請', cancelled: '申請已取消。', cancelFailed: '目前無法取消申請。', status: '狀態', statuses: { requested: '待審核', approved: '已核准', rejected: '未核准', cancelled: '已取消' },
     },
     login: {
       brandTitle: '哈利路亞家教會',
@@ -362,6 +366,7 @@ const messageCatalog = {
       devices: '设备',
       notificationSettings: '通知',
       dataRequests: '数据请求',
+      resourceReservations: '资源申请',
       signIn: '登录',
       signOut: '退出登录',
       accountMenu: '帐号菜单',
@@ -377,6 +382,9 @@ const messageCatalog = {
       loading: '正在载入通知设置', emailTitle: 'Email 通知', newsletter: '教会电子报',
       newsletterDescription: '接收教会近况、活动与周报通知。', updated: '通知设置已更新。',
       loadFailed: '目前无法载入通知设置。', updateFailed: '目前无法更新通知设置。', retry: '重试',
+    },
+    resources: {
+      title: '资源申请', description: '查看目前可申请的教会资源。', myReservations: '我的申请', loading: '正在载入资源', loadFailed: '目前无法载入资源。', retry: '重试', noResources: '你目前没有可申请的资源。', chooseResource: '选择资源', requestTitle: '申请资源', purpose: '用途', start: '开始时间', end: '结束时间', checkAvailability: '查看时段', availability: '已占用时段', noBusyIntervals: '此时段目前没有已知冲突。', submit: '送出申请', submitting: '正在送出申请', requested: '已送出申请。', requestFailed: '目前无法送出申请。', noLongerEligible: '你目前不符合申请此资源的资格。', conflict: '此申请与既有请求冲突。', stale: '资料已更新，请重新确认。', reservationHistory: '我的资源申请', noReservations: '你尚未建立资源申请。', cancel: '取消申请', cancelled: '申请已取消。', cancelFailed: '目前无法取消申请。', status: '状态', statuses: { requested: '待审核', approved: '已核准', rejected: '未核准', cancelled: '已取消' },
     },
     login: {
       brandTitle: '哈利路亚家教会',
@@ -647,6 +655,7 @@ const messageCatalog = {
       devices: 'Devices',
       notificationSettings: 'Notifications',
       dataRequests: 'Data requests',
+      resourceReservations: 'Resource requests',
       signIn: 'Sign in',
       signOut: 'Sign out',
       accountMenu: 'Account menu',
@@ -662,6 +671,9 @@ const messageCatalog = {
       loading: 'Loading notification settings', emailTitle: 'Email notifications', newsletter: 'Email newsletter',
       newsletterDescription: 'Receive church news, events, and weekly bulletin updates.', updated: 'Notification preference updated.',
       loadFailed: 'Unable to load notification settings.', updateFailed: 'Unable to update notification settings.', retry: 'Retry',
+    },
+    resources: {
+      title: 'Resource requests', description: 'View church resources currently available to you.', myReservations: 'My requests', loading: 'Loading resources', loadFailed: 'Unable to load resources.', retry: 'Retry', noResources: 'No resources are currently available to you.', chooseResource: 'Choose a resource', requestTitle: 'Request resource', purpose: 'Purpose', start: 'Start', end: 'End', checkAvailability: 'Check availability', availability: 'Busy times', noBusyIntervals: 'No known conflicts in this time range.', submit: 'Submit request', submitting: 'Submitting request', requested: 'Request submitted.', requestFailed: 'Unable to submit the request.', noLongerEligible: 'You are no longer eligible to request this resource.', conflict: 'This request conflicts with an existing request.', stale: 'This record changed. Review it again.', reservationHistory: 'My resource requests', noReservations: 'You have not made a resource request yet.', cancel: 'Cancel request', cancelled: 'Request cancelled.', cancelFailed: 'Unable to cancel the request.', status: 'Status', statuses: { requested: 'Requested', approved: 'Approved', rejected: 'Rejected', cancelled: 'Cancelled' },
     },
     login: {
       brandTitle: 'Hallelujah Home Church',
@@ -932,6 +944,7 @@ const messageCatalog = {
       devices: 'デバイス',
       notificationSettings: '通知',
       dataRequests: 'データリクエスト',
+      resourceReservations: 'リソース申請',
       signIn: 'ログイン',
       signOut: 'ログアウト',
       accountMenu: 'アカウントメニュー',
@@ -947,6 +960,9 @@ const messageCatalog = {
       loading: '通知設定を読み込んでいます', emailTitle: 'メール通知', newsletter: '教会ニュースレター',
       newsletterDescription: '教会からのお知らせ、イベント、週報の更新を受け取ります。', updated: '通知設定を更新しました。',
       loadFailed: '通知設定を読み込めませんでした。', updateFailed: '通知設定を更新できませんでした。', retry: '再試行',
+    },
+    resources: {
+      title: 'リソース申請', description: '現在申請できる教会リソースを確認します。', myReservations: '自分の申請', loading: 'リソースを読み込んでいます', loadFailed: 'リソースを読み込めません。', retry: '再試行', noResources: '現在申請できるリソースはありません。', chooseResource: 'リソースを選択', requestTitle: 'リソースを申請', purpose: '用途', start: '開始', end: '終了', checkAvailability: '空き状況を確認', availability: '利用中の時間', noBusyIntervals: 'この時間帯に既知の競合はありません。', submit: '申請を送信', submitting: '申請を送信しています', requested: '申請を送信しました。', requestFailed: '申請を送信できません。', noLongerEligible: 'このリソースを申請する資格がありません。', conflict: '既存の申請と競合しています。', stale: '情報が更新されました。もう一度確認してください。', reservationHistory: '自分のリソース申請', noReservations: 'リソース申請はまだありません。', cancel: '申請を取り消す', cancelled: '申請を取り消しました。', cancelFailed: '申請を取り消せません。', status: '状態', statuses: { requested: '申請中', approved: '承認済み', rejected: '却下', cancelled: '取消済み' },
     },
     login: {
       brandTitle: 'ハレルヤ家の教会',
@@ -1217,6 +1233,7 @@ const messageCatalog = {
       devices: '기기',
       notificationSettings: '알림',
       dataRequests: '데이터 요청',
+      resourceReservations: '리소스 신청',
       signIn: '로그인',
       signOut: '로그아웃',
       accountMenu: '계정 메뉴',
@@ -1232,6 +1249,9 @@ const messageCatalog = {
       loading: '알림 설정을 불러오는 중이에요', emailTitle: '이메일 알림', newsletter: '교회 소식지',
       newsletterDescription: '교회 소식, 행사, 주보 업데이트를 받아보세요.', updated: '알림 설정을 업데이트했어요.',
       loadFailed: '알림 설정을 불러올 수 없어요.', updateFailed: '알림 설정을 업데이트할 수 없어요.', retry: '다시 시도',
+    },
+    resources: {
+      title: '리소스 신청', description: '현재 신청할 수 있는 교회 리소스를 확인해요.', myReservations: '내 신청', loading: '리소스를 불러오는 중', loadFailed: '리소스를 불러올 수 없어요.', retry: '다시 시도', noResources: '현재 신청할 수 있는 리소스가 없어요.', chooseResource: '리소스 선택', requestTitle: '리소스 신청', purpose: '용도', start: '시작', end: '종료', checkAvailability: '가능 시간 확인', availability: '사용 중인 시간', noBusyIntervals: '이 시간대에 알려진 충돌이 없어요.', submit: '신청 보내기', submitting: '신청을 보내는 중', requested: '신청을 보냈어요.', requestFailed: '신청을 보낼 수 없어요.', noLongerEligible: '이 리소스를 신청할 자격이 없어요.', conflict: '기존 신청과 충돌해요.', stale: '정보가 변경되었어요. 다시 확인해 주세요.', reservationHistory: '내 리소스 신청', noReservations: '아직 리소스 신청이 없어요.', cancel: '신청 취소', cancelled: '신청을 취소했어요.', cancelFailed: '신청을 취소할 수 없어요.', status: '상태', statuses: { requested: '신청됨', approved: '승인됨', rejected: '거절됨', cancelled: '취소됨' },
     },
     login: {
       brandTitle: '할렐루야 가정교회',

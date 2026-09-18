@@ -229,6 +229,10 @@ describe('AccountApi', () => {
   it('refreshes once after a 401 and retries with the new access token', async () => {
     const seenAuth: Array<string | null> = []
     let accessToken = 'old-token'
+    const refreshAfterUnauthorized = vi.fn(async (rejectedToken: string) => {
+      expect(rejectedToken).toBe('old-token')
+      return 'new-token'
+    })
     const api = new AccountApi({
       baseUrl: '/api/account/v1',
       getAccessToken: () => accessToken,
@@ -242,10 +246,6 @@ describe('AccountApi', () => {
           return jsonResponse({ csrf_token: 'csrf-123' })
         }
 
-        if (url.endsWith('/refresh')) {
-          return jsonResponse({ access_token: 'new-token' })
-        }
-
         seenAuth.push(new Headers(init?.headers).get('authorization'))
         if (seenAuth.length === 1) {
           return jsonResponse({ message: 'expired' }, 401)
@@ -253,11 +253,26 @@ describe('AccountApi', () => {
 
         return jsonResponse({ id: 'u1', email: 'admin@example.com' })
       },
+      refreshAfterUnauthorized,
     })
 
     await expect(api.me()).resolves.toMatchObject({ id: 'u1', email: 'admin@example.com' })
     expect(seenAuth).toEqual(['Bearer old-token', 'Bearer new-token'])
     expect(accessToken).toBe('new-token')
+    expect(refreshAfterUnauthorized).toHaveBeenCalledOnce()
+  })
+
+  it('does not refresh after a 403', async () => {
+    const refreshAfterUnauthorized = vi.fn(async () => 'new-token')
+    const api = new AccountApi({
+      baseUrl: '/api/account/v1',
+      getAccessToken: () => 'access-token',
+      fetcher: async () => jsonResponse({ message: 'forbidden' }, 403),
+      refreshAfterUnauthorized,
+    })
+
+    await expect(api.me()).rejects.toMatchObject({ status: 403 })
+    expect(refreshAfterUnauthorized).not.toHaveBeenCalled()
   })
 
   it('does not restore a token when logout wins an in-flight 401 recovery', async () => {

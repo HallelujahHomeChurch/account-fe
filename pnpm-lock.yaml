@@ -9,14 +9,17 @@ importers:
   .:
     dependencies:
       '@hallelujahhomechurch/account-client':
-        specifier: 0.7.0
-        version: 0.7.0
+        specifier: 1.0.4
+        version: 1.0.4
+      '@hallelujahhomechurch/operations-client':
+        specifier: 1.0.4
+        version: 1.0.4
       '@hallelujahhomechurch/preferences':
-        specifier: 0.6.7
-        version: 0.6.7
+        specifier: 1.0.4
+        version: 1.0.4
       '@hallelujahhomechurch/ui':
-        specifier: 0.6.18
-        version: 0.6.18(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: 1.0.4
+        version: 1.0.4(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@sentry/react':
         specifier: 10.69.0
         version: 10.69.0(react@19.2.7)
@@ -231,23 +234,26 @@ packages:
       '@noble/hashes':
         optional: true
 
-  '@hallelujahhomechurch/account-client@0.7.0':
-    resolution: {integrity: sha512-U4Ye7xWpF8DhzKi9vuCFm83B2+HcfePuHdVB6W37iyiTtZhdVypk7NdfTNufYyDqR247Ei4Oc9EDQZrxQbLuZQ==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/account-client/0.7.0/fc1769183a9309e2ef205a3a56eeedf72f508c18}
+  '@hallelujahhomechurch/account-client@1.0.4':
+    resolution: {integrity: sha512-kTBZgtm0fzwEXt5ImkHTWbfVqXF4yL0fPVflir2rFh6KhUX1CojYpAy2XRi6RM1tZhyD3ARCf7dJCgVSY+OiRg==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/account-client/1.0.4/aee3abac9e46d7ba4671e7a975fc21f3d6f6531b}
 
-  '@hallelujahhomechurch/preferences@0.6.7':
-    resolution: {integrity: sha512-MIe3PkdLo+AmgR7dAMhbSAOUmIYw9ZY0k2KNpTqNu6EXF5jGIj4+gSGdXB7ehDWKMhRan5eWpSvoO40dcXmH5A==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/preferences/0.6.7/67b3f9873c149f6654913544b08fd50557fbf5bd}
+  '@hallelujahhomechurch/operations-client@1.0.4':
+    resolution: {integrity: sha512-B4shPRDvnqwN3zR9C2SxshRdhSFEm5WIKuGayhR8+2uoqDK47Q1Pynkyp1/KjGm2Az44nyRtTuRPd13MaAYIVQ==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/operations-client/1.0.4/7f4c91d508c21deb26e30c9f5944da814ce8664a}
 
-  '@hallelujahhomechurch/ui@0.6.18':
-    resolution: {integrity: sha512-9pwR4HglgVbcWYVgWmlWxstcMFQCZsZ3dCn5kOwvd6TnPardbqolnk61JWsKmJoC/p4QW+IQ73ryCa6eYwJDRA==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/ui/0.6.18/b020b10dc7aa84d613e62af44b7b3f9ffe1864f1}
+  '@hallelujahhomechurch/preferences@1.0.4':
+    resolution: {integrity: sha512-LVo/4Mx/XIjI34FHKFq+zXBMJ/OB1GX12JvPMGrcEMQwVjEqSBRV+zAHyMY0ksT0NAi0io8+pA29K9zR9MpZeQ==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/preferences/1.0.4/966f03dc2a3e33f3ab9dbeecefa1faa535f728e2}
+
+  '@hallelujahhomechurch/ui@1.0.4':
+    resolution: {integrity: sha512-r4kUkuofmoGQEhzyIn757IU3UZpTcpmTIvNVh8Jsi91M2KNTQ2zl0Brm3f6Towp98QrZ7pFjfHP3OuOA4twNvQ==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/ui/1.0.4/54867155572cef7adf8f6c1b5f8a3f67e8ae14e5}
     peerDependencies:
       react: ^19.0.0
       react-dom: ^19.0.0
 
-  '@internationalized/date@3.12.3':
-    resolution: {integrity: sha512-fuLX+3ZKLsxI73y8b01EG/WjHb6gE6weCqlfawPO27kBWGMh9G1yH6Csv1uU7/cac9H2GHmOMt6CjmuQ1aia4Q==}
+  '@internationalized/date@3.12.4':
+    resolution: {integrity: sha512-M1dEn4c1U1HsSlaVR8upZtSqvXrTkHDfv18H01uCSJyjVLDxnBR38v/fMxecmlwXKR4i9HeZcmgQAPE6A+aGJQ==}
 
-  '@internationalized/number@3.6.7':
-    resolution: {integrity: sha512-3ji1fcrT+FPAK86UqEhB/psHixYo6niWPJtt7+qRaYFynt/BaJG8GhAPimtWUpEiVSTq8ZM8L5psMxGquiB/Vg==}
+  '@internationalized/number@3.6.8':
+    resolution: {integrity: sha512-8UmMFia46DUt+k97zKd9fKWXcWHR+k8ae3eYzILETuT2KbIvLyOfac7zesw+sJdRAAZ7Q9pM1Mk22aXp2LD0Ig==}
 
   '@internationalized/string@3.2.10':
     resolution: {integrity: sha512-PDx6//vHSpRnHfxqMqto11zQvhsaU74O3mKv2F/0eicGZcl9NLjQmGlbHz/LsJh5tLKp4A4L7ZVTzN1/MmMTvA==}
@@ -963,8 +969,8 @@ packages:
     resolution: {integrity: sha512-EdDDZu4A2OyIK7Lr/2zG+w5jmbuk1DVBnEwREQvBzspBJkCEbRa8GxU1lghYcaGJCnRWibjDXlq779X1/y5xwg==}
     engines: {node: '>=8'}
 
-  input-otp@1.4.2:
-    resolution: {integrity: sha512-l3jWwYNvrEa6NTCt7BECfCm48GvwuZzkoeG3gBL2w4CHeOXW3eKFmf9UNYkNfYc3mxMrthMnxjIE07MT0zLBQA==}
+  input-otp@1.5.0:
+    resolution: {integrity: sha512-3AcfdW1sNG0FmSA5hHMBXG7jNW5CdcdKs8ln8JOmn6S2SRkoXoJx+2UwC+ZvjflfnOdHJx0SfQ9/YjlxVYLtGQ==}
     peerDependencies:
       react: ^16.8 || ^17.0 || ^18.0 || ^19.0.0 || ^19.0.0-rc
       react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0.0 || ^19.0.0-rc
@@ -1157,8 +1163,8 @@ packages:
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
-  lucide-react@1.31.0:
-    resolution: {integrity: sha512-G8u2eEtoHUnUa9f8lbvqDhCiORMnYLdUEo06EEG9MQvHQrInKcX3Pa2TH39MM5qyzRcWETxB0+aOwAPI1g1kEg==}
+  lucide-react@1.47.0:
+    resolution: {integrity: sha512-o8C23aXpNQypRY73W7fW02EyvWJinEMXgKeGjFoKym0zj3Q73hD97A1IQps1g8C14HTGsOpZL0Am+xjfgFZAbg==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -1211,6 +1217,12 @@ packages:
   obug@2.1.4:
     resolution: {integrity: sha512-4a+OsYv9UktOJKE+l1A4OufDgdRF9PifWj+tJnHURo/P+WOxpG4GzUFL9qCalmWauao6ogiG+QvnCovwPoyAWA==}
     engines: {node: '>=12.20.0'}
+
+  openapi-fetch@0.15.2:
+    resolution: {integrity: sha512-rdYTzUmSsJevmNqg7fwUVGuKc2Gfb9h6ph74EVPkPfIGJaZTfqdIbJahtbJ3qg1LKinln30hqZniLnKpH0RJBg==}
+
+  openapi-typescript-helpers@0.0.15:
+    resolution: {integrity: sha512-opyTPaunsklCBpTK8JGef6mfPhLSnyy5a0IN9vKtx3+4aExf+KxEqYwIy3hqkedXIB97u357uLMJsOnm3GVjsw==}
 
   oxlint@1.76.0:
     resolution: {integrity: sha512-6QoFioEU4fNdiUx/2Eo6TRd6NG7H7njnRCz8rhB66cZmMHDTqcm1Rjvl8Wry+ZTQMBAmyb4Mlf62Mk5X+eHSOw==}
@@ -1273,14 +1285,14 @@ packages:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
 
-  react-aria-components@1.20.0:
-    resolution: {integrity: sha512-BMbpIgoV9aELeBrB0Y120NgoigHb5OdcJwc+4e7uSnbTbamea6lo+gqcc4LAxzMaK3Jf+7LI1oCDE6yANsmxIQ==}
+  react-aria-components@1.21.1:
+    resolution: {integrity: sha512-J88WflYY0z+EhLX0ce+GjFlQ3ag3ubIgfUTjpKSrBQBu92Xtl4Ub9o118HItUddtbk1Ido0jzyPy94/klZy1hg==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
       react-dom: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
 
-  react-aria@3.51.0:
-    resolution: {integrity: sha512-AyWLw0XR38cFPwBu/ErgGaVrc5dupLEKmRlMXTGvFKOtbaGRQ2+yQJkjVhpdHhoRhU4+G+tJDFeHDTS8tK3bfQ==}
+  react-aria@3.52.1:
+    resolution: {integrity: sha512-fdZZruC9/x/joCg0mhKGs5aHpwrXLCSZ4GOJmhhYyiE0ffyEsk9MLFt9LCOCF9tn8ErTD+UDQP4oDUSlZkmpCg==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
       react-dom: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
@@ -1316,8 +1328,8 @@ packages:
       react-dom:
         optional: true
 
-  react-stately@3.49.0:
-    resolution: {integrity: sha512-13iNq2KzBrRAzxRc+n53hgROfIistiYY/sPtIhCw1qUB7/kmo+X1xEU2uiS5zcCIrc55AUPwoHqOIIpKWSwB9A==}
+  react-stately@3.50.0:
+    resolution: {integrity: sha512-TnckvpDQGU0672wEaLZqdzvhuSeXWjgW6vijMWxiKOxc8CosQUfPGISdcZyfHqjX3XMjEtRxj4w9HumvX4h4mw==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
 
@@ -1436,8 +1448,8 @@ packages:
     peerDependencies:
       browserslist: '>= 4.21.0'
 
-  use-sync-external-store@1.6.0:
-    resolution: {integrity: sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==}
+  use-sync-external-store@1.7.0:
+    resolution: {integrity: sha512-6L+EeigHMQhdaIPNIFUKwfWJSwWFQ8gJbJ2DLOs5sDIegTwR9fRxvnM3uciHKjIZhFz+KAv2emhWMRvDmMcY8A==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -1743,24 +1755,29 @@ snapshots:
 
   '@exodus/bytes@1.15.1': {}
 
-  '@hallelujahhomechurch/account-client@0.7.0': {}
+  '@hallelujahhomechurch/account-client@1.0.4': {}
 
-  '@hallelujahhomechurch/preferences@0.6.7': {}
-
-  '@hallelujahhomechurch/ui@0.6.18(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@hallelujahhomechurch/operations-client@1.0.4':
     dependencies:
-      '@internationalized/date': 3.12.3
-      input-otp: 1.4.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      lucide-react: 1.31.0(react@19.2.7)
+      '@hallelujahhomechurch/account-client': 1.0.4
+      openapi-fetch: 0.15.2
+
+  '@hallelujahhomechurch/preferences@1.0.4': {}
+
+  '@hallelujahhomechurch/ui@1.0.4(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+    dependencies:
+      '@internationalized/date': 3.12.4
+      input-otp: 1.5.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      lucide-react: 1.47.0(react@19.2.7)
       react: 19.2.7
-      react-aria-components: 1.20.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react-aria-components: 1.21.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react-dom: 19.2.7(react@19.2.7)
 
-  '@internationalized/date@3.12.3':
+  '@internationalized/date@3.12.4':
     dependencies:
       '@swc/helpers': 0.5.23
 
-  '@internationalized/number@3.6.7':
+  '@internationalized/number@3.6.8':
     dependencies:
       '@swc/helpers': 0.5.23
 
@@ -2339,7 +2356,7 @@ snapshots:
 
   indent-string@4.0.0: {}
 
-  input-otp@1.4.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
+  input-otp@1.5.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
@@ -2494,7 +2511,7 @@ snapshots:
     dependencies:
       react: 19.2.7
 
-  lucide-react@1.31.0(react@19.2.7):
+  lucide-react@1.47.0(react@19.2.7):
     dependencies:
       react: 19.2.7
 
@@ -2527,6 +2544,12 @@ snapshots:
   normalize-wheel@1.0.1: {}
 
   obug@2.1.4: {}
+
+  openapi-fetch@0.15.2:
+    dependencies:
+      openapi-typescript-helpers: 0.0.15
+
+  openapi-typescript-helpers@0.0.15: {}
 
   oxlint@1.76.0:
     optionalDependencies:
@@ -2593,22 +2616,22 @@ snapshots:
 
   punycode@2.3.1: {}
 
-  react-aria-components@1.20.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
+  react-aria-components@1.21.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
-      '@internationalized/date': 3.12.3
+      '@internationalized/date': 3.12.4
       '@internationalized/string': 3.2.10
       '@react-types/shared': 3.36.1(react@19.2.7)
       '@swc/helpers': 0.5.23
       client-only: 0.0.1
       react: 19.2.7
-      react-aria: 3.51.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react-aria: 3.52.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react-dom: 19.2.7(react@19.2.7)
-      react-stately: 3.49.0(react@19.2.7)
+      react-stately: 3.50.0(react@19.2.7)
 
-  react-aria@3.51.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
+  react-aria@3.52.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
-      '@internationalized/date': 3.12.3
-      '@internationalized/number': 3.6.7
+      '@internationalized/date': 3.12.4
+      '@internationalized/number': 3.6.8
       '@internationalized/string': 3.2.10
       '@react-types/shared': 3.36.1(react@19.2.7)
       '@swc/helpers': 0.5.23
@@ -2616,8 +2639,8 @@ snapshots:
       clsx: 2.1.1
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
-      react-stately: 3.49.0(react@19.2.7)
-      use-sync-external-store: 1.6.0(react@19.2.7)
+      react-stately: 3.50.0(react@19.2.7)
+      use-sync-external-store: 1.7.0(react@19.2.7)
 
   react-dom@19.2.7(react@19.2.7):
     dependencies:
@@ -2646,15 +2669,15 @@ snapshots:
     optionalDependencies:
       react-dom: 19.2.7(react@19.2.7)
 
-  react-stately@3.49.0(react@19.2.7):
+  react-stately@3.50.0(react@19.2.7):
     dependencies:
-      '@internationalized/date': 3.12.3
-      '@internationalized/number': 3.6.7
+      '@internationalized/date': 3.12.4
+      '@internationalized/number': 3.6.8
       '@internationalized/string': 3.2.10
       '@react-types/shared': 3.36.1(react@19.2.7)
       '@swc/helpers': 0.5.23
       react: 19.2.7
-      use-sync-external-store: 1.6.0(react@19.2.7)
+      use-sync-external-store: 1.7.0(react@19.2.7)
 
   react@19.2.7: {}
 
@@ -2757,7 +2780,7 @@ snapshots:
       escalade: 3.2.0
       picocolors: 1.1.1
 
-  use-sync-external-store@1.6.0(react@19.2.7):
+  use-sync-external-store@1.7.0(react@19.2.7):
     dependencies:
       react: 19.2.7
 

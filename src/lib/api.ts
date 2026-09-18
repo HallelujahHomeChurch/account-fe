@@ -17,6 +17,7 @@ export type AccountApiOptions = {
   fetcher?: Fetcher
   getAccessToken?: () => string | null
   setAccessToken?: (token: string | null) => void
+  refreshAfterUnauthorized?: (rejectedToken: string) => Promise<string | null>
 }
 
 export type LoginRequest = {
@@ -201,6 +202,7 @@ export class AccountApi {
   private readonly fetcher: Fetcher
   private readonly getAccessToken?: () => string | null
   private readonly setAccessToken?: (token: string | null) => void
+  private readonly refreshAfterUnauthorized?: (rejectedToken: string) => Promise<string | null>
   private csrfToken: string | null = null
 
   constructor(options: AccountApiOptions) {
@@ -208,6 +210,7 @@ export class AccountApi {
     this.fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis)
     this.getAccessToken = options.getAccessToken
     this.setAccessToken = options.setAccessToken
+    this.refreshAfterUnauthorized = options.refreshAfterUnauthorized
   }
 
   async login(request: LoginRequest) {
@@ -573,7 +576,7 @@ export class AccountApi {
       path !== '/refresh'
     ) {
       const previousToken = this.getAccessToken?.() ?? null
-      const token = await this.refreshAccessToken()
+      const token = await this.recoverUnauthorized(previousToken)
       const currentToken = this.getAccessToken?.() ?? null
       if (token && (currentToken === previousToken || currentToken === token)) {
         this.setAccessToken?.(token)
@@ -590,7 +593,7 @@ export class AccountApi {
     const response = await this.fetcher(url, { credentials: 'include', headers })
     recordRequestId(response)
     if (response.status === 401 && retry) {
-      const nextToken = await this.refreshAccessToken()
+      const nextToken = await this.recoverUnauthorized(token)
       const currentToken = this.getAccessToken?.() ?? null
       if (nextToken && (currentToken === token || currentToken === nextToken)) {
         this.setAccessToken?.(nextToken)
@@ -598,6 +601,13 @@ export class AccountApi {
       }
     }
     return response
+  }
+
+  private recoverUnauthorized(rejectedToken: string | null) {
+    if (this.refreshAfterUnauthorized && rejectedToken) {
+      return this.refreshAfterUnauthorized(rejectedToken)
+    }
+    return this.refreshAccessToken()
   }
 
   private async getCsrfToken() {
