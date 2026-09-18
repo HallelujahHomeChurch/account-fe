@@ -1,4 +1,5 @@
 import {
+  BrandLoadingScreen,
   Button,
   FieldError,
   Form,
@@ -255,6 +256,10 @@ export function LoginPage() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (auth.isBootstrapping && auth.api.getSession && !authRequestId && !signedOut && !passwordChanged && !oauthError) {
+    return <BrandLoadingScreen label={t.profile.loading} />
   }
 
   if (transactionState !== 'active') {

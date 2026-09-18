@@ -2,6 +2,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { AccountSession } from '@hallelujahhomechurch/account-client'
 
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
@@ -402,13 +403,9 @@ describe('LoginPage', () => {
 
   it('continues an existing account session without showing a refresh error', async () => {
     const refreshAccessToken = vi.fn(async () => 'token')
+    let resolveSession: (session: AccountSession) => void = () => undefined
     const api: AuthApi = {
-      getSession: async () => ({
-        authenticated: true,
-        user: { id: 'u1', email: 'admin', display_name: 'Admin', avatar_url: null },
-        permissions: [],
-        permission_availability: { status: 'available' },
-      }),
+      getSession: () => new Promise<AccountSession>((resolve) => { resolveSession = resolve }),
       login: async () => ({}),
       me: async () => ({ id: 'u1', email: 'admin' }),
       refreshAccessToken,
@@ -426,6 +423,13 @@ describe('LoginPage', () => {
       </MemoryRouter>,
     )
 
+    expect(screen.queryByLabelText('Email')).not.toBeInTheDocument()
+    resolveSession({
+      authenticated: true,
+      user: { id: 'u1', email: 'admin', display_name: 'Admin', avatar_url: null },
+      permissions: [],
+      permission_availability: { status: 'available' },
+    })
     expect(await screen.findByRole('heading', { name: 'Security reached' })).toBeInTheDocument()
     expect(refreshAccessToken).toHaveBeenCalledTimes(1)
     expect(screen.queryByText('ACC_AUTH_REFRESH_TOKEN_REQUIRED')).not.toBeInTheDocument()
