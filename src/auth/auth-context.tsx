@@ -540,6 +540,7 @@ export function AuthProvider({
     if (!authRuntime) return
     const unsubscribe = authRuntime.subscribe(() => {
       if (authRuntime.getSnapshot().status === 'anonymous') {
+        if (stateRef.current.status === 'loading' && bootstrapRef.current) return
         commitState({ ...emptyAuthState, status: 'anonymous' })
       }
     })

@@ -769,6 +769,41 @@ describe('AuthProvider', () => {
     expect(screen.queryByText('ready')).not.toBeInTheDocument()
   })
 
+  it('does not publish an intermediate anonymous state before protected-route authorization', async () => {
+    sessionStorage.clear()
+    const navigateExternal = vi.fn()
+    const config: RuntimeConfig = {
+      accountApiBaseUrl: '/api/account/v1',
+      accountAuthorizeBaseUrl: '/api/account/v1',
+      accountClientId: 'account-console',
+      redirectUri: 'http://localhost/oauth/callback',
+      oauthScope: 'openid profile email',
+      mockApi: false,
+      allowedRedirectOrigins: ['http://localhost'],
+      allowedRedirectSchemes: ['hhc-presenter'],
+      publicSiteUrl: 'https://www.alive.org.tw',
+    }
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ authenticated: false }), {
+      headers: { 'content-type': 'application/json' },
+    })))
+
+    try {
+      render(
+        <MemoryRouter initialEntries={['/profile']}>
+          <RoutedAuthProvider config={config} navigateExternal={navigateExternal}>
+            <BootstrapProbe />
+          </RoutedAuthProvider>
+        </MemoryRouter>,
+      )
+
+      await waitFor(() => expect(navigateExternal).toHaveBeenCalledTimes(1))
+      expect(screen.getByTestId('status')).toHaveTextContent('loading')
+      expect(screen.queryByText('ready')).not.toBeInTheDocument()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('does not start authorization from the login route', async () => {
     const navigateExternal = vi.fn()
     const api: AuthApi = {
