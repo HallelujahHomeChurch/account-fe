@@ -217,7 +217,7 @@ export function AuthProvider({
   }, [api, authRuntime, setTokenRef])
 
   const operationsApi = useMemo<OperationsApiClient>(() => injectedOperationsApi ?? new OperationsApi(createOperationsClient({
-    baseUrl: config.operationsApiBaseUrl ?? '/api/operations',
+    baseUrl: config.operationsApiBaseUrl ?? '/',
     getAccessToken: async () => tokenRef.current,
     refreshAfterUnauthorized: refreshOperationsToken,
   })), [config.operationsApiBaseUrl, injectedOperationsApi, refreshOperationsToken])
