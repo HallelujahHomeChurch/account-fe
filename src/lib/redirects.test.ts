@@ -92,4 +92,8 @@ describe('isAllowedRedirect', () => {
     expect(readRuntimeConfig({ VITE_ACCOUNT_API_MOCK: 'true' }).mockApi).toBe(true)
     expect(readRuntimeConfig({ VITE_ACCOUNT_API_MOCK: 'false' }).mockApi).toBe(false)
   })
+
+  it('uses the gateway root for Operations client paths', () => {
+    expect(readRuntimeConfig({}).operationsApiBaseUrl).toBe('/')
+  })
 })
