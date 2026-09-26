@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, expect, it, vi } from 'vitest'
@@ -10,16 +10,43 @@ import { OrganizationUnitPage } from './OrganizationUnitPage'
 vi.mock('../../auth/auth-context', () => ({ useAuth: vi.fn() }))
 vi.mock('../../i18n/locale-context', () => ({ useLocale: () => ({ messages: messages.en }) }))
 
-const operationsApi = { getManagedUnit: vi.fn(), listManagedMembers: vi.fn(), searchManagedCandidates: vi.fn(), listManagedResponsibilities: vi.fn(), applyManagedEntitlements: vi.fn() }
+const operationsApi = { getManagedUnit: vi.fn(), listManagedMembers: vi.fn(), searchManagedCandidates: vi.fn(), listManagedResponsibilities: vi.fn(), getMyAccess: vi.fn(), revokeManagedResponsibility: vi.fn(), applyManagedEntitlements: vi.fn() }
 beforeEach(() => {
   vi.resetAllMocks()
   operationsApi.getManagedUnit.mockResolvedValue({ unit: { id: 'church', kind: 'church', name: 'Church', status: 'active', version: 1 }, breadcrumb: [], children: [], actions: { editUnit: false, createChild: false, archive: false, restore: false, manageMembers: true, manageResponsibilities: false, manageEntitlements: true, sendNotifications: false } })
   operationsApi.listManagedMembers.mockResolvedValue({ items: [{ memberId: 'member', displayName: 'Alice', email: 'alice@example.test' }], page: 1 })
   operationsApi.searchManagedCandidates.mockResolvedValue([])
+  operationsApi.getMyAccess.mockResolvedValue({ memberId: 'self', responsibilities: [] })
   vi.mocked(useAuth).mockReturnValue({ operationsApi } as never)
 })
 
 function mount() { return render(<MemoryRouter initialEntries={['/organizations/church']}><Routes><Route path="/organizations/:unitId" element={<OrganizationUnitPage />} /></Routes></MemoryRouter>) }
+
+it('shows the current manager read-only and still allows revoking another manager', async () => {
+  operationsApi.getManagedUnit.mockResolvedValue({ unit: { id: 'church', kind: 'family', name: 'Family', status: 'active' }, breadcrumb: [], children: [], actions: { editUnit: true, manageResponsibilities: true } })
+  operationsApi.listManagedResponsibilities.mockResolvedValue([
+    { id: 'r-self', memberId: 'self', displayName: 'Current manager', email: 'self@example.test', version: 1 },
+    { id: 'r-other', memberId: 'other', displayName: 'Other manager', email: 'other@example.test', version: 2 },
+  ])
+  mount()
+  await userEvent.click(await screen.findByRole('button', { name: 'Unit settings' }))
+  const self = await screen.findByText('Current manager (You)')
+  expect(within(self.closest('li')!).queryByRole('button')).not.toBeInTheDocument()
+  const other = screen.getByText('Other manager')
+  await userEvent.click(within(other.closest('li')!).getByRole('button', { name: 'Revoke' }))
+  expect(operationsApi.revokeManagedResponsibility).toHaveBeenCalledWith('church', 'r-other', 2, expect.any(String))
+})
+
+it.each([null, {}])('does not expose revoke actions when current member identity is unavailable: %s', async access => {
+  operationsApi.getManagedUnit.mockResolvedValue({ unit: { id: 'church', kind: 'family', name: 'Family', status: 'active' }, breadcrumb: [], children: [], actions: { editUnit: true, manageResponsibilities: true } })
+  operationsApi.listManagedResponsibilities.mockResolvedValue([{ id: 'r-self', memberId: 'self', displayName: 'Current manager', email: 'self@example.test', version: 1 }])
+  if (access === null) operationsApi.getMyAccess.mockRejectedValue(new Error('Unavailable'))
+  else operationsApi.getMyAccess.mockResolvedValue(access)
+  mount()
+  await userEvent.click(await screen.findByRole('button', { name: 'Unit settings' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent(messages.en.organizations.loadFailed)
+  expect(screen.queryByRole('button', { name: 'Revoke' })).not.toBeInTheDocument()
+})
 
 it('waits for two Unicode characters and never browses all accounts', async () => {
   mount()

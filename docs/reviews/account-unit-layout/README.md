@@ -81,3 +81,11 @@ This follow-up requires its own PR/CI and release approval; these checks are not
 ![Root directory](roots-desktop.png)
 ![Root directory at 320px](roots-mobile.png)
 ![Root directory with 50 rows, dark theme](roots-dark.png)
+
+## Exclude the signed-in manager (2026-09-27)
+
+Account management excludes only the signed-in Account, not other leaders. Operations enforces this before roster pagination and in self-targeted reads/mutations, including legacy receipt replays and mixed entitlement batches. Admin operations and notification audiences remain unchanged; no schema migration or client-package change is required. Release the Operations change before this UI companion.
+
+The existing `/me/access` member ID identifies the current responsibility holder. Settings label that row “You” and omit its revoke control; missing identity fails closed. Forbidden member URLs show a return link and no retry/mutation controls. Use `?locale=zh-Hant&self=1#/organizations/00000000-0000-4000-8000-000000000002` in the development review fixture; member ID `00000000-0000-4000-8000-000000000900` exercises the forbidden view.
+
+Local verification: 395 frontend tests, lint/build/release-policy/Bicep checks passed. Browser fixture review confirmed the read-only current manager, actionable other manager, forbidden direct URL and successful return. Backend race tests ran against an isolated PostgreSQL 17 database, including Admin preservation, pagination/search, peers, audience, atomic denial and legacy replays. PR CI and release/production acceptance remain separate gates.

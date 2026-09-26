@@ -21,7 +21,7 @@ function MemberDetail({ unitId, memberId }: { unitId: string; memberId: string }
   const navigate = useNavigate()
   const [member, setMember] = useState<ManagedMemberView | null>(null)
   const [folder, setFolder] = useState<ManagedUnitFolder | null>(null)
-  const [loadError, setLoadError] = useState(false)
+  const [loadError, setLoadError] = useState<'forbidden' | 'failed' | null>(null)
   const [revision, setRevision] = useState(0)
   const [endAffiliation, setEndAffiliation] = useState<Affiliation | null>(null)
   const [moveAffiliation, setMoveAffiliation] = useState<Affiliation | null>(null)
@@ -29,13 +29,18 @@ function MemberDetail({ unitId, memberId }: { unitId: string; memberId: string }
 
   useEffect(() => {
     const controller = new AbortController()
-    setLoadError(false)
+    setLoadError(null)
     void Promise.all([
       operationsApi.getManagedMember(unitId, memberId, controller.signal),
       operationsApi.getManagedUnit(unitId, false, controller.signal),
     ]).then(([nextMember, nextFolder]) => {
       if (!controller.signal.aborted) { setMember(nextMember); setFolder(nextFolder) }
-    }).catch(() => { if (!controller.signal.aborted) { setMember(null); setLoadError(true) } })
+    }).catch(reason => {
+      if (!controller.signal.aborted) {
+        setMember(null)
+        setLoadError(reason instanceof OperationsApiError && reason.status === 403 ? 'forbidden' : 'failed')
+      }
+    })
     return () => controller.abort()
   }, [memberId, operationsApi, revision, unitId])
 
@@ -56,7 +61,7 @@ function MemberDetail({ unitId, memberId }: { unitId: string; memberId: string }
   const errorText = error === 'forbidden' ? t.forbidden : error === 'conflict' ? t.conflict : t.requestFailed
   const mutationError = error ? <p className="form-error" role="alert">{errorText}</p> : null
   if (!member || !folder) return loadError
-    ? <section className="account-document"><Link to={'/organizations/' + unitId}>{t.back}</Link><p className="form-error" role="alert">{t.loadFailed}</p><Button onPress={() => setRevision(value => value + 1)}>{t.retry}</Button></section>
+    ? <section className="account-document"><Link to={'/organizations/' + unitId}>{t.back}</Link><p className="form-error" role="alert">{loadError === 'forbidden' ? t.memberForbidden : t.loadFailed}</p>{loadError !== 'forbidden' ? <Button onPress={() => setRevision(value => value + 1)}>{t.retry}</Button> : null}</section>
     : <Skeleton className="account-page-skeleton" label={t.loading} />
 
   return <section className="account-document organization-page">
