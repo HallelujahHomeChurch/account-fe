@@ -40,20 +40,24 @@ function LayoutContent() {
   const { locale, messages: t } = useLocale()
   const location = useLocation()
   const isAuthRoute = isAuthRoutePath(location.pathname)
+  const isResourceRoute = location.pathname === '/resources' || location.pathname.startsWith('/resources/')
   const publicSiteUrl = readRuntimeConfig().publicSiteUrl
   const { capabilities, error: capabilitiesError } = useAuthCapabilitiesState(!isAuthRoute)
   const dsrEnabled = capabilities?.dsr?.enabled === true
   const [hasReservableResources, setHasReservableResources] = useState(false)
+  const [resourceLookupFailed, setResourceLookupFailed] = useState(false)
   const [hasManagedUnits, setHasManagedUnits] = useState(false)
 
   useEffect(() => {
+    setHasReservableResources(false)
+    setResourceLookupFailed(false)
     if (isAuthRoute || !auth.profile) return
     let active = true
     auth.operationsApi.listMyResources()
       .then((resources) => { if (active) setHasReservableResources(resources.length > 0) })
-      .catch(() => { if (active) setHasReservableResources(false) })
+      .catch(() => { if (active) setResourceLookupFailed(true) })
     return () => { active = false }
-  }, [auth.operationsApi, auth.profile, isAuthRoute])
+  }, [auth.operationsApi, auth.profile, isAuthRoute, isResourceRoute])
 
   useEffect(() => {
     setHasManagedUnits(false)
@@ -257,6 +261,9 @@ function LayoutContent() {
             ) : null}
           </header>
           <main className="main-panel">
+            {resourceLookupFailed && !isResourceRoute ? <p className="form-error" role="alert">
+              {t.resources.loadFailed} <Link to="/resources">{t.nav.resourceReservations}</Link>
+            </p> : null}
             {hasPostLoginReturnTo() ? <PostLoginContinuation /> : <Routes>
               <Route element={<ProfilePage />} path="/profile" />
               <Route element={<SecurityPage />} path="/security" />

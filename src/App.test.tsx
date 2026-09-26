@@ -101,6 +101,21 @@ describe('App layout', () => {
     expect(within(await screen.findByRole('dialog')).getByRole('link', { name: 'Unit management' })).toHaveAttribute('href', '/organizations')
   })
 
+  it('surfaces resource lookup failures instead of treating them as no eligible resources', async () => {
+    const operationsApi = { listMyResources: vi.fn().mockRejectedValue(new Error('HTTP 500')) }
+    render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+    const alert = await screen.findByRole('alert')
+    expect(within(alert).getByRole('link', { name: 'Resource requests' })).toHaveAttribute('href', '/resources')
+    expect(alert).not.toHaveTextContent('HTTP 500')
+    await userEvent.click(within(alert).getByRole('link'))
+    expect(await screen.findByRole('button', { name: 'Retry' })).toBeInTheDocument()
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+    operationsApi.listMyResources.mockResolvedValue([{ id: 'resource-1', key: 'hall', name: 'Hall', timezone: 'Asia/Taipei' }])
+    await userEvent.click(screen.getAllByRole('link').find(link => link.getAttribute('href') === '/profile')!)
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+    expect(await screen.findByRole('link', { name: 'Resource requests' })).toHaveAttribute('href', '/resources')
+  })
+
   it('consumes a social sign-in continuation after the authenticated profile return', async () => {
     savePostLoginReturnTo('/data-requests')
     render(
