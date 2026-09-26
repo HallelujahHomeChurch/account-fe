@@ -10,6 +10,7 @@ const organizationBaseMessages = {
 
 const organizationDetails = {
   'zh-Hant': {
+    refresh: '重新整理', recipient_unavailable: '部分收件帳號或裝置已無法使用。', content_unavailable: '通知內容無法使用。', delivery_failed: '部分投遞失敗，請洽管理員。',
     description: '管理你負責的單位與下屬單位，會員資料只限授權範圍。',
     directory: '單位與會員', scopeHint: '下屬單位列於上方；會員名單包含目前單位及其下屬單位，並已去除重複。',
     settings: '單位設定', active: '啟用中', archived: '已封存', church: '教會',
@@ -25,6 +26,7 @@ const organizationDetails = {
     sending: '正在送出…', view: '開啟單位', moveTarget: '移動至', chooseTarget: '選擇目標單位',
   },
   'zh-Hans': {
+    refresh: '刷新', recipient_unavailable: '部分收件账号或设备已无法使用。', content_unavailable: '通知内容无法使用。', delivery_failed: '部分投递失败，请联系管理员。',
     description: '管理你负责的单位与下属单位，会员资料仅限授权范围。',
     directory: '单位与会员', scopeHint: '下属单位列于上方；会员名单包含当前单位及下属单位，并已去重。',
     settings: '单位设置', active: '启用中', archived: '已封存', church: '教会',
@@ -40,6 +42,7 @@ const organizationDetails = {
     sending: '正在提交…', view: '打开单位', moveTarget: '移动至', chooseTarget: '选择目标单位',
   },
   en: {
+    refresh: 'Refresh', recipient_unavailable: 'Some recipient accounts or devices are unavailable.', content_unavailable: 'Notification content is unavailable.', delivery_failed: 'Some deliveries failed. Contact an administrator.',
     description: 'Manage your assigned units and their descendants. Member data stays within your authorized scope.',
     directory: 'Units and members', scopeHint: 'Child units appear first. Members include this unit and its descendants, without duplicates.',
     settings: 'Unit settings', active: 'Active', archived: 'Archived', church: 'Church',
@@ -55,6 +58,7 @@ const organizationDetails = {
     sending: 'Submitting…', view: 'Open unit', moveTarget: 'Move to', chooseTarget: 'Choose a target unit',
   },
   ja: {
+    refresh: '更新', recipient_unavailable: '一部の受信アカウントまたは端末が利用できません。', content_unavailable: '通知内容を利用できません。', delivery_failed: '一部の配信に失敗しました。管理者にお問い合わせください。',
     description: '担当組織と下位組織を管理します。会員データは権限の範囲内に限られます。',
     directory: '組織と会員', scopeHint: '下位組織を先に表示します。会員は下位組織を含み、重複は除外されます。',
     settings: '組織設定', active: '有効', archived: 'アーカイブ済み', church: '教会',
@@ -70,6 +74,7 @@ const organizationDetails = {
     sending: '送信中…', view: '組織を開く', moveTarget: '移動先', chooseTarget: '移動先の組織を選択',
   },
   ko: {
+    refresh: '새로고침', recipient_unavailable: '일부 수신 계정이나 기기를 사용할 수 없어요.', content_unavailable: '알림 내용을 사용할 수 없어요.', delivery_failed: '일부 전송에 실패했어요. 관리자에게 문의하세요.',
     description: '담당 조직과 하위 조직을 관리해요. 회원 정보는 권한 범위 안에서만 표시돼요.',
     directory: '조직 및 회원', scopeHint: '하위 조직이 먼저 표시돼요. 회원은 하위 조직을 포함하며 중복은 제외돼요.',
     settings: '조직 설정', active: '활성', archived: '보관됨', church: '교회',

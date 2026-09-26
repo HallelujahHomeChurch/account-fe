@@ -68,14 +68,14 @@ export function OrganizationNotificationDialog({ unitId, isOpen, onOpenChange }:
         <Button variant="secondary" isDisabled={!valid || pending || previewing} onPress={() => void previewAudience()}>{previewing ? t.refreshing : t.preview}</Button>
         <Button isDisabled={!preview || !valid || pending || previewing} onPress={() => void send()}>{pending ? t.sending : t.send}</Button>
       </div>
-      <div className="organization-section-heading organization-danger-zone"><h3>{t.history}</h3><Button size="sm" variant="secondary" isDisabled={pending} onPress={() => setRevision(value => value + 1)}>{t.retry}</Button></div>
+      <div className="organization-section-heading organization-danger-zone"><h3>{t.history}</h3><Button size="sm" variant="secondary" isDisabled={pending} onPress={() => setRevision(value => value + 1)}>{t.refresh}</Button></div>
       <p className="muted-copy">{t.deliveryHint}</p>
       {!history && !loadError ? <p role="status">{t.refreshing}</p> : null}
       {history?.items.length === 0 ? <p className="muted-copy">{t.emptyHistory}</p> : null}
       <ul className="organization-history">{history?.items.map(item => <li key={item.id}>
         <details><summary><strong>{item.subject}</strong><small>{new Date(item.createdAt).toLocaleString(locale)} · {t.audience} {item.audienceAccountCount}</small></summary>
           <p className="organization-message-body">{item.body}</p>
-          <ul className="organization-list">{item.channels.map(channel => <li key={channel.channel}><span>{channel.channel === 'email' ? t.emailRecipients : t.webPushDevices}</span><span>{channelStatus(channel.status)} · {channel.recipientCount}</span></li>)}</ul>
+          <ul className="organization-list">{item.channels.map(channel => <li key={channel.channel}><span>{channel.channel === 'email' ? t.emailRecipients : t.webPushDevices}{channel.failureReasons?.map(reason => <small key={reason}>{t[reason]}</small>)}</span><span>{channelStatus(channel.status)} · {channel.recipientCount}</span></li>)}</ul>
         </details>
       </li>)}</ul>
       {history && (page > 1 || history.total > history.perPage) ? <div className="organization-actions"><Button size="sm" variant="secondary" isDisabled={page === 1 || pending} onPress={() => setPage(value => value - 1)}>{t.previous}</Button><span>{page}</span><Button size="sm" variant="secondary" isDisabled={page * history.perPage >= history.total || pending} onPress={() => setPage(value => value + 1)}>{t.next}</Button></div> : null}

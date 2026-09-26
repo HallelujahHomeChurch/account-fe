@@ -9,6 +9,7 @@ export type UnitNotificationChannel = {
   channel: 'email' | 'web_push'
   status: string
   recipientCount: number
+  failureReasons?: ('recipient_unavailable' | 'content_unavailable' | 'delivery_failed')[]
 }
 
 export type UnitNotification = {
@@ -99,6 +100,9 @@ function validateNotification(value: UnitNotification) {
   if (!value || ![value.id, value.orgUnitId, value.subject, value.body, value.createdAt].every(field => typeof field === 'string') || !validCount(value.audienceAccountCount) || !Number.isFinite(Date.parse(value.createdAt))) throw new UnitNotificationsApiError(502, 'invalid_response')
   if (!Array.isArray(value.channels) || value.channels.length !== 2 || !value.channels.every(channel => channel && typeof channel.campaignId === 'string' && typeof channel.status === 'string' && validCount(channel.recipientCount)) || new Set(value.channels.map(({ channel }) => channel)).size !== 2 || !value.channels.some(({ channel }) => channel === 'email') || !value.channels.some(({ channel }) => channel === 'web_push')) {
     throw new UnitNotificationsApiError(502, 'invalid_sibling_channels')
+  }
+  for (const channel of value.channels) {
+    if (channel.failureReasons !== undefined && (!Array.isArray(channel.failureReasons) || !channel.failureReasons.every(reason => ['recipient_unavailable', 'content_unavailable', 'delivery_failed'].includes(reason)))) throw new UnitNotificationsApiError(502, 'invalid_failure_reasons')
   }
   return value
 }
