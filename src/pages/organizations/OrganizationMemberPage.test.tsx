@@ -29,3 +29,11 @@ it('requires explicit confirmation only for the final-binding conflict', async (
   await userEvent.click(within(dialog).getByRole('button', { name: 'Remove affiliation' }))
   expect(api.removeManagedAffiliation).toHaveBeenLastCalledWith('unit', 'member', 'aff', 2, true, expect.any(String))
 })
+
+it('rejects a direct forbidden member URL with a return link, not retry or mutation controls', async () => {
+  api.getManagedMember.mockRejectedValue(new OperationsApiError(403, 'forbidden'))
+  render(<MemoryRouter initialEntries={['/organizations/unit/members/self']}><Routes><Route path="/organizations/:unitId/members/:memberId" element={<OrganizationMemberPage />} /></Routes></MemoryRouter>)
+  expect(await screen.findByRole('alert')).toHaveTextContent(messages.en.organizations.memberForbidden)
+  expect(screen.getByRole('link', { name: 'Back' })).toHaveAttribute('href', '/organizations/unit')
+  expect(screen.queryByRole('button')).not.toBeInTheDocument()
+})

@@ -36,6 +36,7 @@ function UnitFolder({ unitId }: { unitId: string }) {
   const [responsibilityQuery, setResponsibilityQuery] = useState('')
   const [responsibilityCandidates, setResponsibilityCandidates] = useState<ManagedResponsibilityCandidate[]>([])
   const [responsibilities, setResponsibilities] = useState<ManagedResponsibility[]>([])
+  const [selfMemberId, setSelfMemberId] = useState<string | null>(null)
   const [responsibilityError, setResponsibilityError] = useState(false)
   const { mutate, pending, error } = useManagedMutation()
   const refresh = () => setRevision(value => value + 1)
@@ -81,8 +82,15 @@ function UnitFolder({ unitId }: { unitId: string }) {
     if (dialog !== 'settings' || !folder?.actions.manageResponsibilities) return
     const controller = new AbortController()
     setResponsibilityError(false)
-    void operationsApi.listManagedResponsibilities(unitId, controller.signal)
-      .then(value => { if (!controller.signal.aborted) setResponsibilities(value) })
+    setResponsibilities([]); setSelfMemberId(null)
+    void Promise.all([
+      operationsApi.listManagedResponsibilities(unitId, controller.signal),
+      operationsApi.getMyAccess(controller.signal),
+    ])
+      .then(([value, access]) => {
+        if (!access.memberId) throw new Error('Missing current member identity')
+        if (!controller.signal.aborted) { setResponsibilities(value); setSelfMemberId(access.memberId) }
+      })
       .catch(() => { if (!controller.signal.aborted) setResponsibilityError(true) })
     return () => controller.abort()
   }, [dialog, folder?.actions.manageResponsibilities, operationsApi, revision, unitId])
@@ -184,7 +192,7 @@ function UnitFolder({ unitId }: { unitId: string }) {
           {responsibilityError ? <p className="form-error" role="alert">{t.loadFailed}</p> : null}
           <ul className="organization-list">
             {responsibilityCandidates.filter(candidate => !responsibilities.some(value => value.memberId === candidate.memberId)).map(candidate => <li key={candidate.memberId}><span>{candidate.displayName}<small>{candidate.email}</small></span><Button size="sm" isDisabled={pending} onPress={() => void run(['assign', candidate.memberId], key => operationsApi.assignManagedResponsibility(unitId, candidate.memberId, key), () => setResponsibilityQuery(''))}>{t.assign}</Button></li>)}
-            {responsibilities.map(value => <li key={value.id}><span>{value.displayName}<small>{value.email}</small></span><Button size="sm" variant="secondary" isDisabled={pending} onPress={() => void run(['revoke', value.id, value.version], key => operationsApi.revokeManagedResponsibility(unitId, value.id, value.version, key))}>{t.revoke}</Button></li>)}
+            {responsibilities.map(value => <li key={value.id}><span>{value.displayName}{value.memberId === selfMemberId ? ` (${t.you})` : ''}<small>{value.email}</small></span>{value.memberId !== selfMemberId ? <Button size="sm" variant="secondary" isDisabled={pending} onPress={() => void run(['revoke', value.id, value.version], key => operationsApi.revokeManagedResponsibility(unitId, value.id, value.version, key))}>{t.revoke}</Button> : null}</li>)}
           </ul>
         </section> : null}
         {folder.actions.archive ? <div className="organization-danger-zone"><Button variant="secondary" isDisabled={pending} onPress={() => setDialog('archive')}>{t.archive}</Button></div> : null}

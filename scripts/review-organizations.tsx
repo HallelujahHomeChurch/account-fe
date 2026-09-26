@@ -32,7 +32,10 @@ const members = Array.from({ length: demoParams.get('rows') === '50' ? 50 : memb
   entitlementCodes: index % 2 ? ['bulletin.general.zh-Hant.access'] : [],
 }))
 const history: Record<string, unknown>[] = []
-const responsibilities: Record<string, unknown>[] = []
+const responsibilities: Record<string, unknown>[] = demoParams.has('self') ? [
+  { id: id(901), memberId: id(900), displayName: '目前登入者', email: 'self@example.test', version: 1 },
+  { id: id(902), memberId: members[1].memberId, displayName: members[1].displayName, email: members[1].email, version: 1 },
+] : []
 const receipts = new Map<string, unknown>()
 function actions(unit: typeof units[number]) {
   const active = unit.status === 'active'
@@ -49,7 +52,7 @@ const fixtureFetch: typeof fetch = async (input, init) => {
   if (key && receipts.has(key)) return reply(receipts.get(key), engagement)
   const finish = (data: unknown) => { if (key) receipts.set(key, data); return reply(data, engagement) }
   if (url.pathname.endsWith('/me/resources')) return reply([])
-  if (url.pathname.endsWith('/me/access')) return reply({ responsibilities: ordinaryMember ? [] : [{ orgUnitId: id(1) }], memberships: [], orgRoles: [], entitlements: [], version: '1' })
+  if (url.pathname.endsWith('/me/access')) return reply({ memberId: id(900), responsibilities: ordinaryMember ? [] : [{ orgUnitId: id(1) }], memberships: [], orgRoles: [], entitlements: [], version: '1' })
   if (ordinaryMember) return reply({ error: 'forbidden' }, false, 403)
   if (url.pathname.endsWith('/manage/roots')) return reply({ items: demoParams.get('roots') === 'empty' ? [] : units.filter(unit => !unit.parentId) })
   if (engagement) {
@@ -66,6 +69,7 @@ const fixtureFetch: typeof fetch = async (input, init) => {
   const unit = units.find(value => value.id === match?.[1])
   if (!unit) return reply({ error: 'forbidden' }, false, 403)
   const suffix = match?.[2] ?? ''
+  if (suffix.startsWith('/members/' + id(900))) return reply({ error: 'forbidden' }, false, 403)
   const query = url.searchParams.get('q') ?? ''
   if (!suffix && method === 'GET') {
     const breadcrumb = []
