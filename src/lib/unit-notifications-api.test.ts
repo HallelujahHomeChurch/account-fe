@@ -30,3 +30,9 @@ it('rejects malformed sibling channel results', async () => {
   const api = new UnitNotificationsApi({ getAccessToken: () => 'token', fetch: vi.fn(() => json(201, { data: { ...notification, channels: notification.channels.slice(0, 1) } })) })
   await expect(api.submit('unit', '主旨', '內容', 'key')).rejects.toMatchObject({ code: 'invalid_sibling_channels' })
 })
+
+it('rejects unclassified provider errors instead of displaying them to managers', async () => {
+  const data = { ...notification, channels: notification.channels.map(channel => ({ ...channel, failureReasons: ['private@example.test'] })) }
+  const api = new UnitNotificationsApi({ getAccessToken: () => 'token', fetch: vi.fn(() => json(200, { data })) })
+  await expect(api.get('notification')).rejects.toMatchObject({ code: 'invalid_failure_reasons' })
+})
