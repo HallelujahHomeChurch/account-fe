@@ -1,6 +1,6 @@
 import { AccountMenu, BrandLoadingScreen, Button, Drawer, Skeleton, Toast, ToastProvider } from '@hallelujahhomechurch/ui'
 import { canAccessAdmin } from '@hallelujahhomechurch/account-client/admin-access'
-import { Bell, CalendarDays, FileArchive, Menu, MonitorSmartphone, ShieldCheck, UserRound } from 'lucide-react'
+import { Bell, CalendarDays, FileArchive, Menu, MonitorSmartphone, ShieldCheck, UserRound, UsersRound } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 
@@ -31,6 +31,9 @@ import { MyResourceReservationsPage } from './pages/MyResourceReservationsPage'
 import { ResourceListPage } from './pages/ResourceListPage'
 import { ResourceReservationPage } from './pages/ResourceReservationPage'
 import { useAuthCapabilitiesState } from './components/SocialAuthOptions'
+import { OrganizationMemberPage } from './pages/organizations/OrganizationMemberPage'
+import { OrganizationRootsPage } from './pages/organizations/OrganizationRootsPage'
+import { OrganizationUnitPage } from './pages/organizations/OrganizationUnitPage'
 
 function LayoutContent() {
   const auth = useAuth()
@@ -41,6 +44,7 @@ function LayoutContent() {
   const { capabilities, error: capabilitiesError } = useAuthCapabilitiesState(!isAuthRoute)
   const dsrEnabled = capabilities?.dsr?.enabled === true
   const [hasReservableResources, setHasReservableResources] = useState(false)
+  const [hasManagedUnits, setHasManagedUnits] = useState(false)
 
   useEffect(() => {
     if (isAuthRoute || !auth.profile) return
@@ -51,6 +55,16 @@ function LayoutContent() {
     return () => { active = false }
   }, [auth.operationsApi, auth.profile, isAuthRoute])
 
+  useEffect(() => {
+    setHasManagedUnits(false)
+    if (isAuthRoute || !auth.profile || !auth.operationsApi.getMyAccess) return
+    let active = true
+    auth.operationsApi.getMyAccess()
+      .then((access) => { if (active) setHasManagedUnits(access.responsibilities.length > 0) })
+      .catch(() => { if (active) setHasManagedUnits(false) })
+    return () => { active = false }
+  }, [auth.operationsApi, auth.profile, isAuthRoute])
+
   const navigation = [
     { icon: UserRound, label: t.nav.personalInfo, path: '/profile' },
     { icon: ShieldCheck, label: t.nav.security, path: '/security' },
@@ -58,6 +72,7 @@ function LayoutContent() {
     { icon: Bell, label: t.nav.notificationSettings, path: '/notifications' },
     ...(dsrEnabled ? [{ icon: FileArchive, label: t.nav.dataRequests, path: '/data-requests' }] : []),
     ...(hasReservableResources ? [{ icon: CalendarDays, label: t.nav.resourceReservations, path: '/resources' }] : []),
+    ...(hasManagedUnits ? [{ icon: UsersRound, label: t.nav.organizationManagement, path: '/organizations' }] : []),
   ]
 
   if (isAuthRoute) {
@@ -123,7 +138,7 @@ function LayoutContent() {
             {navigation.map(({ icon: Icon, label, path }) => (
               <Link
                 key={path}
-                aria-current={location.pathname === path ? 'page' : undefined}
+                aria-current={location.pathname === path || location.pathname.startsWith(`${path}/`) ? 'page' : undefined}
                 to={path}
               >
                 <Icon size={17} />
@@ -182,7 +197,7 @@ function LayoutContent() {
                     {navigation.map(({ icon: Icon, label, path }) => (
                       <Link
                         key={path}
-                        aria-current={location.pathname === path ? 'page' : undefined}
+                        aria-current={location.pathname === path || location.pathname.startsWith(`${path}/`) ? 'page' : undefined}
                         to={path}
                         onClick={close}
                       >
@@ -258,6 +273,9 @@ function LayoutContent() {
               <Route element={<ResourceListPage />} path="/resources" />
               <Route element={<MyResourceReservationsPage />} path="/resources/reservations" />
               <Route element={<ResourceReservationPage />} path="/resources/:resourceKey" />
+              <Route element={<OrganizationRootsPage />} path="/organizations" />
+              <Route element={<OrganizationUnitPage />} path="/organizations/:unitId" />
+              <Route element={<OrganizationMemberPage />} path="/organizations/:unitId/members/:memberId" />
               <Route element={<Navigate replace to="/profile" />} path="*" />
             </Routes>}
           </main>
