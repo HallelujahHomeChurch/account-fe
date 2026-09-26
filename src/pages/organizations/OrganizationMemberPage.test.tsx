@@ -19,6 +19,15 @@ beforeEach(() => {
   vi.mocked(useAuth).mockReturnValue({ operationsApi: api } as never)
 })
 
+it.each(['grant', 'revoke'] as const)('keeps individual entitlement %s scoped to the opened member', async operation => {
+  const code = 'bulletin.general.zh-Hant.access'
+  api.getManagedMember.mockResolvedValue({ memberId: 'member', displayName: 'Alice', email: 'a@example.test', affiliations: [], entitlementCodes: operation === 'revoke' ? [code] : [], actions: { manageEntitlements: true } })
+  render(<MemoryRouter initialEntries={['/organizations/unit/members/member']}><Routes><Route path="/organizations/:unitId/members/:memberId" element={<OrganizationMemberPage />} /></Routes></MemoryRouter>)
+  const buttons = await screen.findAllByRole('button', { name: operation === 'grant' ? 'Grant' : 'Remove' })
+  await userEvent.click(buttons[0])
+  expect(api.applyManagedEntitlements).toHaveBeenCalledExactlyOnceWith('unit', ['member'], code, operation, expect.any(String))
+})
+
 it('requires explicit confirmation only for the final-binding conflict', async () => {
   api.removeManagedAffiliation.mockRejectedValueOnce(new OperationsApiError(409, 'last_binding_requires_membership_end')).mockResolvedValueOnce({})
   render(<MemoryRouter initialEntries={['/organizations/unit/members/member']}><Routes><Route path="/organizations/:unitId/members/:memberId" element={<OrganizationMemberPage />} /></Routes></MemoryRouter>)
