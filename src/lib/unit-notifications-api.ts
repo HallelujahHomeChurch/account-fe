@@ -1,3 +1,5 @@
+import { observeApiFetch, reportResponseFailure } from '../observability'
+
 export type UnitNotificationPreview = {
   audienceAccounts: number
   emailRecipients: number
@@ -52,33 +54,33 @@ export class UnitNotificationsApi {
 
   constructor(options: Options) {
     this.options = options
-    this.fetch = options.fetch ?? globalThis.fetch.bind(globalThis)
+    this.fetch = observeApiFetch(options.fetch ?? globalThis.fetch.bind(globalThis), 'unit-notifications.request')
   }
 
   preview(orgUnitId: string, signal?: AbortSignal) {
-    return this.request<UnitNotificationPreview>('/api/engagement/unit-notifications/preview', { method: 'POST', body: JSON.stringify({ orgUnitId }), signal }).then(value => {
+    return this.request<UnitNotificationPreview>('/api/engagement/unit-notifications/preview', { method: 'POST', body: JSON.stringify({ orgUnitId }), signal }, value => {
       if (!value || ![value.audienceAccounts, value.emailRecipients, value.webPushDevices].every(validCount)) throw new UnitNotificationsApiError(502, 'invalid_response')
       return value
     })
   }
 
   submit(orgUnitId: string, subject: string, body: string, key: string, signal?: AbortSignal) {
-    return this.request<UnitNotification>('/api/engagement/unit-notifications', { method: 'POST', body: JSON.stringify({ orgUnitId, subject, body }), headers: { 'Idempotency-Key': key }, signal }).then(validateNotification)
+    return this.request<UnitNotification>('/api/engagement/unit-notifications', { method: 'POST', body: JSON.stringify({ orgUnitId, subject, body }), headers: { 'Idempotency-Key': key }, signal }, validateNotification)
   }
 
   list(orgUnitId: string, page = 1, limit = 20, signal?: AbortSignal) {
     const query = new URLSearchParams({ orgUnitId, page: String(page), limit: String(limit) })
-    return this.request<UnitNotificationPage>(`/api/engagement/unit-notifications?${query}`, { signal }).then(value => {
+    return this.request<UnitNotificationPage>(`/api/engagement/unit-notifications?${query}`, { signal }, value => {
       if (!value || !Array.isArray(value.items) || ![value.page, value.perPage, value.total].every(validCount) || value.page < 1 || value.perPage < 1) throw new UnitNotificationsApiError(502, 'invalid_response')
       return { ...value, items: value.items.map(validateNotification) }
     })
   }
 
   get(notificationId: string, signal?: AbortSignal) {
-    return this.request<UnitNotification>(`/api/engagement/unit-notifications/${encodeURIComponent(notificationId)}`, { signal }).then(validateNotification)
+    return this.request<UnitNotification>(`/api/engagement/unit-notifications/${encodeURIComponent(notificationId)}`, { signal }, validateNotification)
   }
 
-  private async request<T>(path: string, init: RequestInit, retry = true, refreshedToken?: string): Promise<T> {
+  private async request<T>(path: string, init: RequestInit, validate: (value: T) => T, retry = true, refreshedToken?: string): Promise<T> {
     const token = refreshedToken ?? await this.options.getAccessToken()
     const response = await this.fetch(path, {
       ...init,
@@ -87,12 +89,18 @@ export class UnitNotificationsApi {
     })
     if (response.status === 401 && retry && token && this.options.refreshAfterUnauthorized) {
       const refreshed = await this.options.refreshAfterUnauthorized(token)
-      if (refreshed) return this.request<T>(path, init, false, refreshed)
+      if (refreshed) return this.request<T>(path, init, validate, false, refreshed)
     }
     const value = await response.json().catch(() => undefined) as { data?: T; error?: string | { code?: string } } | undefined
     const code = typeof value?.error === 'string' ? value.error : value?.error?.code
-    if (!response.ok || value?.data === undefined) throw new UnitNotificationsApiError(response.status, code)
-    return value.data
+    if (!response.ok) throw new UnitNotificationsApiError(response.status, code)
+    try {
+      if (value?.data === undefined) throw new UnitNotificationsApiError(response.status, 'invalid_response')
+      return validate(value.data)
+    } catch (error) {
+      if (!init.signal?.aborted) reportResponseFailure(response, 'invalid_response')
+      throw error
+    }
   }
 }
 

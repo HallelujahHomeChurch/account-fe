@@ -2,7 +2,7 @@ import { AccountMenu, BrandLoadingScreen, Button, Drawer, Skeleton, Toast, Toast
 import { canAccessAdmin } from '@hallelujahhomechurch/account-client/admin-access'
 import { Bell, CalendarDays, FileArchive, Menu, MonitorSmartphone, ShieldCheck, UserRound, UsersRound } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 
 import { useAuth } from './auth/auth-context'
 import { consumePostLoginReturnTo, hasPostLoginReturnTo, isAuthRoutePath, loginPath } from './auth/auth-routes'
@@ -46,7 +46,8 @@ function LayoutContent() {
   const dsrEnabled = capabilities?.dsr?.enabled === true
   const [hasReservableResources, setHasReservableResources] = useState(false)
   const [resourceLookupFailed, setResourceLookupFailed] = useState(false)
-  const [hasManagedUnits, setHasManagedUnits] = useState(false)
+  const [managedAccess, setManagedAccess] = useState<'loading' | 'allowed' | 'denied' | 'failed'>('loading')
+  const [accessRevision, setAccessRevision] = useState(0)
 
   useEffect(() => {
     setHasReservableResources(false)
@@ -60,14 +61,15 @@ function LayoutContent() {
   }, [auth.operationsApi, auth.profile, isAuthRoute, isResourceRoute])
 
   useEffect(() => {
-    setHasManagedUnits(false)
+    setManagedAccess('loading')
     if (isAuthRoute || !auth.profile || !auth.operationsApi.getMyAccess) return
     let active = true
-    auth.operationsApi.getMyAccess()
-      .then((access) => { if (active) setHasManagedUnits(access.responsibilities.length > 0) })
-      .catch(() => { if (active) setHasManagedUnits(false) })
-    return () => { active = false }
-  }, [auth.operationsApi, auth.profile, isAuthRoute])
+    const controller = new AbortController()
+    auth.operationsApi.getMyAccess(controller.signal)
+      .then((access) => { if (active) setManagedAccess(access.responsibilities.length > 0 ? 'allowed' : 'denied') })
+      .catch(() => { if (active) setManagedAccess('failed') })
+    return () => { active = false; controller.abort() }
+  }, [auth.operationsApi, auth.profile, isAuthRoute, accessRevision])
 
   const navigation = [
     { icon: UserRound, label: t.nav.personalInfo, path: '/profile' },
@@ -76,7 +78,7 @@ function LayoutContent() {
     { icon: Bell, label: t.nav.notificationSettings, path: '/notifications' },
     ...(dsrEnabled ? [{ icon: FileArchive, label: t.nav.dataRequests, path: '/data-requests' }] : []),
     ...(hasReservableResources ? [{ icon: CalendarDays, label: t.nav.resourceReservations, path: '/resources' }] : []),
-    ...(hasManagedUnits ? [{ icon: UsersRound, label: t.nav.organizationManagement, path: '/organizations' }] : []),
+    ...(managedAccess === 'allowed' ? [{ icon: UsersRound, label: t.nav.organizationManagement, path: '/organizations' }] : []),
   ]
 
   if (isAuthRoute) {
@@ -280,9 +282,11 @@ function LayoutContent() {
               <Route element={<ResourceListPage />} path="/resources" />
               <Route element={<MyResourceReservationsPage />} path="/resources/reservations" />
               <Route element={<ResourceReservationPage />} path="/resources/:resourceKey" />
-              <Route element={<OrganizationRootsPage />} path="/organizations" />
-              <Route element={<OrganizationUnitPage />} path="/organizations/:unitId" />
-              <Route element={<OrganizationMemberPage />} path="/organizations/:unitId/members/:memberId" />
+              <Route element={managedAccess === 'allowed' ? <Outlet /> : managedAccess === 'denied' ? <Navigate replace to="/profile" /> : managedAccess === 'failed' ? <section className="account-document"><p className="form-error" role="alert">{t.organizations.loadFailed}</p><Button onPress={() => setAccessRevision(value => value + 1)}>{t.organizations.retry}</Button></section> : <Skeleton className="account-page-skeleton" label={t.organizations.loading} />}>
+                <Route element={<OrganizationRootsPage />} path="/organizations" />
+                <Route element={<OrganizationUnitPage />} path="/organizations/:unitId" />
+                <Route element={<OrganizationMemberPage />} path="/organizations/:unitId/members/:memberId" />
+              </Route>
               <Route element={<Navigate replace to="/profile" />} path="*" />
             </Routes>}
           </main>

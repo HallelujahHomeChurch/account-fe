@@ -8,7 +8,7 @@ import {
   type OAuthClientConfig,
   type OAuthTransaction,
 } from '@hallelujahhomechurch/account-client'
-import { recordRequestId } from '../observability'
+import { isAbortError, observeApiFetch, reportResponseFailure } from '../observability'
 
 export type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
@@ -207,7 +207,7 @@ export class AccountApi {
 
   constructor(options: AccountApiOptions) {
     this.baseUrl = options.baseUrl.replace(/\/$/, '')
-    this.fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis)
+    this.fetcher = observeApiFetch(options.fetcher ?? globalThis.fetch.bind(globalThis), 'account.request')
     this.getAccessToken = options.getAccessToken
     this.setAccessToken = options.setAccessToken
     this.refreshAfterUnauthorized = options.refreshAfterUnauthorized
@@ -236,18 +236,12 @@ export class AccountApi {
   }
 
   getSession(): Promise<AccountSession> {
-    return createAccountSessionClient({
-      baseUrl: this.baseUrl,
-      fetcher: this.fetcher as typeof fetch,
-    }).getSession()
+    return this.sessionRequest(client => client.getSession())
   }
 
   async issueAccessToken() {
     try {
-      const result = await createAccountSessionClient({
-        baseUrl: this.baseUrl,
-        fetcher: this.fetcher as typeof fetch,
-      }).issueAccessToken()
+      const result = await this.sessionRequest(client => client.issueAccessToken())
       return result.accessToken
     } catch (error) {
       if (error instanceof AccountSessionError) {
@@ -500,10 +494,23 @@ export class AccountApi {
   }
 
   logoutAll() {
-    return createAccountSessionClient({
+    return this.sessionRequest(client => client.logoutAll())
+  }
+
+  private async sessionRequest<T>(run: (client: ReturnType<typeof createAccountSessionClient>) => Promise<T>) {
+    let response: Response | undefined
+    const client = createAccountSessionClient({
       baseUrl: this.baseUrl,
-      fetcher: this.fetcher as typeof fetch,
-    }).logoutAll()
+      fetcher: async (input, init) => {
+        response = await this.fetcher(input, init)
+        return response
+      },
+    })
+    try { return await run(client) }
+    catch (error) {
+      if (response?.ok && error instanceof AccountSessionError && ['INVALID_RESPONSE', 'CSRF_TOKEN_REQUIRED'].includes(error.code ?? '')) reportResponseFailure(response, 'invalid_response')
+      throw error
+    }
   }
 
   getSocialLoginUrl(provider: string, authRequestId?: string) {
@@ -546,10 +553,10 @@ export class AccountApi {
       headers['x-csrf-token'] = await this.getCsrfToken()
     }
 
+    const previousToken = this.getAccessToken?.() ?? null
     if (options.auth !== false) {
-      const token = this.getAccessToken?.()
-      if (token) {
-        headers.authorization = `Bearer ${token}`
+      if (previousToken) {
+        headers.authorization = `Bearer ${previousToken}`
       }
     }
 
@@ -559,7 +566,6 @@ export class AccountApi {
       headers,
       body: requestBody,
     })
-    recordRequestId(response)
 
     if (response.status === 403 && options.csrfRetry !== false && this.needsCsrf(method)) {
       const data = await response.clone().json().catch(() => undefined) as { error_code?: string } | undefined
@@ -575,7 +581,6 @@ export class AccountApi {
       options.retry !== false &&
       path !== '/refresh'
     ) {
-      const previousToken = this.getAccessToken?.() ?? null
       const token = await this.recoverUnauthorized(previousToken)
       const currentToken = this.getAccessToken?.() ?? null
       if (token && (currentToken === previousToken || currentToken === token)) {
@@ -591,7 +596,6 @@ export class AccountApi {
     const token = this.getAccessToken?.() ?? null
     const headers: Record<string, string> = token ? { authorization: `Bearer ${token}` } : {}
     const response = await this.fetcher(url, { credentials: 'include', headers })
-    recordRequestId(response)
     if (response.status === 401 && retry) {
       const nextToken = await this.recoverUnauthorized(token)
       const currentToken = this.getAccessToken?.() ?? null
@@ -619,9 +623,9 @@ export class AccountApi {
         credentials: 'include',
         headers: { accept: 'application/json' },
       }).then(async (response) => {
-        recordRequestId(response)
         const data = await this.readResponse<{ csrf_token?: string }>(response)
-        if (!data.csrf_token) {
+        if (!data?.csrf_token) {
+          reportResponseFailure(response, 'invalid_response')
           throw new ApiError(response.status, 'CSRF token missing')
         }
         return data.csrf_token
@@ -644,8 +648,14 @@ export class AccountApi {
       return undefined as T
     }
 
-    const text = await response.text()
-    const data = text ? JSON.parse(text) : undefined
+    let data: unknown
+    try {
+      const text = await response.text()
+      data = text ? JSON.parse(text) : undefined
+    } catch (error) {
+      if (response.ok && !isAbortError(error)) reportResponseFailure(response, 'invalid_response')
+      throw error
+    }
 
     if (!response.ok) {
       const message =
