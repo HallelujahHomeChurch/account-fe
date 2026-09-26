@@ -1,5 +1,5 @@
-import { Button, Card, Dialog, Skeleton } from '@hallelujahhomechurch/ui'
-import { ChevronRight, Folder, UsersRound } from 'lucide-react'
+import { Button, DataTableFrame, Dialog, Skeleton } from '@hallelujahhomechurch/ui'
+import { ChevronRight, Pencil, Plus, Search, Send } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
@@ -16,7 +16,7 @@ export function OrganizationUnitPage() {
 
 function UnitFolder({ unitId }: { unitId: string }) {
   const { operationsApi } = useAuth()
-  const { messages: { organizations: t } } = useLocale()
+  const { messages: { organizations: t, site } } = useLocale()
   const [folder, setFolder] = useState<ManagedUnitFolder | null>(null)
   const [members, setMembers] = useState<ManagedMemberPage | null>(null)
   const [includeArchived, setIncludeArchived] = useState(false)
@@ -112,63 +112,58 @@ function UnitFolder({ unitId }: { unitId: string }) {
   const canSelect = folder.actions.manageEntitlements && !archived
   const close = (open: boolean) => { if (!open && !pending) setDialog(null) }
 
-  return <section className="account-document organization-page">
+  return <section className="account-document organization-page organization-folder-page">
+    <header className="organization-folder-header">
     <nav aria-label={t.title} className="organization-breadcrumb">
       <Link to="/organizations">{t.roots}</Link>
       {folder.breadcrumb.map(item => <span key={item.id}><ChevronRight size={14} aria-hidden="true" /><Link to={'/organizations/' + item.id}>{item.name}</Link></span>)}
       <span aria-current="page"><ChevronRight size={14} aria-hidden="true" />{folder.unit.name}</span>
     </nav>
-    <div className="organization-heading">
-      <div className="page-heading"><div className="organization-eyebrow">{t[folder.unit.kind]}{archived ? <span className="organization-badge">{t.archived}</span> : null}</div><h1>{folder.unit.name}</h1><p>{folder.unit.email || t.description}</p></div>
+    <label className="organization-checkbox"><input checked={includeArchived} type="checkbox" onChange={event => setIncludeArchived(event.target.checked)} />{t.archiveFilter}</label>
+    </header>
+    <h1 className="sr-only">{folder.unit.name}</h1>
+    {archived ? <span className="organization-badge">{t.archived}</span> : null}
+    <div className="organization-toolbar">
+      <div className="organization-search"><Search size={18} aria-hidden="true" /><input className="organization-input" type="search" aria-label={t.searchMembers} placeholder={t.searchMembers} value={query} disabled={archived} onChange={event => setQuery(event.target.value)} /></div>
       <div className="organization-actions">
-        {folder.actions.editUnit ? <Button variant="secondary" isDisabled={loading} onPress={() => setDialog('settings')}>{t.settings}</Button> : null}
+        {folder.actions.editUnit ? <Button className="organization-settings" aria-label={t.settings} variant="outline" isDisabled={loading} onPress={() => setDialog('settings')}><Pencil size={18} aria-hidden="true" /></Button> : null}
+        {folder.actions.manageMembers ? <Button variant="outline" aria-label={t.addMember} isDisabled={loading || pending} onPress={() => setDialog('add')}><Plus size={18} aria-hidden="true" />{t.memberButton}</Button> : null}
+        {folder.actions.createChild && childKinds.length ? <Button variant="outline" aria-label={t.createChild} isDisabled={loading || pending} onPress={() => setDialog('child')}><Plus size={18} aria-hidden="true" />{t.unitButton}</Button> : null}
         {folder.actions.restore ? <Button isDisabled={pending || loading} onPress={() => void run(['restore', folder.unit.version], key => operationsApi.setManagedUnitStatus(unitId, folder.unit.version, 'restore', key))}>{t.restore}</Button> : null}
-        {folder.actions.sendNotifications ? <Button isDisabled={loading} onPress={() => setDialog('notification')}>{t.notifications}</Button> : null}
+        {folder.actions.sendNotifications ? <Button isDisabled={loading} onPress={() => setDialog('notification')}><Send size={17} aria-hidden="true" />{site.notifications}</Button> : null}
       </div>
     </div>
     {!dialog ? mutationError : null}
-    <Card className="panel-card organization-directory">
-      <Card.Header>
-        <div className="organization-section-heading"><Card.Title>{t.directory}</Card.Title><div className="organization-actions">
-          {folder.actions.createChild && childKinds.length ? <Button size="sm" variant="secondary" isDisabled={loading || pending} onPress={() => setDialog('child')}>{t.createChild}</Button> : null}
-          {folder.actions.manageMembers ? <Button size="sm" isDisabled={loading || pending} onPress={() => setDialog('add')}>{t.addMember}</Button> : null}
-        </div></div>
-        <p className="muted-copy">{t.scopeHint}</p>
-      </Card.Header>
-      <Card.Content>
-        <div className="organization-section-heading organization-toolbar">
-          <input className="organization-input" type="search" aria-label={t.searchMembers} placeholder={t.searchMembers} value={query} disabled={archived} onChange={event => setQuery(event.target.value)} />
-          <label className="organization-checkbox"><input checked={includeArchived} type="checkbox" onChange={event => setIncludeArchived(event.target.checked)} />{t.showArchived}</label>
-        </div>
+    <div className="organization-directory">
         {selected.length ? <div className="organization-batch" aria-label={t.entitlements}>
           <span>{t.selectedCount} {selected.length} / 50</span>
           <select className="organization-input" aria-label={t.entitlements} value={entitlementCode} disabled={pending || loading} onChange={event => setEntitlementCode(event.target.value as EntitlementCode)}>{weeklyReportCodes.map((code, index) => <option key={code} value={code}>{weeklyReportLabels[index]}</option>)}</select>
           {(['grant', 'revoke'] as const).map(operation => <Button key={operation} size="sm" variant={operation === 'grant' ? 'primary' : 'secondary'} isDisabled={pending || loading} onPress={() => void run([operation, selected, entitlementCode], key => operationsApi.applyManagedEntitlements(unitId, selected, entitlementCode, operation, key), () => setSelected([]))}>{operation === 'grant' ? t.grant : t.remove}</Button>)}
           <Button size="sm" variant="secondary" isDisabled={pending} onPress={() => setSelected([])}>{t.clear}</Button>
         </div> : null}
-        <div className="organization-table-scroll" aria-busy={loading}>
-          <table className="organization-table">
-            <thead><tr>{canSelect ? <th className="organization-selection"><span className="sr-only">{t.select}</span></th> : null}<th>{t.name}</th><th>{t.kind}</th><th>{t.email}</th></tr></thead>
+        <DataTableFrame footer={<div className="organization-section-heading organization-pagination">
+          <span className="muted-copy" role="status">{loading ? t.refreshing : t.members + ' · ' + page}</span>
+          <div className="organization-actions"><Button size="sm" isDisabled={page === 1 || loading || pending} variant="ghost" onPress={() => setPage(value => value - 1)}>{t.previous}</Button><Button size="sm" isDisabled={!members?.nextPage || loading || pending} variant="ghost" onPress={() => setPage(value => value + 1)}>{t.next}</Button></div>
+        </div>}>
+          <table className="organization-table" aria-label={t.directory} aria-busy={loading}>
+            <thead><tr>{canSelect ? <th className="organization-selection"><span className="sr-only">{t.select}</span></th> : null}<th>{t.name}</th><th>{t.email}</th><th>{t.kind}</th><th className="organization-row-action"><span className="sr-only">{t.settings}</span></th></tr></thead>
             <tbody>
               {folder.children.map(child => <tr className="organization-folder-row" key={child.id}>
                 {canSelect ? <td /> : null}
-                <td><Link className="organization-row-link" to={'/organizations/' + child.id}><Folder size={18} aria-hidden="true" /><span>{child.name}{child.status === 'archived' ? <small className="organization-badge">{t.archived}</small> : null}</span><ChevronRight size={16} aria-hidden="true" /></Link></td>
-                <td>{t[child.kind]}</td><td className="organization-email">{child.email || '—'}</td>
+                <td><Link className="organization-row-link" to={'/organizations/' + child.id}><span>{child.name}{child.status === 'archived' ? <small className="organization-badge">{t.archived}</small> : null}</span></Link></td>
+                <td className="organization-email">{child.email || '—'}</td><td>{t[child.kind]}</td>
+                <td className="organization-row-action"><Link className="organization-icon-action" aria-label={t.view + ' ' + child.name} to={'/organizations/' + child.id}><Pencil size={16} aria-hidden="true" /></Link></td>
               </tr>)}
               {members?.items.map(member => <tr key={member.memberId}>
                 {canSelect ? <td><input aria-label={t.select + ' ' + (member.displayName || member.email)} checked={selected.includes(member.memberId)} disabled={pending || loading || (!selected.includes(member.memberId) && selected.length >= 50)} type="checkbox" onChange={event => setSelected(current => event.target.checked ? [...current, member.memberId] : current.filter(id => id !== member.memberId))} /></td> : null}
-                <td><Link className="organization-row-link" to={'/organizations/' + unitId + '/members/' + member.memberId}><UsersRound size={18} aria-hidden="true" /><span>{member.displayName || member.email}</span></Link></td><td>{t.members}</td><td className="organization-email">{member.email}</td>
+                <td><Link className="organization-row-link" to={'/organizations/' + unitId + '/members/' + member.memberId}><span>{member.displayName || member.email}</span></Link></td><td className="organization-email">{member.email}</td><td>{t.members}</td>
+                <td className="organization-row-action"><Link className="organization-icon-action" aria-label={t.entitlements + ' ' + (member.displayName || member.email)} to={'/organizations/' + unitId + '/members/' + member.memberId}><Pencil size={16} aria-hidden="true" /></Link></td>
               </tr>)}
-              {!members?.items.length ? <tr><td colSpan={canSelect ? 4 : 3} className="organization-empty">{search ? t.noResults : t.noMembers}</td></tr> : null}
+              {!members?.items.length && !folder.children.length ? <tr><td colSpan={canSelect ? 5 : 4} className="organization-empty">{search ? t.noResults : t.noMembers}</td></tr> : null}
             </tbody>
           </table>
-        </div>
-        <div className="organization-section-heading organization-pagination">
-          <span className="muted-copy" role="status">{loading ? t.refreshing : t.members + ' · ' + page}</span>
-          <div className="organization-actions"><Button size="sm" isDisabled={page === 1 || loading || pending} variant="secondary" onPress={() => setPage(value => value - 1)}>{t.previous}</Button><Button size="sm" isDisabled={!members?.nextPage || loading || pending} variant="secondary" onPress={() => setPage(value => value + 1)}>{t.next}</Button></div>
-        </div>
-      </Card.Content>
-    </Card>
+        </DataTableFrame>
+    </div>
     <Dialog isOpen={dialog === 'add'} onOpenChange={close} title={t.addMember} closeLabel={t.cancel}>
       <div className="organization-dialog-stack">{mutationError}<p className="muted-copy">{t.admissionHint}</p>
         <label>{t.searchAccounts}<input className="organization-input" type="search" maxLength={200} disabled={pending} value={candidateQuery} onChange={event => setCandidateQuery(event.target.value)} /></label>

@@ -39,12 +39,23 @@
 }
 
 .account-document.organization-page { display: grid; gap: 1.5rem; min-width: 0; width: min(100%, 1040px); }
+.account-content:has(.organization-folder-page) { height: 100dvh; grid-template-rows: auto minmax(0, 1fr); }
+.main-panel:has(.organization-folder-page) { display: flex; min-height: 0; overflow: auto; padding-bottom: 24px; }
+.account-document.organization-folder-page { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.organization-folder-page > :not(.organization-directory) { flex-shrink: 0; }
+.organization-folder-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.organization-folder-header .organization-breadcrumb { min-width: 0; }
+.organization-folder-header .organization-checkbox { flex-shrink: 0; font-size: .875rem; color: var(--color-muted); }
+.organization-folder-page .organization-directory { display: flex; flex-direction: column; flex: 1; min-height: 280px; }
+.organization-directory > .hhc-data-table-frame { flex: 1; min-height: 280px; }
+.organization-directory > .organization-batch { flex-shrink: 0; }
 .organization-heading { display: flex; align-items: start; justify-content: space-between; gap: 1.25rem; flex-wrap: wrap; }
 .organization-heading .page-heading { margin: 0; }
 .organization-eyebrow { display: flex; align-items: center; gap: .75rem; color: var(--color-muted); font-size: .875rem; margin-bottom: .5rem; }
 .organization-root-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
 .organization-breadcrumb, .organization-breadcrumb > span { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
-.organization-breadcrumb { color: var(--color-muted); font-size: .875rem; }
+.organization-breadcrumb { color: var(--color-muted); font-size: 1.125rem; line-height: 1.65; }
+.organization-breadcrumb [aria-current="page"] { color: var(--color-ink); font-weight: 600; }
 .organization-breadcrumb a:hover { color: var(--color-primary); text-decoration: underline; }
 .organization-actions { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
 .organization-actions > button { flex-shrink: 0; }
@@ -59,13 +70,22 @@
 .organization-directory { min-width: 0; }
 .organization-directory > .hhc-card__header { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; }
 .organization-directory > .hhc-card__header > .muted-copy { margin: 0; font-size: .875rem; line-height: 1.65; }
-.organization-toolbar { margin-bottom: 1rem; }
+.organization-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.organization-search { position: relative; flex: 1 1 14rem; max-width: 24rem; }
+.organization-search > svg { position: absolute; top: 50%; left: .85rem; transform: translateY(-50%); color: var(--color-muted); pointer-events: none; }
+.organization-search > input { padding-left: 2.5rem; width: 100%; }
+.organization-settings { width: 2.75rem; padding-inline: 0; }
 .organization-table-scroll { overflow-x: auto; min-width: 0; }
 .organization-table { border-collapse: collapse; width: 100%; }
-.organization-table th, .organization-table td { border-bottom: 1px solid var(--color-line); padding: .875rem .75rem; text-align: left; }
+.organization-table th, .organization-table td { border-bottom: 1px solid var(--color-line); padding: 1rem; text-align: left; font-size: .875rem; }
 .organization-table th { color: var(--color-muted); font-size: .8rem; font-weight: 500; background: var(--color-panel); white-space: nowrap; }
 .organization-table th:nth-last-child(2), .organization-table td:nth-last-child(2) { white-space: nowrap; }
-.organization-table .organization-selection { width: 2.5rem; }
+.organization-table .organization-selection { width: 2.75rem; }
+.organization-table .organization-row-action { white-space: nowrap; width: 1%; text-align: right; padding-block: .5rem; }
+.organization-icon-action { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 50%; color: var(--color-muted); }
+.organization-icon-action:hover { background: var(--color-primary-soft); color: var(--color-primary); }
+.organization-icon-action:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.organization-table tbody tr:last-child td { border-bottom: 0; }
 .organization-table tbody tr:hover { background: var(--color-panel); }
 .organization-row-link { display: flex; gap: .6rem; align-items: center; min-width: 0; }
 .organization-row-link > svg { flex-shrink: 0; color: var(--color-muted); }
@@ -73,12 +93,12 @@
 .organization-row-link > svg:last-child:not(:first-child) { margin-left: auto; }
 .organization-folder-row .organization-row-link { font-weight: 600; }
 .organization-folder-row .organization-row-link > svg:first-child { color: var(--color-primary); }
-.organization-email { color: var(--color-muted); overflow-wrap: anywhere; max-width: 18rem; }
+.organization-email { color: var(--color-muted); white-space: nowrap; }
 .organization-table .organization-empty { text-align: center; color: var(--color-muted); padding: 2rem 1rem; }
 .organization-badge { display: inline-block; border-radius: .35rem; padding: .15rem .4rem; margin-left: .5rem; color: var(--color-muted); background: var(--color-panel); font-size: .75rem; font-weight: 400; }
 .organization-section-heading { align-items: center; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
 .organization-section-heading h3 { margin: 0; }
-.organization-pagination { margin-top: 1rem; font-size: .875rem; }
+.organization-pagination { padding: .75rem 1rem; border-top: 1px solid var(--color-line); font-size: .875rem; }
 .organization-dialog-stack { display: grid; gap: 1rem; min-width: 0; }
 .organization-dialog-stack fieldset { padding: 0; border: 0; margin: 0; }
 .organization-dialog-stack label { display: grid; gap: .4rem; font-size: .9rem; font-weight: 500; }
@@ -102,6 +122,11 @@
 .organization-page input[type="checkbox"] { width: 1rem; height: 1rem; accent-color: var(--color-primary); }
 
 @media (max-width: 640px) {
+  .account-document.organization-page { gap: 1rem; }
+  .organization-breadcrumb { font-size: 1rem; gap: .35rem; }
+  .organization-search { flex-basis: 100%; max-width: none; }
+  .organization-toolbar > .organization-actions { width: 100%; gap: .5rem; }
+  .organization-toolbar > .organization-actions > button:not(.organization-settings) { flex: 1; padding-inline: .6rem; }
   .organization-table { min-width: 30rem; }
   .organization-toolbar > .organization-input { width: 100%; }
   .organization-heading > .organization-actions { width: 100%; }

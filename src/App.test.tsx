@@ -31,6 +31,26 @@ afterEach(() => {
 })
 
 describe('App layout', () => {
+  it.each(['/organizations', '/organizations/unit', '/organizations/unit/members/member'])('redirects an ordinary member away from %s without loading management data', async (path) => {
+    const operationsApi = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValue({ responsibilities: [] }), listManagedRoots: vi.fn(), getManagedUnit: vi.fn(), getManagedMember: vi.fn() }
+    render(<MemoryRouter initialEntries={[path]}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+    await waitFor(() => expect(screen.getByTestId('route-path')).toHaveTextContent('/profile'))
+    expect(screen.queryByRole('link', { name: 'Unit management' })).not.toBeInTheDocument()
+    expect(operationsApi.listManagedRoots).not.toHaveBeenCalled()
+    expect(operationsApi.getManagedUnit).not.toHaveBeenCalled()
+    expect(operationsApi.getManagedMember).not.toHaveBeenCalled()
+  })
+
+  it('keeps failed access lookup retryable and only loads the page after access is confirmed', async () => {
+    const operationsApi = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockRejectedValueOnce(new Error('unavailable')).mockResolvedValue({ responsibilities: [{ responsibilityId: 'r1' }] }), listManagedRoots: vi.fn().mockResolvedValue([]) }
+    render(<MemoryRouter initialEntries={['/organizations']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+    await screen.findByRole('alert')
+    expect(screen.getByTestId('route-path')).toHaveTextContent('/organizations')
+    expect(operationsApi.listManagedRoots).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    await waitFor(() => expect(operationsApi.listManagedRoots).toHaveBeenCalledOnce())
+  })
+
   it('keeps post-login continuation inside the account content area', () => {
     savePostLoginReturnTo('/security')
     render(
