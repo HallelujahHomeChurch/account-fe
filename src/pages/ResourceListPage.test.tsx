@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, expect, it, vi } from 'vitest'
+import userEvent from '@testing-library/user-event'
 
 import { useAuth } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
@@ -20,4 +21,13 @@ it('uses the server-projected resource list instead of local eligibility rules',
   expect(await screen.findByRole('heading', { name: 'Resource requests' })).toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Choose a resource' })).toHaveAttribute('href', '/resources/main-hall')
   expect(operationsApi.listMyResources).toHaveBeenCalledOnce()
+})
+
+it('recovers from a failed resource request using the existing retry action', async () => {
+  operationsApi.listMyResources.mockRejectedValueOnce(new Error('HTTP 500'))
+  render(<MemoryRouter><LocaleProvider><ResourceListPage /></LocaleProvider></MemoryRouter>)
+  expect(await screen.findByRole('alert')).toBeInTheDocument()
+  await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+  expect(await screen.findByRole('link', { name: 'Choose a resource' })).toBeInTheDocument()
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
 })
