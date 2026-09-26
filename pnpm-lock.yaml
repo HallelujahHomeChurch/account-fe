@@ -12,8 +12,8 @@ importers:
         specifier: 1.0.9
         version: 1.0.9
       '@hallelujahhomechurch/operations-client':
-        specifier: 1.0.9
-        version: 1.0.9
+        specifier: 1.0.25
+        version: 1.0.25
       '@hallelujahhomechurch/preferences':
         specifier: 1.0.9
         version: 1.0.9
@@ -234,11 +234,14 @@ packages:
       '@noble/hashes':
         optional: true
 
+  '@hallelujahhomechurch/account-client@1.0.25':
+    resolution: {integrity: sha512-UCSjmWzt1xTVUrNKgUxwwTli0gKpl75CV6nfW4OsopMOTqiTYo0onqBDj3Zwgsl85jLAMt2uJULs11VYcBGlgA==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/account-client/1.0.25/9363e733b2c242a4d4d6038a4cf7f3765ba0ae5d}
+
   '@hallelujahhomechurch/account-client@1.0.9':
     resolution: {integrity: sha512-jxm+y9Su5CDnJZU1C8wuywdZhXCcAfQRU2v0xW1aYcMqKL2xp9qR1FQCvdGLVpppDNmaHP0RTNao3UnD9Z+UAA==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/account-client/1.0.9/10771cd1cdeae12dd84965e1bc9b0e796a07bea1}
 
-  '@hallelujahhomechurch/operations-client@1.0.9':
-    resolution: {integrity: sha512-23Pw7/42nLwizDdroPhqgkFsBfGQpNCe3+qgBFI9jwEkoj3+MWn9EcmSv3U5+FffKJMfrgfer89G8N//SHlxDg==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/operations-client/1.0.9/1d3af2c4df393ce6f6cd285e4fd9716099cf4962}
+  '@hallelujahhomechurch/operations-client@1.0.25':
+    resolution: {integrity: sha512-rECmTfvU2pFmwVcTQ7jsrxtxvgBo9gjPWMIe71bx0BCwGVdWQT34WvGH/CVfgnSzXxhYqPrw1nenxutv0QiM6g==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/operations-client/1.0.25/7df7f7ea661c8daed3fc6f9f164a239da8a30426}
 
   '@hallelujahhomechurch/preferences@1.0.9':
     resolution: {integrity: sha512-qtaUQ3bMlj8C3RvMaXIhfu5EtV5LnpP8F/UaF55+NibxW5PCBnhAGJw5xmeqhq2kRoCmuEC7geHvOBz5A09MeA==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/preferences/1.0.9/54f7c6a01ed01f35916dff703088e6695b900016}
@@ -1755,11 +1758,13 @@ snapshots:
 
   '@exodus/bytes@1.15.1': {}
 
+  '@hallelujahhomechurch/account-client@1.0.25': {}
+
   '@hallelujahhomechurch/account-client@1.0.9': {}
 
-  '@hallelujahhomechurch/operations-client@1.0.9':
+  '@hallelujahhomechurch/operations-client@1.0.25':
     dependencies:
-      '@hallelujahhomechurch/account-client': 1.0.9
+      '@hallelujahhomechurch/account-client': 1.0.25
       openapi-fetch: 0.15.2
 
   '@hallelujahhomechurch/preferences@1.0.9': {}

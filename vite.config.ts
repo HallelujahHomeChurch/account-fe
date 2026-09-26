@@ -7,6 +7,7 @@ import { defineConfig } from 'vite'
 const uploadSourceMaps = Boolean(
   process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT,
 )
+const accountGatewayProxy = process.env.VITE_ACCOUNT_GATEWAY_PROXY_TARGET
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -26,6 +27,10 @@ export default defineConfig({
   server: {
     proxy: {
       '/api/account': 'http://127.0.0.1:8080',
+      ...(accountGatewayProxy ? {
+        '/api/operations': { target: accountGatewayProxy, changeOrigin: true, headers: { Host: 'account.alive.org.tw' } },
+        '/api/engagement': { target: accountGatewayProxy, changeOrigin: true, headers: { Host: 'account.alive.org.tw' } },
+      } : {}),
     },
   },
   test: {
