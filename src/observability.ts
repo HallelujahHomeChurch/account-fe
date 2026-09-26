@@ -1,4 +1,5 @@
 import type { Breadcrumb } from '@sentry/react'
+import type { AccountAuthEvent } from '@hallelujahhomechurch/account-client'
 
 const sensitiveValue = /\b(code|token|access_token|refresh_token|id_token|verification_token|reset_token|sig|signature)=([^\s&#]+)/gi
 const email = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi
@@ -6,23 +7,37 @@ const absoluteUrl = /https?:\/\/[^\s"'<>]+/gi
 const requestId = /^[A-Za-z0-9._:-]{1,128}$/
 let addSentryBreadcrumb = (_breadcrumb: Breadcrumb) => {}
 let sentryReady: Promise<typeof import('@sentry/react') | undefined> | undefined
-type ApiContext = { operation: string; method: string }
+type ApiContext = { operation: string; method: string; status?: number; request_id?: string }
 type FailureKind = 'network' | 'http' | 'invalid_response'
 const responseContexts = new WeakMap<Response, ApiContext>()
+const reportedErrors = new WeakSet<object>()
 
 export function isAbortError(error: unknown) {
   return typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError'
 }
 
-export function reportApiFailure(context: ApiContext, kind: FailureKind, response?: Response) {
-  const id = response?.headers.get('X-HHC-Request-ID')
+export function recordAccountAuthEvent(event: AccountAuthEvent) {
+  // Transport errors are already reported by the session client's observed fetch.
+  if (event.outcome === 'failed' && event.status !== undefined && event.status >= 200 && event.status < 300 && ['INVALID_RESPONSE', 'CSRF_TOKEN_REQUIRED'].includes(event.errorCode ?? '')) {
+    // The runtime hook cannot distinguish CSRF GET decoding from token POST decoding.
+    reportApiFailure({ operation: `account.session.${event.stage}`, method: event.stage === 'session' || event.errorCode === 'CSRF_TOKEN_REQUIRED' ? 'GET' : 'UNKNOWN', status: event.status, request_id: event.requestId }, 'invalid_response')
+  }
+}
+
+export function reportApiFailure(context: ApiContext, kind: FailureKind, response?: Response, originalError?: unknown) {
+  if (typeof originalError === 'object' && originalError !== null) {
+    if (reportedErrors.has(originalError)) return
+    reportedErrors.add(originalError)
+  }
+  const id = response?.headers.get('X-HHC-Request-ID') ?? context.request_id
+  const status = response?.status ?? context.status
   // Never capture the original exception: it can contain response bodies or search input.
   const error = new Error(`API request failed (${kind})`)
   error.name = 'ApiRequestFailure'
   void initObservability()?.then(sentry => {
     sentry?.captureException(error, {
       tags: { api_failure: kind, operation: context.operation, method: context.method },
-      contexts: { api: { ...context, ...(response ? { status: response.status } : {}), ...(id && requestId.test(id) ? { request_id: id } : {}) } },
+      contexts: { api: { operation: context.operation, method: context.method, ...(status !== undefined ? { status } : {}), ...(id && requestId.test(id) ? { request_id: id } : {}) } },
       fingerprint: ['api-failure', context.operation, context.method, kind],
     })
   }).catch(() => {})
@@ -41,7 +56,7 @@ export function observeApiFetch(fetcher: typeof fetch, operation: string): typeo
     try { response = await fetcher(input, init) }
     catch (error) {
       const signal = init?.signal ?? (input instanceof Request ? input.signal : undefined)
-      if (!signal?.aborted && !isAbortError(error)) reportApiFailure(context, 'network')
+      if (!signal?.aborted && !isAbortError(error)) reportApiFailure(context, 'network', undefined, error)
       throw error
     }
     responseContexts.set(response, context)

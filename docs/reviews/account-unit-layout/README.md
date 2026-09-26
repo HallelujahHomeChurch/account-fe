@@ -15,7 +15,7 @@ Implementation/PR only; merge and production release require approval.
 
 ## Automated verification
 
-All passed locally: 384 tests (44 files), `pnpm lint`, `pnpm build`, `scripts/test-release-policy.sh`, `az bicep build --file infra/main.bicep --stdout`, `git diff --check`.
+All passed locally: 388 tests (44 files), `pnpm lint`, `pnpm build`, `scripts/test-release-policy.sh`, `az bicep build --file infra/main.bicep --stdout`, `git diff --check`.
 Build retains the existing >500kB bundle warning; no dependency changes.
 
 | Scenario | Verification |
@@ -29,6 +29,7 @@ Build retains the existing >500kB bundle warning; no dependency changes.
 | Malformed resources / session response | Rejected and reported before rendering |
 | Notification capture failure | One write request only, no telemetry-induced retry |
 | Lazy SDK / unavailable SDK / no DSN | Initialization tests |
+| Direct session runtime / refresh failure propagated to Operations | Shared runtime hook + observed transport, one event across both clients |
 | Privacy | No original errors, body, headers, user, breadcrumbs or query values in caught-event payload |
 
 ## Browser verification
@@ -50,6 +51,7 @@ Local development-only fixture (`review-organizations.html`), no real membership
 
 [ACCOUNT-FE-5](https://halleluya-community-caring-ass.sentry.io/issues/7756353736/) received the controlled local 503 in **review**, release `account-unit-review-20260926`.
 First event: `bdd4b29b13b9419ab80ff9fa04d98146`.
+Final-message event: `7438b4fa69564ed99ae9a6be7ae10eec`; verified normal stack frames without the earlier spurious `/members` frame.
 
 - `operation=/api/operations/manage/org-units/{unitId}/members`, `method=GET`, `status=503`, `request_id=review-account-unit-20260926`.
 - One event for the first injected failure; successful user retry did not report a second failure. A second controlled run verifies the final synthetic message (which omits the path to avoid a spurious parsed stack frame).
@@ -61,4 +63,5 @@ First event: `bdd4b29b13b9419ab80ff9fa04d98146`.
 - PR CI, approval, merge/release and authenticated production smoke are separate from local verification.
 - Production release must upload source maps via the existing fail-closed workflow and verify the deployed release identifier.
 - No Azure error was induced: the fixture request ID is local, so there is no matching Azure server log. Real backend request-ID correlation remains a release/incident check.
+- Shared runtime shape errors use the existing package event metadata. That hook does not always expose request ID or distinguish CSRF GET from token POST decoding; unknown method is explicitly `UNKNOWN`, not fabricated. Network/HTTP failures still have transport-level metadata. Improving that validation metadata belongs to the shared package, not duplicated session parsing here.
 - The user's original intermittent loading failure remains **open / root cause unconfirmed**. Filling the reporting gap is not proof that the original failure is fixed.

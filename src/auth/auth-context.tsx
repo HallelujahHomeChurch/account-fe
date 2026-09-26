@@ -27,6 +27,7 @@ import { AccountApi, ApiError, type LoginRequest, type LoginResponse, type Profi
 import { MockAccountApi } from '../lib/mock-account-api'
 import { OperationsApi, type OperationsApiClient } from '../lib/operations-api'
 import { UnitNotificationsApi } from '../lib/unit-notifications-api'
+import { observeApiFetch, recordAccountAuthEvent } from '../observability'
 import {
   accountOAuthConfig,
   buildAccountAuthorizeUrl,
@@ -191,10 +192,10 @@ export function AuthProvider({
 
   const sessionClient = useMemo(() => {
     if (injectedApi || config.mockApi) return null
-    return createAccountSessionClient({ baseUrl: config.accountApiBaseUrl })
+    return createAccountSessionClient({ baseUrl: config.accountApiBaseUrl, fetcher: observeApiFetch(globalThis.fetch.bind(globalThis), 'account.session') })
   }, [config.accountApiBaseUrl, config.mockApi, injectedApi])
   const authRuntime = useMemo(
-    () => sessionClient ? createBrowserAccountAuthRuntime({ client: sessionClient }) : null,
+    () => sessionClient ? createBrowserAccountAuthRuntime({ client: sessionClient, onEvent: recordAccountAuthEvent }) : null,
     [sessionClient],
   )
 

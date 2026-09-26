@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createOperationsClient } from '@hallelujahhomechurch/operations-client'
+import { createAccountSessionClient, createBrowserAccountAuthRuntime } from '@hallelujahhomechurch/account-client'
 import { AccountApi } from './api'
 import { OperationsApi } from './operations-api'
 import { UnitNotificationsApi } from './unit-notifications-api'
-import { initObservability, sanitizeSentryEvent } from '../observability'
+import { initObservability, observeApiFetch, recordAccountAuthEvent, sanitizeSentryEvent } from '../observability'
 
 const sentry = vi.hoisted(() => ({ captureException: vi.fn(), init: vi.fn(), addBreadcrumb: vi.fn(), browserTracingIntegration: vi.fn() }))
 vi.mock('@sentry/react', () => sentry)
@@ -112,4 +113,27 @@ it('never resends a notification because telemetry capture throws', async () => 
   await expect(api.submit('unit', 'subject', 'body', 'key')).rejects.toMatchObject({ status: 503 })
   await flushSentry()
   expect(fetcher).toHaveBeenCalledOnce()
+})
+
+it.each(['network', 'http', 'invalid_response'] as const)('reports runtime refresh %s failure once across client boundaries', async kind => {
+  const runtime = createBrowserAccountAuthRuntime({ storage: undefined, onEvent: recordAccountAuthEvent, client: createAccountSessionClient({ fetcher: observeApiFetch(async input => {
+    if (String(input).endsWith('/csrf-token')) return Response.json({ csrf_token: 'csrf' })
+    if (kind === 'network') throw new TypeError('offline')
+    return Response.json({}, { status: kind === 'http' ? 503 : 200 })
+  }, 'account.session') }) })
+  const api = new OperationsApi(createOperationsClient({ baseUrl: '', getAccessToken: async () => 'old', refreshAfterUnauthorized: token => runtime.refreshAfterUnauthorized(token), fetcher: async () => Response.json({}, { status: 401 }) }))
+  await expect(api.listMyResources()).rejects.toBeDefined()
+  await flushSentry()
+  expect(sentry.captureException).toHaveBeenCalledOnce()
+  expect(sentry.captureException.mock.calls[0][1].tags.api_failure).toBe(kind)
+  runtime.dispose()
+})
+
+it('reports invalid session bootstrap through the runtime event hook', async () => {
+  const runtime = createBrowserAccountAuthRuntime({ onEvent: recordAccountAuthEvent, client: createAccountSessionClient({ fetcher: observeApiFetch(async () => Response.json({}), 'account.session') }) })
+  await expect(runtime.revalidate()).resolves.toMatchObject({ status: 'unavailable' })
+  await flushSentry()
+  expect(sentry.captureException).toHaveBeenCalledOnce()
+  expect(sentry.captureException.mock.calls[0][1].tags.operation).toBe('account.session.session')
+  runtime.dispose()
 })

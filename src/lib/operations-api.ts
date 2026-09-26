@@ -4,6 +4,8 @@ import {
   type createOperationsClient,
 } from '@hallelujahhomechurch/operations-client'
 import { isAbortError, recordRequestId, reportApiFailure } from '../observability'
+import { AccountSessionError } from '@hallelujahhomechurch/account-client'
+import { ApiError } from './api'
 
 export { OperationsApiError } from '@hallelujahhomechurch/operations-client'
 
@@ -55,7 +57,8 @@ export class OperationsApi implements OperationsApiClient {
     this.client = client
     client.raw.use({
       onError: ({ request, schemaPath, error }) => {
-        if (!request.signal.aborted && !isAbortError(error)) reportApiFailure({ operation: schemaPath, method: request.method }, 'network')
+        // Session refresh owns its HTTP/validation failures; do not relabel them as Operations network errors.
+        if (!request.signal.aborted && !isAbortError(error) && !(error instanceof AccountSessionError) && !(error instanceof ApiError)) reportApiFailure({ operation: schemaPath, method: request.method }, 'network', undefined, error)
       },
       onResponse: async ({ request, schemaPath, response }) => {
         recordRequestId(response)
