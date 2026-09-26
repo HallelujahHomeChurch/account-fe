@@ -5,9 +5,9 @@ import { Link, useParams } from 'react-router-dom'
 
 import { useAuth } from '../../auth/auth-context'
 import { useLocale } from '../../i18n/locale-context'
-import type { EntitlementCode, ManagedJoinCandidate, ManagedMemberPage, ManagedResponsibility, ManagedResponsibilityCandidate, ManagedUnitFolder } from '../../lib/operations-api'
+import type { ManagedJoinCandidate, ManagedMemberPage, ManagedResponsibility, ManagedResponsibilityCandidate, ManagedUnitFolder } from '../../lib/operations-api'
 import { OrganizationNotificationDialog } from './OrganizationNotificationDialog'
-import { useManagedMutation, weeklyReportCodes, weeklyReportLabels } from './organization-state'
+import { useManagedMutation } from './organization-state'
 
 export function OrganizationUnitPage() {
   const { unitId = '' } = useParams()
@@ -26,8 +26,6 @@ function UnitFolder({ unitId }: { unitId: string }) {
   const [revision, setRevision] = useState(0)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<'forbidden' | 'failed' | null>(null)
-  const [selected, setSelected] = useState<string[]>([])
-  const [entitlementCode, setEntitlementCode] = useState<EntitlementCode>(weeklyReportCodes[0])
   const [dialog, setDialog] = useState<'add' | 'child' | 'settings' | 'archive' | 'notification' | null>(null)
   const [candidateQuery, setCandidateQuery] = useState('')
   const [candidates, setCandidates] = useState<ManagedJoinCandidate[]>([])
@@ -43,12 +41,12 @@ function UnitFolder({ unitId }: { unitId: string }) {
 
   useEffect(() => {
     if (query.trim() === search) return
-    const timer = window.setTimeout(() => { setSearch(query.trim()); setPage(1); setSelected([]) }, 250)
+    const timer = window.setTimeout(() => { setSearch(query.trim()); setPage(1) }, 250)
     return () => window.clearTimeout(timer)
   }, [query, search])
   useEffect(() => {
     const controller = new AbortController()
-    setLoading(true); setLoadError(null); setSelected([])
+    setLoading(true); setLoadError(null)
     void (async () => {
       try {
         const nextFolder = await operationsApi.getManagedUnit(unitId, includeArchived, controller.signal)
@@ -117,7 +115,6 @@ function UnitFolder({ unitId }: { unitId: string }) {
   if (!folder) return <section className="account-document"><p className="form-error" role="alert">{loadError === 'forbidden' ? t.forbidden : t.loadFailed}</p><Button onPress={refresh}>{t.retry}</Button></section>
   const archived = folder.unit.status === 'archived'
   const childKinds = folder.unit.kind === 'church' ? ['family', 'fellowship'] as const : folder.unit.kind === 'family' ? ['small_group'] as const : []
-  const canSelect = folder.actions.manageEntitlements && !archived
   const close = (open: boolean) => { if (!open && !pending) setDialog(null) }
 
   return <section className="account-document organization-page organization-folder-page">
@@ -143,31 +140,23 @@ function UnitFolder({ unitId }: { unitId: string }) {
     </div>
     {!dialog ? mutationError : null}
     <div className="organization-directory">
-        {selected.length ? <div className="organization-batch" aria-label={t.entitlements}>
-          <span>{t.selectedCount} {selected.length} / 50</span>
-          <select className="organization-input" aria-label={t.entitlements} value={entitlementCode} disabled={pending || loading} onChange={event => setEntitlementCode(event.target.value as EntitlementCode)}>{weeklyReportCodes.map((code, index) => <option key={code} value={code}>{weeklyReportLabels[index]}</option>)}</select>
-          {(['grant', 'revoke'] as const).map(operation => <Button key={operation} size="sm" variant={operation === 'grant' ? 'primary' : 'secondary'} isDisabled={pending || loading} onPress={() => void run([operation, selected, entitlementCode], key => operationsApi.applyManagedEntitlements(unitId, selected, entitlementCode, operation, key), () => setSelected([]))}>{operation === 'grant' ? t.grant : t.remove}</Button>)}
-          <Button size="sm" variant="secondary" isDisabled={pending} onPress={() => setSelected([])}>{t.clear}</Button>
-        </div> : null}
         <DataTableFrame footer={<div className="organization-section-heading organization-pagination">
           <span className="muted-copy" role="status">{loading ? t.refreshing : t.members + ' · ' + page}</span>
           <div className="organization-actions"><Button size="sm" isDisabled={page === 1 || loading || pending} variant="ghost" onPress={() => setPage(value => value - 1)}>{t.previous}</Button><Button size="sm" isDisabled={!members?.nextPage || loading || pending} variant="ghost" onPress={() => setPage(value => value + 1)}>{t.next}</Button></div>
         </div>}>
           <table className="organization-table" aria-label={t.directory} aria-busy={loading}>
-            <thead><tr>{canSelect ? <th className="organization-selection"><span className="sr-only">{t.select}</span></th> : null}<th>{t.name}</th><th>{t.email}</th><th>{t.kind}</th><th className="organization-row-action"><span className="sr-only">{t.settings}</span></th></tr></thead>
+            <thead><tr><th>{t.name}</th><th>{t.email}</th><th>{t.kind}</th><th className="organization-row-action"><span className="sr-only">{t.settings}</span></th></tr></thead>
             <tbody>
               {folder.children.map(child => <tr className="organization-folder-row" key={child.id}>
-                {canSelect ? <td /> : null}
                 <td><Link className="organization-row-link" to={'/organizations/' + child.id}><span>{child.name}{child.status === 'archived' ? <small className="organization-badge">{t.archived}</small> : null}</span></Link></td>
                 <td className="organization-email">{child.email || '—'}</td><td>{t[child.kind]}</td>
                 <td className="organization-row-action"><Link className="organization-icon-action" aria-label={t.view + ' ' + child.name} to={'/organizations/' + child.id}><Pencil size={16} aria-hidden="true" /></Link></td>
               </tr>)}
               {members?.items.map(member => <tr key={member.memberId}>
-                {canSelect ? <td><input aria-label={t.select + ' ' + (member.displayName || member.email)} checked={selected.includes(member.memberId)} disabled={pending || loading || (!selected.includes(member.memberId) && selected.length >= 50)} type="checkbox" onChange={event => setSelected(current => event.target.checked ? [...current, member.memberId] : current.filter(id => id !== member.memberId))} /></td> : null}
                 <td><Link className="organization-row-link" to={'/organizations/' + unitId + '/members/' + member.memberId}><span>{member.displayName || member.email}</span></Link></td><td className="organization-email">{member.email}</td><td>{t.members}</td>
                 <td className="organization-row-action"><Link className="organization-icon-action" aria-label={t.entitlements + ' ' + (member.displayName || member.email)} to={'/organizations/' + unitId + '/members/' + member.memberId}><Pencil size={16} aria-hidden="true" /></Link></td>
               </tr>)}
-              {!members?.items.length && !folder.children.length ? <tr><td colSpan={canSelect ? 5 : 4} className="organization-empty">{search ? t.noResults : t.noMembers}</td></tr> : null}
+              {!members?.items.length && !folder.children.length ? <tr><td colSpan={4} className="organization-empty">{search ? t.noResults : t.noMembers}</td></tr> : null}
             </tbody>
           </table>
         </DataTableFrame>

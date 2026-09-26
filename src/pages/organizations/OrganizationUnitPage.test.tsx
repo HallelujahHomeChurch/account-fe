@@ -59,12 +59,16 @@ it('waits for two Unicode characters and never browses all accounts', async () =
   expect(screen.queryByRole('button', { name: /browse/i })).not.toBeInTheDocument()
 })
 
-it('limits entitlement selection to members rendered by the scoped page', async () => {
+it('offers individual member access without selection or batch entitlement controls', async () => {
   mount()
-  const checkbox = await screen.findByRole('checkbox', { name: 'Select member Alice' })
-  await userEvent.click(checkbox)
-  await userEvent.click(screen.getByRole('button', { name: 'Grant' }))
-  expect(operationsApi.applyManagedEntitlements).toHaveBeenCalledWith('church', ['member'], 'bulletin.general.zh-Hant.access', 'grant', expect.any(String))
+  const table = await screen.findByRole('table')
+  expect(within(table).getAllByRole('columnheader')).toHaveLength(4)
+  expect(within(table).queryByRole('checkbox')).not.toBeInTheDocument()
+  expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Grant' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument()
+  expect(within(table).getByRole('link', { name: 'Weekly report access Alice' })).toHaveAttribute('href', '/organizations/church/members/member')
+  expect(operationsApi.applyManagedEntitlements).not.toHaveBeenCalled()
 })
 
 it.each(['church', 'family', 'small_group', 'fellowship'])('only offers child creation for supported parent kind %s', async (kind) => {
