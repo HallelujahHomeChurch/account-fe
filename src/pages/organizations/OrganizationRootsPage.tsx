@@ -1,5 +1,5 @@
-import { Button, Card, Skeleton } from '@hallelujahhomechurch/ui'
-import { ChevronRight, Folder } from 'lucide-react'
+import { Button, Card, DataTableFrame, Skeleton } from '@hallelujahhomechurch/ui'
+import { Pencil } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -23,10 +23,19 @@ export function OrganizationRootsPage() {
   }, [operationsApi, revision])
 
   if (roots === null) return <Skeleton className="account-page-skeleton" label={t.organizations.loading} />
-  return <section className="account-document organization-page">
-    <div className="page-heading"><h1>{t.organizations.roots}</h1><p>{t.organizations.description}</p></div>
+  return <section className="account-document organization-page organization-folder-page">
+    <header className="organization-folder-header"><nav className="organization-breadcrumb" aria-label={t.organizations.title}><span aria-current="page">{t.organizations.title}</span></nav></header>
+    <h1 className="sr-only">{t.organizations.title}</h1>
     {status !== 'ok' ? <Card className="panel-card"><Card.Content><p className="form-error" role="alert">{status === 'forbidden' ? t.organizations.forbidden : t.organizations.loadFailed}</p><Button variant="secondary" onPress={() => setRevision(value => value + 1)}>{t.organizations.retry}</Button></Card.Content></Card> : null}
-    {status === 'ok' && !roots.length ? <p className="muted-copy">{t.organizations.empty}</p> : null}
-    <div className="organization-root-grid">{roots.map(unit => <Card className="panel-card" key={unit.id}><Card.Header><div className="organization-eyebrow"><Folder size={20} aria-hidden="true" />{t.organizations[unit.kind]}</div><Card.Title>{unit.name}</Card.Title></Card.Header><Card.Content><Link className="organization-row-link" to={'/organizations/' + unit.id}><span>{t.organizations.view}</span><ChevronRight size={18} aria-hidden="true" /></Link></Card.Content></Card>)}</div>
+    {status === 'ok' ? <div className="organization-directory"><DataTableFrame>
+      <table className="organization-table" aria-label={t.organizations.title}>
+        <thead><tr><th>{t.organizations.name}</th><th>{t.organizations.email}</th><th>{t.organizations.kind}</th><th className="organization-row-action"><span className="sr-only">{t.organizations.view}</span></th></tr></thead>
+        <tbody>{roots.map(unit => <tr className="organization-folder-row" key={unit.id}>
+          <td><Link className="organization-row-link" to={'/organizations/' + unit.id}><span>{unit.name}</span></Link></td>
+          <td className="organization-email">{unit.email || '—'}</td><td>{t.organizations[unit.kind]}</td>
+          <td className="organization-row-action"><Link className="organization-icon-action" aria-label={t.organizations.view + ' ' + unit.name} to={'/organizations/' + unit.id}><Pencil size={16} aria-hidden="true" /></Link></td>
+        </tr>)}{!roots.length ? <tr><td colSpan={4} className="organization-empty">{t.organizations.empty}</td></tr> : null}</tbody>
+      </table>
+    </DataTableFrame></div> : null}
   </section>
 }
