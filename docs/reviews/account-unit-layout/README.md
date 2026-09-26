@@ -65,3 +65,19 @@ Final-message event: `7438b4fa69564ed99ae9a6be7ae10eec`; verified normal stack f
 - No Azure error was induced: the fixture request ID is local, so there is no matching Azure server log. Real backend request-ID correlation remains a release/incident check.
 - Shared runtime shape errors use the existing package event metadata. That hook does not always expose request ID or distinguish CSRF GET from token POST decoding; unknown method is explicitly `UNKNOWN`, not fabricated. Network/HTTP failures still have transport-level metadata. Improving that validation metadata belongs to the shared package, not duplicated session parsing here.
 - The user's original intermittent loading failure remains **open / root cause unconfirmed**. Filling the reporting gap is not proof that the original failure is fixed.
+
+## Root directory follow-up (2026-09-26)
+
+The earlier layout change omitted `OrganizationRootsPage`. This follow-up replaces its cards with the same DataTableFrame, row styles and last-column Pencil link used by unit folders. The visible breadcrumb and all descendant root links use the existing localized Unit management title; the duplicate description is removed. No archive/member controls are added to this unit-selection level.
+
+The backend `/manage/roots` remains responsible for ancestor deduplication. The frontend renders its response as-is, including manageable units whose parents are outside the actor's scope. No API, authorization or telemetry changes.
+
+Verification: **391 tests passed**, lint/build/release-policy/Bicep validation passed. Tests cover icon-free names, last-column links, multiple server-selected roots, empty/error/retry states and the complete root → unit → member → root route journey.
+
+Browser verification used only local fixtures: the full journey and renamed breadcrumbs, empty roots, keyboard focus, desktop and 320px layouts. At 320px document width remains 320px. With 50 roots at 1440x620, page height remains 620px and table body scrolls (436px viewport / 2752px content). Dark theme inspected. Use `?roots=50#/organizations` or `?roots=empty#/organizations` with the review fixture.
+
+This follow-up requires its own PR/CI and release approval; these checks are not production acceptance.
+
+![Root directory](roots-desktop.png)
+![Root directory at 320px](roots-mobile.png)
+![Root directory with 50 rows, dark theme](roots-dark.png)

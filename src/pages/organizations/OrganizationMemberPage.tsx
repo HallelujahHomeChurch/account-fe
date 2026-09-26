@@ -60,7 +60,7 @@ function MemberDetail({ unitId, memberId }: { unitId: string; memberId: string }
     : <Skeleton className="account-page-skeleton" label={t.loading} />
 
   return <section className="account-document organization-page">
-    <nav className="organization-breadcrumb" aria-label={t.title}><Link to="/organizations">{t.roots}</Link><ChevronRight size={14} aria-hidden="true" /><Link to={'/organizations/' + unitId}>{folder.unit.name}</Link><ChevronRight size={14} aria-hidden="true" /><span aria-current="page">{member.displayName || member.email}</span></nav>
+    <nav className="organization-breadcrumb" aria-label={t.title}><Link to="/organizations">{t.title}</Link><ChevronRight size={14} aria-hidden="true" /><Link to={'/organizations/' + unitId}>{folder.unit.name}</Link><ChevronRight size={14} aria-hidden="true" /><span aria-current="page">{member.displayName || member.email}</span></nav>
     <div className="page-heading"><h1>{member.displayName || member.email}</h1><p>{member.email}</p></div>
     {!endAffiliation && !moveAffiliation ? mutationError : null}
     <Card className="panel-card"><Card.Header><Card.Title>{t.affiliations}</Card.Title></Card.Header><Card.Content>

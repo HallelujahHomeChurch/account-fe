@@ -24,6 +24,7 @@ const units = [
   { id: id(4), parentId: id(2), kind: 'small_group', name: '喜樂小家', status: 'active', version: 1 },
   { id: id(5), parentId: id(1), kind: 'family', name: '歷史家族', status: 'archived', version: 2 },
 ].map(unit => ({ ...unit, updatedAt: '2026-09-25T00:00:00Z' }))
+if (demoParams.get('roots') === '50') units.push(...Array.from({ length: 49 }, (_, index) => ({ ...units[0], id: id(1000 + index), name: `可管理教會 ${index + 2}` })))
 const memberNames = ['陳怡君', '王大明', '林恩典', '許以樂', '張佳恩', '黃思源']
 const members = Array.from({ length: demoParams.get('rows') === '50' ? 50 : memberNames.length }, (_, index) => ({
   memberId: id(100 + index), displayName: memberNames[index % memberNames.length] + (index >= 6 ? ` ${index + 1}` : ''), email: 'member' + index + '@example.test',
@@ -50,7 +51,7 @@ const fixtureFetch: typeof fetch = async (input, init) => {
   if (url.pathname.endsWith('/me/resources')) return reply([])
   if (url.pathname.endsWith('/me/access')) return reply({ responsibilities: ordinaryMember ? [] : [{ orgUnitId: id(1) }], memberships: [], orgRoles: [], entitlements: [], version: '1' })
   if (ordinaryMember) return reply({ error: 'forbidden' }, false, 403)
-  if (url.pathname.endsWith('/manage/roots')) return reply({ items: [units[0]] })
+  if (url.pathname.endsWith('/manage/roots')) return reply({ items: demoParams.get('roots') === 'empty' ? [] : units.filter(unit => !unit.parentId) })
   if (engagement) {
     if (url.pathname.endsWith('/preview')) return reply({ audienceAccounts: members.length, emailRecipients: members.length - 1, webPushDevices: members.length + 2 }, true)
     if (method === 'POST') {

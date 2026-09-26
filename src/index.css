@@ -52,7 +52,6 @@
 .organization-heading { display: flex; align-items: start; justify-content: space-between; gap: 1.25rem; flex-wrap: wrap; }
 .organization-heading .page-heading { margin: 0; }
 .organization-eyebrow { display: flex; align-items: center; gap: .75rem; color: var(--color-muted); font-size: .875rem; margin-bottom: .5rem; }
-.organization-root-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
 .organization-breadcrumb, .organization-breadcrumb > span { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
 .organization-breadcrumb { color: var(--color-muted); font-size: 1.125rem; line-height: 1.65; }
 .organization-breadcrumb [aria-current="page"] { color: var(--color-ink); font-weight: 600; }
