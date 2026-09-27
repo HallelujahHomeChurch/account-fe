@@ -35,7 +35,7 @@ describe('App layout', () => {
     const operationsApi = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValue({ responsibilities: [] }), listManagedRoots: vi.fn(), getManagedUnit: vi.fn(), getManagedMember: vi.fn() }
     render(<MemoryRouter initialEntries={[path]}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
     await waitFor(() => expect(screen.getByTestId('route-path')).toHaveTextContent('/profile'))
-    expect(screen.queryByRole('link', { name: 'Unit management' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Small group management' })).not.toBeInTheDocument()
     expect(operationsApi.listManagedRoots).not.toHaveBeenCalled()
     expect(operationsApi.getManagedUnit).not.toHaveBeenCalled()
     expect(operationsApi.getManagedMember).not.toHaveBeenCalled()
@@ -116,9 +116,9 @@ describe('App layout', () => {
       getMyAccess: vi.fn().mockResolvedValue({ responsibilities: [{ responsibilityId: 'r1', orgUnit: { id: 'unit', kind: 'family', name: 'Family' } }], memberships: [], orgRoles: [], entitlements: [], version: '1' }),
     }
     render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
-    expect(await screen.findByRole('link', { name: 'Unit management' })).toHaveAttribute('href', '/organizations')
+    expect(await screen.findByRole('link', { name: 'Small group management' })).toHaveAttribute('href', '/organizations')
     await userEvent.click(screen.getByRole('button', { name: 'Open navigation' }))
-    expect(within(await screen.findByRole('dialog')).getByRole('link', { name: 'Unit management' })).toHaveAttribute('href', '/organizations')
+    expect(within(await screen.findByRole('dialog')).getByRole('link', { name: 'Small group management' })).toHaveAttribute('href', '/organizations')
   })
 
   it('surfaces resource lookup failures instead of treating them as no eligible resources', async () => {

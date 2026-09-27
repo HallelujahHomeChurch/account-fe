@@ -18,7 +18,7 @@ it('renders server-selected roots as icon-free table rows without dropping units
   const roots = [{ id: 'unit', parentId: 'unmanaged-church', name: 'Family', kind: 'family', status: 'active', version: 1 }, { id: 'other', name: 'Other', kind: 'fellowship', email: 'other@example.test', status: 'active', version: 1 }]
   vi.mocked(useAuth).mockReturnValue({ operationsApi: { listManagedRoots: vi.fn().mockResolvedValue(roots) } } as never)
   render(<MemoryRouter><OrganizationRootsPage /></MemoryRouter>)
-  const table = await screen.findByRole('table', { name: 'Unit management' })
+  const table = await screen.findByRole('table', { name: 'Small group management' })
   expect(within(table).getAllByRole('row')).toHaveLength(3)
   for (const root of roots) {
     const action = within(table).getByRole('link', { name: 'Open unit ' + root.name })
@@ -29,7 +29,7 @@ it('renders server-selected roots as icon-free table rows without dropping units
     expect(action.querySelector('svg')).not.toBeNull()
     expect(action.closest('td')).toBe(action.closest('tr')?.lastElementChild)
   }
-  expect(screen.getByRole('navigation').querySelector('[aria-current="page"]')).toHaveTextContent('Unit management')
+  expect(screen.getByRole('navigation').querySelector('[aria-current="page"]')).toHaveTextContent('Small group management')
   expect(screen.queryByText(messages.en.organizations.description)).not.toBeInTheDocument()
   expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
   expect(screen.queryByRole('button')).not.toBeInTheDocument()
@@ -71,10 +71,10 @@ it('navigates root to unit to member and back using the shared breadcrumb title'
   </Routes></MemoryRouter>)
   await userEvent.click(await screen.findByRole('link', { name: 'Open unit Family' }))
   await screen.findByRole('table')
-  expect(within(screen.getByRole('navigation')).getByRole('link', { name: 'Unit management' })).toHaveAttribute('href', '/organizations')
+  expect(within(screen.getByRole('navigation')).getByRole('link', { name: 'Small group management' })).toHaveAttribute('href', '/organizations')
   await userEvent.click(screen.getByRole('link', { name: 'Weekly report access Alice' }))
   await screen.findByRole('heading', { name: 'Alice' })
-  await userEvent.click(within(screen.getByRole('navigation')).getByRole('link', { name: 'Unit management' }))
-  await screen.findByRole('table', { name: 'Unit management' })
+  await userEvent.click(within(screen.getByRole('navigation')).getByRole('link', { name: 'Small group management' }))
+  await screen.findByRole('table', { name: 'Small group management' })
   expect(operationsApi.listManagedRoots).toHaveBeenCalledTimes(2)
 })
