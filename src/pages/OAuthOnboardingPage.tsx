@@ -22,6 +22,8 @@ export function OAuthOnboardingPage() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [sentEmail, setSentEmail] = useState('')
+  const [canResend, setCanResend] = useState(false)
   const [policyAccepted, setPolicyAccepted] = useState(false)
   const { capabilities, error: capabilitiesError, retry: retryCapabilities } = useAuthCapabilitiesState()
   const policy = capabilities?.policy
@@ -44,20 +46,33 @@ export function OAuthOnboardingPage() {
     return () => { active = false }
   }, [auth.api, t.oauthOnboarding.failed, t.oauthOnboarding.invalid, token])
 
-  async function sendCode(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  useEffect(() => {
+    if (step !== 'code' || canResend) return
+    const timeout = window.setTimeout(() => setCanResend(true), 15 * 60 * 1000)
+    return () => window.clearTimeout(timeout)
+  }, [step, canResend])
+
+  async function requestCode(email: string) {
     if (!token || !auth.api.sendOAuthOnboardingCode) return setError(t.oauthOnboarding.invalid)
     setError('')
     setIsSubmitting(true)
     try {
-      await auth.api.sendOAuthOnboardingCode(token, String(new FormData(event.currentTarget).get('email') ?? ''))
+      await auth.api.sendOAuthOnboardingCode(token, email)
+      setSentEmail(email)
+      setCanResend(false)
       setNotice(t.oauthOnboarding.codeSent)
       setStep('code')
     } catch (caught) {
+      if (caught instanceof ApiError && caught.code === 'ACC_OAUTH_ONBOARDING_INVALID') setStep('invalid')
       setError(onboardingError(caught, t.oauthOnboarding.invalid, t.oauthOnboarding.failed))
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  function sendCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    void requestCode(String(new FormData(event.currentTarget).get('email') ?? ''))
   }
 
   async function verifyCode(event: FormEvent<HTMLFormElement>) {
@@ -71,6 +86,11 @@ export function OAuthOnboardingPage() {
       if (next.link_confirmation_required || next.requires_link_confirmation || policy?.enforced) setStep('confirm')
       else await complete(false)
     } catch (caught) {
+      if (caught instanceof ApiError && caught.code === 'ACC_OAUTH_ONBOARDING_CODE_EXPIRED') {
+        setError(t.oauthOnboarding.codeExpired)
+        return
+      }
+      if (caught instanceof ApiError && caught.code === 'ACC_OAUTH_ONBOARDING_INVALID') setStep('invalid')
       setError(onboardingError(caught, t.oauthOnboarding.invalid, t.oauthOnboarding.failed))
     } finally {
       setIsSubmitting(false)
@@ -147,6 +167,7 @@ export function OAuthOnboardingPage() {
             <Form className="form-stack" onSubmit={verifyCode}>
               <OTP autoComplete="one-time-code" autoFocus inputMode="numeric" label={t.oauthOnboarding.code} maxLength={6} name="code" pattern={REGEXP_ONLY_DIGITS} required />
               <div className="login-actions"><Button isPending={isSubmitting} type="submit">{t.oauthOnboarding.verify}</Button></div>
+              {canResend ? <Button isDisabled={isSubmitting} onPress={() => void requestCode(sentEmail)} variant="secondary">{t.oauthOnboarding.resendCode}</Button> : <p className="form-notice">{t.oauthOnboarding.resendWait}</p>}
             </Form>
           ) : null}
           {step === 'confirm' ? (

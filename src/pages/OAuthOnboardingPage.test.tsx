@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { expect, it, vi } from 'vitest'
@@ -144,6 +144,72 @@ it('verifies email before confirming an existing account link', async () => {
 
   expect(complete).toHaveBeenCalledWith('pending-token', true)
   expect(await screen.findByRole('heading', { name: 'Profile' })).toBeInTheDocument()
+})
+
+it('allows a delayed onboarding email to be resent after the delivery cooldown', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  window.history.replaceState(null, '', '/oauth/onboarding#token=pending-token')
+  const send = vi.fn(async () => ({}))
+  const api: AuthApi = {
+    login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+    refreshAccessToken: async () => null, logout: async () => ({}),
+    sendOAuthOnboardingCode: send,
+  }
+  render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><OAuthOnboardingPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+  await userEvent.type(screen.getByLabelText('Email'), 'user@example.com')
+  vi.useFakeTimers()
+  try {
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Send code' })) })
+    expect(screen.getByLabelText('Verification code')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Resend code' })).not.toBeInTheDocument()
+    await act(async () => { vi.advanceTimersByTime(15 * 60 * 1000) })
+  } finally {
+    vi.useRealTimers()
+  }
+  await userEvent.click(screen.getByRole('button', { name: 'Resend code' }))
+  expect(send).toHaveBeenCalledTimes(2)
+  expect(send).toHaveBeenLastCalledWith('pending-token', 'user@example.com')
+})
+
+it('ends the code step when the onboarding session expires', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  window.history.replaceState(null, '', '/oauth/onboarding#token=pending-token')
+  const api: AuthApi = {
+    login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+    refreshAccessToken: async () => null, logout: async () => ({}),
+    sendOAuthOnboardingCode: async () => ({}),
+    verifyOAuthOnboardingCode: async () => { throw new ApiError(410, 'expired', 'ACC_OAUTH_ONBOARDING_INVALID') },
+  }
+  render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><OAuthOnboardingPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+  await userEvent.type(screen.getByLabelText('Email'), 'user@example.com')
+  await userEvent.click(screen.getByRole('button', { name: 'Send code' }))
+  await userEvent.type(await screen.findByLabelText('Verification code'), '123456')
+  await userEvent.click(screen.getByRole('button', { name: 'Verify' }))
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('This social sign-in request is invalid or expired')
+  expect(screen.queryByLabelText('Verification code')).not.toBeInTheDocument()
+})
+
+it('keeps resend available when only the verification code expires', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  window.history.replaceState(null, '', '/oauth/onboarding#token=pending-token')
+  const api: AuthApi = {
+    login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+    refreshAccessToken: async () => null, logout: async () => ({}),
+    sendOAuthOnboardingCode: async () => ({}),
+    verifyOAuthOnboardingCode: async () => { throw new ApiError(410, 'expired', 'ACC_OAUTH_ONBOARDING_CODE_EXPIRED') },
+  }
+  render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><OAuthOnboardingPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+  await userEvent.type(screen.getByLabelText('Email'), 'user@example.com')
+  await userEvent.click(screen.getByRole('button', { name: 'Send code' }))
+  await userEvent.type(await screen.findByLabelText('Verification code'), '123456')
+  await userEvent.click(screen.getByRole('button', { name: 'Verify' }))
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('This code has expired. Request a new code.')
+  expect(screen.getByLabelText('Verification code')).toBeInTheDocument()
 })
 
 it('stops onboarding when its authorization request has expired', async () => {
