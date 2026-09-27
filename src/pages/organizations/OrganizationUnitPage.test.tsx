@@ -48,14 +48,19 @@ it.each([null, {}])('does not expose revoke actions when current member identity
   expect(screen.queryByRole('button', { name: 'Revoke' })).not.toBeInTheDocument()
 })
 
-it('waits for two Unicode characters and never browses all accounts', async () => {
+it('requires a complete email and an explicit lookup before showing add-member candidates', async () => {
+  expect(messages['zh-Hant'].organizations.fullEmailHint).toBe('請輸入完整 email')
   mount()
   await userEvent.click(await screen.findByRole('button', { name: 'Add member' }))
-  const input = await screen.findByRole('searchbox', { name: 'Search account name or email' })
-  await userEvent.type(input, '王')
+  const input = await screen.findByRole('textbox', { name: 'Search email' })
+  expect(screen.getByText('Enter the full email address.')).toBeInTheDocument()
+  await userEvent.type(input, 'member@')
+  await userEvent.click(screen.getByRole('button', { name: 'Search' }))
   expect(operationsApi.searchManagedCandidates).not.toHaveBeenCalled()
-  await userEvent.type(input, '小')
-  await waitFor(() => expect(operationsApi.searchManagedCandidates).toHaveBeenCalledWith('church', '王小', expect.any(AbortSignal)))
+  await userEvent.type(input, 'example.com')
+  expect(operationsApi.searchManagedCandidates).not.toHaveBeenCalled()
+  await userEvent.click(screen.getByRole('button', { name: 'Search' }))
+  await waitFor(() => expect(operationsApi.searchManagedCandidates).toHaveBeenCalledWith('church', 'member@example.com', expect.any(AbortSignal)))
   expect(screen.queryByRole('button', { name: /browse/i })).not.toBeInTheDocument()
 })
 

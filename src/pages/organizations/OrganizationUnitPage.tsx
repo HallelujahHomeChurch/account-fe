@@ -28,6 +28,7 @@ function UnitFolder({ unitId }: { unitId: string }) {
   const [loadError, setLoadError] = useState<'forbidden' | 'failed' | null>(null)
   const [dialog, setDialog] = useState<'add' | 'child' | 'settings' | 'archive' | 'notification' | null>(null)
   const [candidateQuery, setCandidateQuery] = useState('')
+  const [candidateLookup, setCandidateLookup] = useState<{ email: string } | null>(null)
   const [candidates, setCandidates] = useState<ManagedJoinCandidate[]>([])
   const [candidateLoading, setCandidateLoading] = useState(false)
   const [candidateError, setCandidateError] = useState(false)
@@ -64,17 +65,15 @@ function UnitFolder({ unitId }: { unitId: string }) {
 
   useEffect(() => {
     setCandidates([]); setCandidateError(false)
-    if (dialog !== 'add' || [...candidateQuery.trim()].length < 2) { setCandidateLoading(false); return }
+    if (dialog !== 'add' || !candidateLookup) { setCandidateLoading(false); return }
     const controller = new AbortController()
     setCandidateLoading(true)
-    const timer = window.setTimeout(() => {
-      void operationsApi.searchManagedCandidates(unitId, candidateQuery.trim(), controller.signal)
-        .then(value => { if (!controller.signal.aborted) setCandidates(value) })
-        .catch(() => { if (!controller.signal.aborted) setCandidateError(true) })
-        .finally(() => { if (!controller.signal.aborted) setCandidateLoading(false) })
-    }, 250)
-    return () => { controller.abort(); window.clearTimeout(timer) }
-  }, [candidateQuery, dialog, operationsApi, unitId])
+    void operationsApi.searchManagedCandidates(unitId, candidateLookup.email, controller.signal)
+      .then(value => { if (!controller.signal.aborted) setCandidates(value) })
+      .catch(() => { if (!controller.signal.aborted) setCandidateError(true) })
+      .finally(() => { if (!controller.signal.aborted) setCandidateLoading(false) })
+    return () => controller.abort()
+  }, [candidateLookup, dialog, operationsApi, unitId])
 
   useEffect(() => {
     if (dialog !== 'settings' || !folder?.actions.manageResponsibilities) return
@@ -132,7 +131,7 @@ function UnitFolder({ unitId }: { unitId: string }) {
       <div className="organization-search"><Search size={18} aria-hidden="true" /><input className="organization-input" type="search" aria-label={t.searchMembers} placeholder={t.searchMembers} value={query} disabled={archived} onChange={event => setQuery(event.target.value)} /></div>
       <div className="organization-actions">
         {folder.actions.editUnit ? <Button className="organization-settings" aria-label={t.settings} variant="outline" isDisabled={loading} onPress={() => setDialog('settings')}><Pencil size={18} aria-hidden="true" /></Button> : null}
-        {folder.actions.manageMembers ? <Button variant="outline" aria-label={t.addMember} isDisabled={loading || pending} onPress={() => setDialog('add')}><Plus size={18} aria-hidden="true" />{t.memberButton}</Button> : null}
+        {folder.actions.manageMembers ? <Button variant="outline" aria-label={t.addMember} isDisabled={loading || pending} onPress={() => { setCandidateQuery(''); setCandidateLookup(null); setDialog('add') }}><Plus size={18} aria-hidden="true" />{t.memberButton}</Button> : null}
         {folder.actions.createChild && childKinds.length ? <Button variant="outline" aria-label={t.createChild} isDisabled={loading || pending} onPress={() => setDialog('child')}><Plus size={18} aria-hidden="true" />{t.unitButton}</Button> : null}
         {folder.actions.restore ? <Button isDisabled={pending || loading} onPress={() => void run(['restore', folder.unit.version], key => operationsApi.setManagedUnitStatus(unitId, folder.unit.version, 'restore', key))}>{t.restore}</Button> : null}
         {folder.actions.sendNotifications ? <Button isDisabled={loading} onPress={() => setDialog('notification')}><Send size={17} aria-hidden="true" />{site.notifications}</Button> : null}
@@ -163,8 +162,12 @@ function UnitFolder({ unitId }: { unitId: string }) {
     </div>
     <Dialog isOpen={dialog === 'add'} onOpenChange={close} title={t.addMember} closeLabel={t.cancel}>
       <div className="organization-dialog-stack">{mutationError}<p className="muted-copy">{t.admissionHint}</p>
-        <label>{t.searchAccounts}<input className="organization-input" type="search" maxLength={200} disabled={pending} value={candidateQuery} onChange={event => setCandidateQuery(event.target.value)} /></label>
-        <p className="muted-copy" role="status">{candidateLoading ? t.refreshing : [...candidateQuery.trim()].length < 2 ? t.searchHint : !candidates.length && !candidateError ? t.noResults : ''}</p>
+        <form className="organization-dialog-stack" onSubmit={event => { event.preventDefault(); setCandidateLookup({ email: candidateQuery.trim() }) }}>
+          <label>{t.searchAccounts}<input className="organization-input" type="email" required maxLength={200} aria-describedby="candidate-email-hint" disabled={pending} value={candidateQuery} onChange={event => { setCandidateQuery(event.target.value); setCandidateLookup(null); setCandidates([]) }} /></label>
+          <p className="muted-copy" id="candidate-email-hint">{t.fullEmailHint}</p>
+          <Button type="submit" isDisabled={pending || candidateLoading}>{t.searchAction}</Button>
+        </form>
+        <p className="muted-copy" role="status">{candidateLoading ? t.refreshing : candidateLookup && !candidates.length && !candidateError ? t.noResults : ''}</p>
         {candidateError ? <p className="form-error" role="alert">{t.loadFailed}</p> : null}
         <ul className="organization-list">{candidates.map(candidate => <li key={candidate.account.accountUserId}><span>{candidate.account.displayName || candidate.account.email}<small>{candidate.account.email}</small></span><Button isDisabled={pending || candidate.state !== 'available'} size="sm" onPress={() => void run(['admit', candidate.account.accountUserId], key => operationsApi.admitManagedMember(unitId, candidate.account.accountUserId, key), () => { setCandidateQuery(''); setDialog(null) })}>{candidate.state === 'available' ? t.addMember : t.alreadyJoined}</Button></li>)}</ul>
       </div>
