@@ -121,6 +121,17 @@ describe('App layout', () => {
     expect(within(await screen.findByRole('dialog')).getByRole('link', { name: 'Small group management' })).toHaveAttribute('href', '/organizations')
   })
 
+  it('keeps data requests last after small group management', async () => {
+    const operationsApi = {
+      listMyResources: vi.fn().mockResolvedValue([]),
+      getMyAccess: vi.fn().mockResolvedValue({ responsibilities: [{ responsibilityId: 'r1' }] }),
+    }
+    render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={{ ...signedInApi, getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, dsr: { enabled: true } }) }} operationsApi={operationsApi as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+    const navigation = await screen.findByRole('navigation', { name: 'Account navigation' })
+    await within(navigation).findByRole('link', { name: 'Small group management' })
+    expect(within(navigation).getAllByRole('link').slice(-2).map(link => link.textContent)).toEqual(['Small group management', 'Data requests'])
+  })
+
   it('surfaces resource lookup failures instead of treating them as no eligible resources', async () => {
     const operationsApi = { listMyResources: vi.fn().mockRejectedValue(new Error('HTTP 500')) }
     render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)

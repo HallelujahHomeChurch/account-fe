@@ -76,9 +76,9 @@ function LayoutContent() {
     { icon: ShieldCheck, label: t.nav.security, path: '/security' },
     { icon: MonitorSmartphone, label: t.nav.devices, path: '/devices' },
     { icon: Bell, label: t.nav.notificationSettings, path: '/notifications' },
-    ...(dsrEnabled ? [{ icon: FileArchive, label: t.nav.dataRequests, path: '/data-requests' }] : []),
     ...(hasReservableResources ? [{ icon: CalendarDays, label: t.nav.resourceReservations, path: '/resources' }] : []),
     ...(managedAccess === 'allowed' ? [{ icon: UsersRound, label: t.nav.organizationManagement, path: '/organizations' }] : []),
+    ...(dsrEnabled ? [{ icon: FileArchive, label: t.nav.dataRequests, path: '/data-requests' }] : []),
   ]
 
   if (isAuthRoute) {

@@ -39,6 +39,29 @@ it('requires explicit confirmation only for the final-binding conflict', async (
   expect(api.removeManagedAffiliation).toHaveBeenLastCalledWith('unit', 'member', 'aff', 2, true, expect.any(String))
 })
 
+it('removes only the affiliation of the opened unit from the member heading', async () => {
+  api.getManagedMember.mockResolvedValue({ memberId: 'member', displayName: 'Alice', email: 'a@example.test', affiliations: [
+    { id: 'other-aff', orgUnitId: 'other-unit', kind: 'family', name: 'Other family', version: 3 },
+    { id: 'unit-aff', orgUnitId: 'unit', kind: 'family', name: 'Current family', version: 2 },
+  ], entitlementCodes: [], actions: { manageMembers: true, manageEntitlements: true } })
+  api.removeManagedAffiliation.mockResolvedValue({})
+  render(<MemoryRouter initialEntries={['/organizations/unit/members/member']}><Routes><Route path="/organizations/:unitId/members/:memberId" element={<OrganizationMemberPage />} /></Routes></MemoryRouter>)
+  const heading = await screen.findByRole('heading', { name: 'Alice' })
+  const action = within(heading.parentElement!.parentElement!).getByRole('button', { name: 'Remove affiliation' })
+  expect(screen.getAllByRole('button', { name: 'Remove affiliation' })).toHaveLength(1)
+  await userEvent.click(action)
+  expect(api.removeManagedAffiliation).toHaveBeenCalledExactlyOnceWith('unit', 'member', 'unit-aff', 2, false, expect.any(String))
+})
+
+it('does not offer removal when the opened unit has no direct affiliation', async () => {
+  api.getManagedMember.mockResolvedValue({ memberId: 'member', displayName: 'Alice', email: 'a@example.test', affiliations: [
+    { id: 'child-aff', orgUnitId: 'child-unit', kind: 'small_group', name: 'Child group', version: 2 },
+  ], entitlementCodes: [], actions: { manageMembers: true, manageEntitlements: true } })
+  render(<MemoryRouter initialEntries={['/organizations/unit/members/member']}><Routes><Route path="/organizations/:unitId/members/:memberId" element={<OrganizationMemberPage />} /></Routes></MemoryRouter>)
+  await screen.findByRole('heading', { name: 'Alice' })
+  expect(screen.queryByRole('button', { name: 'Remove affiliation' })).not.toBeInTheDocument()
+})
+
 it('rejects a direct forbidden member URL with a return link, not retry or mutation controls', async () => {
   api.getManagedMember.mockRejectedValue(new OperationsApiError(403, 'forbidden'))
   render(<MemoryRouter initialEntries={['/organizations/unit/members/self']}><Routes><Route path="/organizations/:unitId/members/:memberId" element={<OrganizationMemberPage />} /></Routes></MemoryRouter>)
