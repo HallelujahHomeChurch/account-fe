@@ -33,11 +33,12 @@ describe('Account LINE browser notice', () => {
     expect(screen.queryByRole('complementary', { name: 'Browser opening notice' })).not.toBeInTheDocument()
   })
 
-  it('shows re-entry guidance instead of copying an active auth request', () => {
+  it.each(['/login', '/register', '/register/check-email', '/forgot-password'])('shows re-entry guidance on %s instead of copying an active auth request', (path) => {
     vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('Mozilla/5.0 LINE/15.0.0')
-    renderAt('/login?auth_request_id=request-1')
+    renderAt(`${path}?auth_request_id=request-1`)
     expect(screen.getByText(/Reopen the original website link/)).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Open in default browser' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/use LINE's menu to open this page/)).not.toBeInTheDocument()
   })
 
   it.each(['/oauth/callback?code=once', '/policy/acceptance#token=once', '/line/bind', '/reset-password#token=once', '/verify-email#token=once'])('does not offer handoff on %s', (path) => {
@@ -57,5 +58,17 @@ describe('Account LINE browser notice', () => {
     expect(url.searchParams.getAll('openExternalBrowser')).toEqual(['1'])
     expect(url.searchParams.get('item')).toBe('1')
     expect(url.hash).toBe('#section')
+  })
+
+  it('keeps dismissal after remount when session storage is unavailable', async () => {
+    vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('Mozilla/5.0 LINE/15.0.0')
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('storage denied') })
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('storage denied') })
+    const first = renderAt('/login')
+    await userEvent.click(screen.getByRole('button', { name: 'Close browser notice and stay on this page' }))
+    first.unmount()
+
+    renderAt('/profile')
+    expect(screen.queryByRole('complementary', { name: 'Browser opening notice' })).not.toBeInTheDocument()
   })
 })

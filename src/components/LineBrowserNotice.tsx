@@ -6,6 +6,7 @@ import { ArrowUpRight, PanelTopOpen } from 'lucide-react'
 import { useLocale } from '../i18n/locale-context'
 
 const dismissalKey = 'hhc:account:line-browser-notice:dismissed'
+let dismissedWithoutStorage = false
 const excludedPaths = new Set([
   '/oauth/callback', '/native-auth-complete', '/oauth/link', '/oauth/onboarding',
   '/policy/acceptance', '/line/bind',
@@ -23,18 +24,18 @@ export function LineBrowserNotice() {
   const location = useLocation()
   const { messages } = useLocale()
   const [dismissed, setDismissed] = useState(() => {
-    try { return sessionStorage.getItem(dismissalKey) === '1' } catch { return false }
+    try { return dismissedWithoutStorage || sessionStorage.getItem(dismissalKey) === '1' } catch { return dismissedWithoutStorage }
   })
 
   const tokenRoute = location.pathname === '/verify-email' || location.pathname === '/reset-password'
   const hasToken = new URLSearchParams(location.search).has('token') || new URLSearchParams(location.hash.slice(1)).has('token')
   if (!isLineBrowser(navigator.userAgent) || dismissed || excludedPaths.has(location.pathname) || (tokenRoute && hasToken)) return null
 
-  const isAuthRequest = location.pathname === '/login' && new URLSearchParams(location.search).has('auth_request_id')
+  const isAuthRequest = new URLSearchParams(location.search).has('auth_request_id')
   const copy = messages.lineBrowser
   function close() {
     setDismissed(true)
-    try { sessionStorage.setItem(dismissalKey, '1') } catch { /* Keep the current page dismissed. */ }
+    try { sessionStorage.setItem(dismissalKey, '1') } catch { dismissedWithoutStorage = true }
   }
 
   return <aside className="line-browser-notice" aria-label={copy.region}>
@@ -45,7 +46,7 @@ export function LineBrowserNotice() {
       {isAuthRequest
         ? <span className="line-browser-notice__manual line-browser-notice__manual--restart">{copy.restartAuth}</span>
         : <a className="line-browser-notice__action" href={externalBrowserHref(`${location.pathname}${location.search}${location.hash}`, window.location.origin)}>{copy.open}<ArrowUpRight size={17} aria-hidden="true" /></a>}
-      <span className="line-browser-notice__manual">{copy.manual}</span>
+      {!isAuthRequest && <span className="line-browser-notice__manual">{copy.manual}</span>}
     </div>
   </aside>
 }
