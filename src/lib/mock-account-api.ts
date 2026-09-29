@@ -201,10 +201,11 @@ export class MockAccountApi {
     return request
   }
 
-  async createDSRRequest(requestType: DSRRequestType) {
+  async createDSRRequest(requestType: DSRRequestType, details: { description?: string; current_value?: string; requested_value?: string } = {}) {
+    if (requestType === 'correction' && (!details.description?.trim() || !details.current_value?.trim() || !details.requested_value?.trim())) throw new ApiError(400, 'Correction details are required.', 'ACC_DSR_INVALID_REQUEST')
     const now = new Date().toISOString()
     const request: DSRRequest = {
-      id: `mock-dsr-${this.dsrRequests.length + 1}`, request_type: requestType,
+      ...details, id: `mock-dsr-${this.dsrRequests.length + 1}`, request_type: requestType,
       status: 'submitted', identity_verified_at: now, submitted_at: now, version: 1,
       executions: requestType === 'correction' ? [] : [
         { owner: 'account', action: requestType === 'access_export' ? 'export' : requestType === 'erasure' ? 'erase' : 'restrict_processing', status: 'pending', attempt_count: 0, result_summary: {} },
@@ -212,6 +213,13 @@ export class MockAccountApi {
     }
     this.dsrRequests = [request, ...this.dsrRequests]
     return request
+  }
+
+  async supplementDSRRequest(requestId: string, input: { version: number; description: string; current_value: string; requested_value: string }) {
+    const request = await this.getDSRRequest(requestId)
+    if (!request.information_requested) throw new ApiError(409, 'No information requested.', 'ACC_DSR_CONFLICT')
+    const { version, ...details } = input
+    return this.updateDSR(requestId, version, { ...details, information_requested: '' })
   }
 
   async cancelDSRRequest(requestId: string, version: number) {
