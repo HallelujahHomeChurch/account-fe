@@ -169,6 +169,7 @@ const messageCatalog = {
       language: '語言',
       notifications: '通知',
       dismissNotification: '關閉通知',
+      statement: { notice: '教會聲明', readFull: '閱讀全文' },
     },
     authErrors: {
       sessionCheckFailed: '目前無法確認登入狀態，請再試一次。',
@@ -462,6 +463,7 @@ const messageCatalog = {
       language: '语言',
       notifications: '通知',
       dismissNotification: '关闭通知',
+      statement: { notice: '教会声明', readFull: '阅读全文' },
     },
     authErrors: {
       sessionCheckFailed: '目前无法确认登录状态，请再试一次。',
@@ -755,6 +757,7 @@ const messageCatalog = {
       language: 'Language',
       notifications: 'Notifications',
       dismissNotification: 'Dismiss notification',
+      statement: { notice: 'Church statement', readFull: 'Read full statement' },
     },
     authErrors: {
       sessionCheckFailed: 'Unable to check your sign-in status. Try again.',
@@ -1048,6 +1051,7 @@ const messageCatalog = {
       language: '言語',
       notifications: '通知',
       dismissNotification: '通知を閉じる',
+      statement: { notice: '教会からの声明', readFull: '全文を読む' },
     },
     authErrors: {
       sessionCheckFailed: 'ログイン状態を確認できませんでした。もう一度お試しください。',
@@ -1341,6 +1345,7 @@ const messageCatalog = {
       language: '언어',
       notifications: '알림',
       dismissNotification: '알림 닫기',
+      statement: { notice: '교회 성명', readFull: '전체 보기' },
     },
     authErrors: {
       sessionCheckFailed: '로그인 상태를 확인할 수 없어요. 다시 시도해 주세요.',

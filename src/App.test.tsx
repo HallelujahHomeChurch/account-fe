@@ -28,9 +28,22 @@ const signedInApi: AuthApi = {
 afterEach(() => {
   clearLineLinkAutoContinue()
   clearPostLoginReturnTo()
+  vi.unstubAllGlobals()
 })
 
 describe('App layout', () => {
+  it('shows the statement below the signed-in profile header only', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ data: {
+      serverNow: '2026-09-29T02:00:00Z', nextChangeAt: null,
+      statement: { title: '正式聲明', resolvedLocale: 'zh-Hant', href: '/zh-Hant/statements/current', popupStartsAt: '2026-09-28T00:00:00Z', popupEndsAt: '2026-10-01T00:00:00Z' },
+    } }))))
+    render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={signedInApi}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+    expect(await screen.findByRole('link', { name: /正式聲明/ })).toHaveAttribute('href', 'https://www.alive.org.tw/zh-Hant/statements/current')
+    await userEvent.click(screen.getByRole('link', { name: 'Security' }))
+    expect(screen.queryByRole('link', { name: /正式聲明/ })).not.toBeInTheDocument()
+  })
+
   it.each(['/organizations', '/organizations/unit', '/organizations/unit/members/member'])('redirects an ordinary member away from %s without loading management data', async (path) => {
     const operationsApi = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValue({ responsibilities: [] }), listManagedRoots: vi.fn(), getManagedUnit: vi.fn(), getManagedMember: vi.fn() }
     render(<MemoryRouter initialEntries={[path]}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)

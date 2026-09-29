@@ -29,6 +29,7 @@ export default defineConfig({
       '/api/account': 'http://127.0.0.1:8080',
       ...(accountGatewayProxy ? {
         '/api/operations': { target: accountGatewayProxy, changeOrigin: true, headers: { Host: 'account.alive.org.tw' } },
+        '/api/statements': { target: accountGatewayProxy, changeOrigin: true, headers: { Host: 'account.alive.org.tw' } },
         '/api/engagement': { target: accountGatewayProxy, changeOrigin: true, headers: { Host: 'account.alive.org.tw' } },
       } : {}),
     },
