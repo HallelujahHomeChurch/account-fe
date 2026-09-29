@@ -109,10 +109,10 @@ export function DataRequestsPage() {
     } catch (caught) { handleError(caught) } finally { setBusy(false) }
   }
 
-  async function supplement(request: DSRRequest, details: Details) {
+  async function supplement(request: DSRRequest, details: Details, version: number) {
     if (!auth.api.supplementDSRRequest) return
     setBusy(true); setError('')
-    try { reconcile(await auth.api.supplementDSRRequest(request.id, { version: request.version, ...details })) }
+    try { reconcile(await auth.api.supplementDSRRequest(request.id, { version, ...details })) }
     catch (caught) { handleError(caught) } finally { setBusy(false) }
   }
 
@@ -182,17 +182,17 @@ export function DataRequestsPage() {
           {request.description ? <p>{request.description}</p> : null}
           {request.current_value ? <p>{detailsText.current}: {request.current_value}</p> : null}
           {request.requested_value ? <p>{detailsText.requested}: {request.requested_value}</p> : null}
-          {request.information_requested && !['completed', 'rejected', 'cancelled'].includes(request.status) ? <section aria-label={detailsText.additional}><p className="form-notice">{request.information_requested}</p><RequestDetailsForm key={request.id} request={request} correction={request.request_type === 'correction'} busy={busy} onSubmit={(details) => supplement(request, details)} /></section> : null}
+          {request.information_requested && !['completed', 'rejected', 'cancelled'].includes(request.status) ? <section aria-label={detailsText.additional}><p className="form-notice">{request.information_requested}</p><RequestDetailsForm key={request.id} request={request} correction={request.request_type === 'correction'} busy={busy} onSubmit={(details, version) => supplement(request, details, version ?? request.version)} /></section> : null}
           {request.status === 'action_required' ? <p className="form-notice">{t.dataRequests.actionRequired}</p> : null}
           {request.executions?.length ? <ol className="dsr-owner-progress" aria-label={t.dataRequests.ownerProgress}>
             {owners.flatMap((owner) => { const execution = request.executions?.find((item) => item.owner === owner); return execution ? [<li key={owner}><span>{ownerLabels[owner]}</span><strong>{t.dataRequests.executionStatuses[execution.status]}</strong></li>] : [] })}
           </ol> : null}
           {request.executions?.filter((execution) => execution.result_summary.public_response).map((execution) => <p key={execution.owner}><strong>{ownerLabels[execution.owner]}: </strong><span>{execution.result_summary.public_response}</span></p>)}
           {request.export_expires_at ? <p>{detailsText.deadline}: <time dateTime={request.export_expires_at}>{new Date(request.export_expires_at).toLocaleString(locale)}</time></p> : null}
-          {request.export_expires_at && Date.parse(request.export_expires_at) <= now ? <p className="form-notice">{detailsText.expired}</p> : null}
+          {request.request_type === 'access_export' && request.status === 'completed' && exportUnavailable(request, now) ? <p className="form-notice">{detailsText.expired}</p> : null}
           <div className="dsr-request-actions">
-            {request.request_type === 'access_export' && request.status === 'completed' ? <Button isDisabled={Boolean(request.export_expires_at && Date.parse(request.export_expires_at) <= now)} isPending={busy} onPress={() => void download(request)}>{t.dataRequests.download}</Button> : null}
-            {request.request_type === 'access_export' && request.status === 'completed' && request.export_expires_at && Date.parse(request.export_expires_at) <= now ? <Button isPending={busy} onPress={() => void create('access_export', { description: request.description })}>{detailsText.requestAgain}</Button> : null}
+            {request.request_type === 'access_export' && request.status === 'completed' ? <Button isDisabled={exportUnavailable(request, now)} isPending={busy} onPress={() => void download(request)}>{t.dataRequests.download}</Button> : null}
+            {request.request_type === 'access_export' && request.status === 'completed' && exportUnavailable(request, now) ? <Button isPending={busy} onPress={() => void create('access_export', { description: request.description })}>{detailsText.requestAgain}</Button> : null}
             {['submitted', 'in_review'].includes(request.status) ? <Button isPending={busy} variant="ghost" onPress={() => void cancel(request)}>{t.dataRequests.cancel}</Button> : null}
           </div>
         </Card.Content>
@@ -201,22 +201,28 @@ export function DataRequestsPage() {
   </section>
 }
 
-function RequestDetailsForm({ request, correction, busy, onSubmit }: { request?: DSRRequest; correction: boolean; busy: boolean; onSubmit: (details: Details) => Promise<void> }) {
+function RequestDetailsForm({ request, correction, busy, onSubmit }: { request?: DSRRequest; correction: boolean; busy: boolean; onSubmit: (details: Details, version?: number) => Promise<void> }) {
   const { locale } = useLocale()
   const text = dsrDetails[locale]
+  const [version, setVersion] = useState(request?.version)
   const [description, setDescription] = useState(request?.description ?? '')
   const [current, setCurrent] = useState(request?.current_value ?? '')
   const [requested, setRequested] = useState(request?.requested_value ?? '')
   const valid = Boolean(description.trim() && (!correction || (current.trim() && requested.trim())))
   return <Form className="form-stack dsr-details-form" onSubmit={(event) => {
     event.preventDefault()
-    if (valid && !busy) void onSubmit({ description: description.trim(), current_value: current.trim(), requested_value: requested.trim() })
+    if (valid && !busy) void onSubmit({ description: description.trim(), current_value: current.trim(), requested_value: requested.trim() }, version)
   }}>
     <label className="hhc-field">{request ? text.additional : text.location}<textarea required maxLength={4000} rows={3} value={description} onChange={(event) => setDescription(event.target.value)} /></label>
     {correction ? <>
       <label className="hhc-field">{text.current}<textarea required maxLength={4000} rows={3} value={current} onChange={(event) => setCurrent(event.target.value)} /></label>
       <label className="hhc-field">{text.requested}<textarea required maxLength={4000} rows={3} value={requested} onChange={(event) => setRequested(event.target.value)} /></label>
     </> : null}
+    {request && version !== request.version ? <div><p className="form-notice">{text.conflict}</p><Button variant="secondary" onPress={() => setVersion(request.version)}>{text.refresh}</Button></div> : null}
     <Button type="submit" isDisabled={!valid} isPending={busy}>{request ? text.sendAdditional : text.submitCorrection}</Button>
   </Form>
+}
+
+function exportUnavailable(request: DSRRequest, now: number) {
+  return !request.export_expires_at || Date.parse(request.export_expires_at) <= now
 }

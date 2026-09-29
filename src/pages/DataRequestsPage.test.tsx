@@ -120,7 +120,7 @@ describe('DataRequestsPage', () => {
   })
 
   it('downloads and revokes the temporary object URL', async () => {
-    const completed = { ...baseRequest, status: 'completed' as const }
+    const completed = { ...baseRequest, status: 'completed' as const, export_expires_at: '2099-01-01T00:00:00Z' }
     const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:export')
     const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined)
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
@@ -136,7 +136,7 @@ describe('DataRequestsPage', () => {
   })
 
   it('revokes a temporary download URL when the browser click fails', async () => {
-    const completed = { ...baseRequest, status: 'completed' as const }
+    const completed = { ...baseRequest, status: 'completed' as const, export_expires_at: '2099-01-01T00:00:00Z' }
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:failed-export')
     const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined)
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => { throw new Error('blocked') })
@@ -243,11 +243,11 @@ it('expires a completed export without polling completed requests', async () => 
   expect(listDSRRequests).toHaveBeenCalledTimes(1)
 })
 
-it('preserves unsent additional information when polling updates the request version', async () => {
+it('keeps the draft base version until a conflicting update is explicitly refreshed', async () => {
   vi.useFakeTimers()
   const request = { ...baseRequest, information_requested: 'Please identify the record.', description: 'Original scope', version: 4 }
   const listDSRRequests = vi.fn().mockResolvedValueOnce([request]).mockResolvedValue([{ ...request, version: 5 }])
-  const supplementDSRRequest = vi.fn(async () => ({ ...request, information_requested: '', version: 6 }))
+  const supplementDSRRequest = vi.fn().mockRejectedValueOnce(new ApiError(409, 'conflict', 'ACC_DSR_CONFLICT')).mockResolvedValueOnce({ ...request, information_requested: '', version: 6 })
   renderPage({ listDSRRequests, supplementDSRRequest })
   await act(async () => {})
   fireEvent.change(screen.getByRole('textbox', { name: 'Additional information' }), { target: { value: 'My unsent details' } })
@@ -255,5 +255,20 @@ it('preserves unsent additional information when polling updates the request ver
   expect(screen.getByRole('textbox', { name: 'Additional information' })).toHaveValue('My unsent details')
   fireEvent.submit(screen.getByRole('textbox', { name: 'Additional information' }).closest('form')!)
   await act(async () => {})
-  expect(supplementDSRRequest).toHaveBeenCalledWith('request-1', { version: 5, description: 'My unsent details', current_value: '', requested_value: '' })
+  expect(supplementDSRRequest).toHaveBeenCalledWith('request-1', { version: 4, description: 'My unsent details', current_value: '', requested_value: '' })
+  const field = screen.getByRole('textbox', { name: 'Additional information' })
+  expect(field).toHaveValue('My unsent details')
+  const form = field.closest('form')!
+  fireEvent.click(within(form).getByRole('button', { name: 'Refresh' }))
+  fireEvent.submit(form)
+  await act(async () => {})
+  expect(supplementDSRRequest).toHaveBeenLastCalledWith('request-1', { version: 5, description: 'My unsent details', current_value: '', requested_value: '' })
+})
+
+ it('keeps cleaned-up exports unavailable and offers a replacement', async () => {
+  const issueDSRDownload = vi.fn()
+  renderPage({ listDSRRequests: async () => [{ ...baseRequest, status: 'completed' }], issueDSRDownload })
+  expect(await screen.findByRole('button', { name: 'Download data export' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Request a new export' })).toBeInTheDocument()
+  expect(issueDSRDownload).not.toHaveBeenCalled()
 })
