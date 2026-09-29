@@ -31,6 +31,7 @@ import { MyResourceReservationsPage } from './pages/MyResourceReservationsPage'
 import { ResourceListPage } from './pages/ResourceListPage'
 import { ResourceReservationPage } from './pages/ResourceReservationPage'
 import { useAuthCapabilitiesState } from './components/SocialAuthOptions'
+import { StatementStrip } from './components/StatementStrip'
 import { OrganizationMemberPage } from './pages/organizations/OrganizationMemberPage'
 import { OrganizationRootsPage } from './pages/organizations/OrganizationRootsPage'
 import { OrganizationUnitPage } from './pages/organizations/OrganizationUnitPage'
@@ -262,6 +263,7 @@ function LayoutContent() {
               </div>
             ) : null}
           </header>
+          {location.pathname === '/profile' ? <StatementStrip /> : null}
           <main className="main-panel">
             {resourceLookupFailed && !isResourceRoute ? <p className="form-error" role="alert">
               {t.resources.loadFailed} <Link to="/resources">{t.nav.resourceReservations}</Link>
