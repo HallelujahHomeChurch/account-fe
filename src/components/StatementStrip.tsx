@@ -2,13 +2,24 @@ import { useEffect, useState } from 'react'
 
 import { useLocale } from '../i18n/locale-context'
 import { readRuntimeConfig } from '../lib/redirects'
+import { StatementDialog, type StatementContent } from './StatementDialog'
 
-type Statement = {
-  title: string
-  resolvedLocale: string
+type Statement = StatementContent & {
+  id: string
   href: string
   popupStartsAt: string | null
   popupEndsAt: string | null
+}
+
+const prompted = new Set<string>()
+const cookieName = 'hhc_statement_hidden_day'
+const taipeiDay = (epoch: number) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).format(epoch)
+function isHidden(id: string, day: string) {
+  try { return document.cookie.split('; ').includes(`${cookieName}=${encodeURIComponent(id)}.${day}`) } catch { return false }
+}
+function hideToday(id: string, day: string) {
+  const domain = location.hostname === 'alive.org.tw' || location.hostname.endsWith('.alive.org.tw') ? '; Domain=alive.org.tw' : ''
+  try { document.cookie = `${cookieName}=${encodeURIComponent(id)}.${day}; Path=/; Max-Age=86400; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}${domain}` } catch { /* Ordinary close remains available. */ }
 }
 
 type ActiveStatement = {
@@ -20,6 +31,8 @@ type ActiveStatement = {
 export function StatementStrip() {
   const { locale, messages: t } = useLocale()
   const [statement, setStatement] = useState<Statement | null>(null)
+  const [open, setOpen] = useState(false)
+  const [day, setDay] = useState('')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -37,6 +50,12 @@ export function StatementStrip() {
         const now = Date.parse(data.serverNow)
         const active = data.statement && Date.parse(data.statement.popupStartsAt ?? '') <= now && now < Date.parse(data.statement.popupEndsAt ?? '')
         setStatement(active ? data.statement : null)
+        const currentDay = taipeiDay(now)
+        setDay(currentDay)
+        if (active && data.statement && !prompted.has(data.statement.id) && !isHidden(data.statement.id, currentDay)) {
+          prompted.add(data.statement.id)
+          setOpen(true)
+        } else if (!active || (data.statement && isHidden(data.statement.id, currentDay))) setOpen(false)
         clearTimeout(timer)
         if (data.nextChangeAt) timer = setTimeout(() => {
           setStatement(null)
@@ -67,10 +86,16 @@ export function StatementStrip() {
     : null
   if (!statement || !articleUrl) return null
 
-  return <aside className="account-statement" aria-label={t.site.statement.notice}>
-    <a href={articleUrl}>
-      <span lang={statement.resolvedLocale}>{statement.title}</span>
-      <strong>{t.site.statement.readFull} →</strong>
-    </a>
-  </aside>
+  return <>
+    <aside className="account-statement" aria-label={t.site.statement.notice}>
+      <a href={articleUrl}>
+        <span lang={statement.resolvedLocale}>{statement.title}</span>
+        <strong>{t.site.statement.readFull} →</strong>
+      </a>
+    </aside>
+    {open ? <StatementDialog key={statement.id} statement={statement} labels={t.site.statement} onClose={(hidden) => {
+      if (hidden) { hideToday(statement.id, day); prompted.delete(statement.id) }
+      setOpen(false)
+    }} /> : null}
+  </>
 }
