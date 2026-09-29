@@ -1,5 +1,5 @@
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -59,8 +59,24 @@ describe('App layout', () => {
     expect(operationsApi.getManagedMember).not.toHaveBeenCalled()
   })
 
+  it('rejects a responsibility without church membership', async () => {
+    const operationsApi = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValue({ responsibilities: [{ responsibilityId: 'stale' }] }), listManagedRoots: vi.fn().mockResolvedValue([]) }
+    render(<MemoryRouter initialEntries={['/organizations']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+    await waitFor(() => expect(screen.getByTestId('route-path')).toHaveTextContent('/profile'))
+    expect(operationsApi.listManagedRoots).not.toHaveBeenCalled()
+  })
+
+  it('removes revoked membership access when returning to the window', async () => {
+    const operationsApi = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValueOnce({ churchMembership: { id: 'church-member' }, responsibilities: [{ responsibilityId: 'r1' }] }).mockResolvedValue({ churchMembership: null, responsibilities: [{ responsibilityId: 'r1' }] }), listManagedRoots: vi.fn().mockResolvedValue([]) }
+    render(<MemoryRouter initialEntries={['/organizations']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+    await screen.findByRole('link', { name: 'Small group management' })
+    fireEvent.focus(window)
+    await waitFor(() => expect(screen.getByTestId('route-path')).toHaveTextContent('/profile'))
+    expect(screen.queryByRole('link', { name: 'Small group management' })).not.toBeInTheDocument()
+  })
+
   it('keeps failed access lookup retryable and only loads the page after access is confirmed', async () => {
-    const operationsApi = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockRejectedValueOnce(new Error('unavailable')).mockResolvedValue({ responsibilities: [{ responsibilityId: 'r1' }] }), listManagedRoots: vi.fn().mockResolvedValue([]) }
+    const operationsApi = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockRejectedValueOnce(new Error('unavailable')).mockResolvedValue({ churchMembership: { id: 'church-member' }, responsibilities: [{ responsibilityId: 'r1' }] }), listManagedRoots: vi.fn().mockResolvedValue([]) }
     render(<MemoryRouter initialEntries={['/organizations']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
     await screen.findByRole('alert')
     expect(screen.getByTestId('route-path')).toHaveTextContent('/organizations')
@@ -131,7 +147,7 @@ describe('App layout', () => {
   it('shows unit management in desktop and mobile navigation only for active responsibilities', async () => {
     const operationsApi = {
       listMyResources: vi.fn().mockResolvedValue([]),
-      getMyAccess: vi.fn().mockResolvedValue({ responsibilities: [{ responsibilityId: 'r1', orgUnit: { id: 'unit', kind: 'family', name: 'Family' } }], memberships: [], orgRoles: [], entitlements: [], version: '1' }),
+      getMyAccess: vi.fn().mockResolvedValue({ churchMembership: { id: 'church-member' }, responsibilities: [{ responsibilityId: 'r1', orgUnit: { id: 'unit', kind: 'family', name: 'Family' } }], memberships: [], orgRoles: [], entitlements: [], version: '1' }),
     }
     render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
     expect(await screen.findByRole('link', { name: 'Small group management' })).toHaveAttribute('href', '/organizations')
@@ -139,15 +155,15 @@ describe('App layout', () => {
     expect(within(await screen.findByRole('dialog')).getByRole('link', { name: 'Small group management' })).toHaveAttribute('href', '/organizations')
   })
 
-  it('keeps data requests last after small group management', async () => {
+  it('places small group management between security and devices', async () => {
     const operationsApi = {
       listMyResources: vi.fn().mockResolvedValue([]),
-      getMyAccess: vi.fn().mockResolvedValue({ responsibilities: [{ responsibilityId: 'r1' }] }),
+      getMyAccess: vi.fn().mockResolvedValue({ churchMembership: { id: 'church-member' }, responsibilities: [{ responsibilityId: 'r1' }] }),
     }
     render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={{ ...signedInApi, getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, dsr: { enabled: true } }) }} operationsApi={operationsApi as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
     const navigation = await screen.findByRole('navigation', { name: 'Account navigation' })
     await within(navigation).findByRole('link', { name: 'Small group management' })
-    expect(within(navigation).getAllByRole('link').slice(-2).map(link => link.textContent)).toEqual(['Small group management', 'Data requests'])
+    expect(within(navigation).getAllByRole('link').slice(1, 4).map(link => link.textContent)).toEqual(['Security', 'Small group management', 'Devices'])
   })
 
   it('surfaces resource lookup failures instead of treating them as no eligible resources', async () => {
@@ -370,7 +386,7 @@ describe('App layout', () => {
       'Sign out',
     ])
     expect(productLinks[0]).toHaveAttribute('href', 'https://www.alive.org.tw/en')
-    expect(productLinks[1]).toHaveAttribute('href', 'https://client.alive.org.tw/')
+    expect(productLinks[1]).toHaveAccessibleName('Projection system（Open in a new window）')
     expect(screen.queryByRole('menuitem', { name: 'Admin' })).not.toBeInTheDocument()
     expect(
       document.querySelector('.hhc-account-menu__identity-text[title="ray@example.com"]'),

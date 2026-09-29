@@ -68,7 +68,7 @@ function LayoutContent() {
     let active = true
     const controller = new AbortController()
     auth.operationsApi.getMyAccess(controller.signal)
-      .then((access) => { if (active) setManagedAccess(access.responsibilities.length > 0 ? 'allowed' : 'denied') })
+      .then((access) => { if (active) setManagedAccess(access.churchMembership && access.responsibilities.length > 0 ? 'allowed' : 'denied') })
       .catch(() => { if (active) setManagedAccess('failed') })
     return () => { active = false; controller.abort() }
   }, [auth.operationsApi, auth.profile, isAuthRoute, accessRevision])
@@ -76,10 +76,10 @@ function LayoutContent() {
   const navigation = [
     { icon: UserRound, label: t.nav.personalInfo, path: '/profile' },
     { icon: ShieldCheck, label: t.nav.security, path: '/security' },
+    ...(managedAccess === 'allowed' ? [{ icon: UsersRound, label: t.nav.organizationManagement, path: '/organizations' }] : []),
     { icon: MonitorSmartphone, label: t.nav.devices, path: '/devices' },
     { icon: Bell, label: t.nav.notificationSettings, path: '/notifications' },
     ...(hasReservableResources ? [{ icon: CalendarDays, label: t.nav.resourceReservations, path: '/resources' }] : []),
-    ...(managedAccess === 'allowed' ? [{ icon: UsersRound, label: t.nav.organizationManagement, path: '/organizations' }] : []),
     ...(dsrEnabled ? [{ icon: FileArchive, label: t.nav.dataRequests, path: '/data-requests' }] : []),
   ]
 
@@ -137,43 +137,7 @@ function LayoutContent() {
 
   return (
     <div className="app-shell">
-      <div className="account-layout">
-        <aside className="account-sidebar" aria-label={t.nav.accountSections}>
-          <Link className="brand" to="/profile">
-            <img className="brand-mark" src="/assets/brand/logo.png" alt="" />
-            <span>{t.site.accountName}</span>
-          </Link>
-          <nav className="nav-links" aria-label={t.nav.accountNavigation}>
-            {navigation.map(({ icon: Icon, label, path }) => (
-              <Link
-                key={path}
-                aria-current={location.pathname === path || location.pathname.startsWith(`${path}/`) ? 'page' : undefined}
-                to={path}
-              >
-                <Icon size={17} />
-                {label}
-              </Link>
-            ))}
-          </nav>
-          <div className="sidebar-legal-links">
-            <a
-              href={`${publicSiteUrl}/${locale}/privacy-policy`}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              {t.nav.privacy}
-            </a>
-            <span aria-hidden="true">/</span>
-            <a
-              href={`${publicSiteUrl}/${locale}/terms-of-use`}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              {t.nav.terms}
-            </a>
-          </div>
-        </aside>
-        <div className="account-content">
+      <div className="account-topbar">
           <header className="account-header">
             <Drawer
               closeLabel={t.nav.closeNavigation}
@@ -247,7 +211,7 @@ function LayoutContent() {
               }}
               links={[
                 { id: 'official-site', label: t.nav.churchSite, href: `${publicSiteUrl}/${locale}` },
-                { id: 'projection', label: t.nav.projectionSystem, href: 'https://client.alive.org.tw/' },
+                { id: 'projection', label: t.nav.projectionSystem, href: 'https://client.alive.org.tw/', newWindow: { label: t.nav.projectionWindowLabel, blockedMessage: t.nav.projectionPopupBlocked } },
                 ...(canAccessAdmin(auth.profile.permissions ?? [])
                   ? [{ id: 'admin', label: t.nav.adminManagement, href: 'https://admin.alive.org.tw/' }]
                   : []),
@@ -266,6 +230,40 @@ function LayoutContent() {
             ) : null}
           </header>
           {location.pathname === '/profile' ? <StatementStrip /> : null}
+      </div>
+      <div className="account-layout">
+        <aside className="account-sidebar" aria-label={t.nav.accountSections}>
+          <nav className="nav-links" aria-label={t.nav.accountNavigation}>
+            {navigation.map(({ icon: Icon, label, path }) => (
+              <Link
+                key={path}
+                aria-current={location.pathname === path || location.pathname.startsWith(`${path}/`) ? 'page' : undefined}
+                to={path}
+              >
+                <Icon size={17} />
+                {label}
+              </Link>
+            ))}
+          </nav>
+          <div className="sidebar-legal-links">
+            <a
+              href={`${publicSiteUrl}/${locale}/privacy-policy`}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              {t.nav.privacy}
+            </a>
+            <span aria-hidden="true">/</span>
+            <a
+              href={`${publicSiteUrl}/${locale}/terms-of-use`}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              {t.nav.terms}
+            </a>
+          </div>
+        </aside>
+        <div className="account-content">
           <LineBrowserNotice />
           <main className="main-panel">
             {resourceLookupFailed && !isResourceRoute ? <p className="form-error" role="alert">
