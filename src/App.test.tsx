@@ -1,7 +1,7 @@
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import App, { PostLoginContinuation } from './App'
 import { AuthProvider, type AuthApi } from './auth/auth-context'
@@ -25,6 +25,11 @@ const signedInApi: AuthApi = {
   refreshAccessToken: async () => 'token',
 }
 
+beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', '') }
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute('open') }
+})
+
 afterEach(() => {
   clearLineLinkAutoContinue()
   clearPostLoginReturnTo()
@@ -35,7 +40,7 @@ describe('App layout', () => {
   it('shows the statement below the signed-in profile header only', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ data: {
       serverNow: '2026-09-29T02:00:00Z', nextChangeAt: null,
-      statement: { title: '正式聲明', resolvedLocale: 'zh-Hant', href: '/zh-Hant/statements/current', popupStartsAt: '2026-09-28T00:00:00Z', popupEndsAt: '2026-10-01T00:00:00Z' },
+      statement: { id: 'current', title: '正式聲明', body: '聲明內文', resolvedLocale: 'zh-Hant', href: '/zh-Hant/statements/current', popupStartsAt: '2026-09-28T00:00:00Z', popupEndsAt: '2026-10-01T00:00:00Z' },
     } }))))
     render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={signedInApi}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
 

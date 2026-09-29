@@ -366,6 +366,45 @@ textarea::selection {
 .line-browser-notice__manual--restart { color: var(--color-ink); }
 .line-browser-notice :is(a, button):focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
 
+.statement-dialog { width: min(760px, calc(100% - 2rem)); max-width: none; margin: auto; padding: 0; overflow: hidden; border: 1px solid var(--color-line); border-radius: 1rem; background: var(--color-panel); color: var(--color-ink); box-shadow: 0 25px 50px rgb(0 0 0 / 25%); }
+.statement-dialog::backdrop { background: rgb(0 0 0 / 55%); }
+.statement-dialog-layout { display: flex; max-height: min(88dvh, 900px); flex-direction: column; }
+.statement-dialog header { display: flex; flex-shrink: 0; align-items: flex-start; gap: 1rem; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--color-line); }
+.statement-dialog header > div { flex: 1; min-width: 0; }
+.statement-dialog header p { margin: 0 0 .5rem; color: var(--color-primary); font-size: .75rem; font-weight: 600; letter-spacing: .1em; }
+.statement-dialog header h2 { margin: 0; font-size: 1.5rem; font-weight: 600; line-height: 1.4; outline: none; }
+.statement-dialog header button, .statement-image-dialog button { display: grid; width: 44px; height: 44px; flex-shrink: 0; place-items: center; border: 1px solid var(--color-line); border-radius: 50%; background: transparent; color: inherit; font-size: 1.5rem; cursor: pointer; }
+.statement-dialog header button:hover { background: var(--color-primary-soft); }
+.statement-dialog section { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 1.5rem; }
+.statement-dialog footer { display: flex; flex-shrink: 0; flex-wrap: wrap; align-items: center; gap: .75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--color-line); }
+.statement-dialog footer label { display: flex; min-height: 44px; flex: 1; align-items: center; gap: .5rem; font-size: .875rem; cursor: pointer; }
+.statement-dialog footer input { width: 1rem; height: 1rem; accent-color: var(--color-primary); }
+.statement-dialog footer button { min-height: 44px; padding: 0 1.25rem; border: 0; border-radius: .5rem; background: var(--color-primary-solid); color: var(--color-on-primary); font-size: .875rem; font-weight: 600; cursor: pointer; }
+.statement-dialog footer button:hover { background: var(--color-primary-solid-hover); }
+.statement-body { overflow-wrap: anywhere; font-size: 17px; line-height: 1.95; }
+.statement-body-plain, .statement-body p { white-space: pre-wrap; }
+.statement-body p { margin: 0 0 1.25rem; }
+.statement-body h2, .statement-body h3 { margin: 2rem 0 1rem; font-weight: 600; line-height: 1.4; }
+.statement-body h2 { font-size: 1.5rem; }
+.statement-body h3 { font-size: 1.25rem; }
+.statement-body blockquote { margin: 1.5rem 0; padding-left: 1.25rem; border-left: 4px solid color-mix(in srgb, var(--color-primary) 40%, transparent); font-style: italic; }
+.statement-body cite { display: block; color: var(--color-muted); font-size: .875rem; font-style: normal; }
+.statement-body ul, .statement-body ol { margin: 0 0 1.25rem; padding-left: 1.5rem; list-style: revert; }
+.statement-body a { color: var(--color-primary); text-decoration: underline; text-underline-offset: 2px; }
+.statement-image { margin: 1.75rem auto; }
+.statement-image-small { max-width: 24rem; }
+.statement-image-medium { max-width: 36rem; }
+.statement-image-start { margin-left: 0; }
+.statement-image-end { margin-right: 0; }
+.statement-image-trigger { display: block; width: 100%; padding: 0; border: 0; border-radius: .5rem; background: transparent; cursor: zoom-in; }
+.statement-image-trigger img { display: block; width: 100%; height: auto; border-radius: .5rem; }
+.statement-image figcaption { margin-top: .5rem; color: var(--color-muted); font-size: .875rem; line-height: 1.6; text-align: center; }
+.statement-image-dialog { max-width: 100vw; max-height: 100dvh; margin: auto; padding: 1rem; overflow: auto; border: 0; background: transparent; color: white; }
+.statement-image-dialog::backdrop { background: rgb(0 0 0 / 85%); }
+.statement-image-dialog button { margin-left: auto; margin-bottom: .75rem; background: rgb(0 0 0 / 70%); font-size: 1.875rem; }
+.statement-image-dialog img { display: block; max-width: calc(100vw - 2rem); max-height: calc(100dvh - 7rem); object-fit: contain; }
+@media (max-width: 620px) { .statement-dialog header, .statement-dialog section, .statement-dialog footer { padding-left: 1rem; padding-right: 1rem; } }
+
 .mobile-navigation-trigger,
 .mobile-shell-brand {
   display: none;
