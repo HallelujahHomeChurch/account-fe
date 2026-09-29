@@ -335,6 +335,36 @@ textarea::selection {
 .account-statement a:focus-visible { text-decoration: underline; }
 .account-statement span { min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
 .account-statement strong { flex-shrink: 0; color: var(--color-primary); }
+.line-browser-notice {
+  border-bottom: 1px solid var(--color-primary-soft-hover);
+  border-left: 4px solid var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-paper));
+  color: var(--color-ink);
+  box-shadow: 0 8px 20px rgb(76 50 28 / 8%);
+}
+
+.line-browser-notice__content {
+  position: relative;
+  display: grid;
+  grid-template-columns: 37px minmax(0, 1fr);
+  width: min(100% - 32px, 960px);
+  margin: 0 auto;
+  align-items: start;
+  gap: 9px 11px;
+  padding: 16px 38px 16px 0;
+}
+
+.line-browser-notice__icon { display: grid; width: 37px; height: 37px; place-items: center; border-radius: 12px; background: var(--color-primary-soft); color: var(--color-primary); }
+.line-browser-notice__copy { min-width: 0; }
+.line-browser-notice__copy strong { color: var(--color-primary); font-size: 15px; }
+.line-browser-notice__copy p { margin: 3px 0 0; color: var(--color-muted); font-size: 12px; line-height: 1.55; }
+.line-browser-notice__action { grid-column: 2; display: inline-flex; width: fit-content; min-height: 43px; align-items: center; justify-content: center; gap: 8px; border-radius: 11px; background: var(--color-primary); padding: 9px 15px; color: var(--color-on-primary); font-size: 13px; font-weight: 700; text-decoration: none; }
+.line-browser-notice__action:hover { background: var(--color-primary-hover); }
+.line-browser-notice__close { position: absolute; top: 10px; right: 0; display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 8px; background: transparent; color: var(--color-muted); cursor: pointer; font-size: 22px; line-height: 1; }
+.line-browser-notice__close:hover { background: var(--color-primary-soft); }
+.line-browser-notice__manual { grid-column: 2; color: var(--color-muted); font-size: 12px; line-height: 1.5; }
+.line-browser-notice__manual--restart { color: var(--color-ink); }
+.line-browser-notice :is(a, button):focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
 
 .mobile-navigation-trigger,
 .mobile-shell-brand {
