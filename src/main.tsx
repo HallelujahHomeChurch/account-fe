@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 
 import App from './App'
 import { RoutedAuthProvider } from './auth/auth-context'
@@ -14,16 +14,7 @@ import '@hallelujahhomechurch/ui/styles.css'
 captureLineLinkFragment()
 initObservability()
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <BrowserRouter>
-      <LocaleProvider>
-        <ThemeProvider>
-          <RoutedAuthProvider>
-            <App />
-          </RoutedAuthProvider>
-        </ThemeProvider>
-      </LocaleProvider>
-    </BrowserRouter>
-  </StrictMode>,
-)
+const router = createBrowserRouter([{ path: '*', element: (
+  <LocaleProvider><ThemeProvider><RoutedAuthProvider><App /></RoutedAuthProvider></ThemeProvider></LocaleProvider>
+) }])
+createRoot(document.getElementById('root')!).render(<StrictMode><RouterProvider router={router} /></StrictMode>)

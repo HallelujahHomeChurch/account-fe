@@ -1,3 +1,4 @@
+import { memberCsrfFailure } from './member-details'
 import {
   AccountSessionError,
   createAccountSessionClient,
@@ -66,6 +67,7 @@ export type AuthCapabilities = {
   providers: string[]
   registrationEnabled: boolean
   nicknameWriteEnabled?: boolean
+  memberDetailsEnabled?: boolean
   policy?: PolicyCapabilities
   dsr?: { enabled: boolean }
 }
@@ -551,7 +553,7 @@ export class AccountApi {
   }
 
   async getAuthCapabilities(): Promise<AuthCapabilities> {
-    const response = await this.request<{ providers?: string[]; registration_enabled?: boolean; nickname_write_enabled?: boolean; policy?: PolicyCapabilities; dsr?: { enabled: boolean } }>(
+    const response = await this.request<{ providers?: string[]; registration_enabled?: boolean; nickname_write_enabled?: boolean; member_details_enabled?: boolean; policy?: PolicyCapabilities; dsr?: { enabled: boolean } }>(
       '/oauth-providers',
       { auth: false },
     )
@@ -559,9 +561,28 @@ export class AccountApi {
       providers: response.providers ?? [],
       registrationEnabled: response.registration_enabled === true,
       nicknameWriteEnabled: response.nickname_write_enabled === true,
+      memberDetailsEnabled: response.member_details_enabled === true,
       policy: response.policy,
       dsr: response.dsr,
     }
+  }
+
+  async memberTransportFetch(path: '/member-details' | '/member-details/transport-key', init: RequestInit) {
+    const headers = new Headers(init.headers)
+    const token = this.getAccessToken?.()
+    if (token) headers.set('Authorization', `Bearer ${token}`)
+    if (this.needsCsrf(init.method ?? 'GET')) headers.set('X-CSRF-Token', await this.getCsrfToken())
+    const send = () => this.fetcher(`${this.baseUrl}${path}`, { ...init, headers, credentials: 'include', cache: 'no-store' })
+    let response = await send()
+    // Bootstrap has no encrypted operation; only it can use the existing refresh
+    // coordinator. A write envelope is never replayed by this transport.
+    if (path === '/member-details/transport-key' && response.status === 401) {
+      const next = await this.recoverUnauthorized(token ?? null)
+      const current = this.getAccessToken?.() ?? null
+      if (next && (current === token || current === next)) { this.setAccessToken?.(next); headers.set('Authorization', `Bearer ${next}`); response = await send() }
+    }
+    if (this.needsCsrf(init.method ?? 'GET') && await memberCsrfFailure(response.clone())) this.csrfToken = null
+    return response
   }
 
   private async request<T>(path: string, options: RequestOptions = {}): Promise<T> {

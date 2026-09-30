@@ -17,6 +17,7 @@ import { OAuthCallbackPage } from './pages/OAuthCallbackPage'
 import { OAuthLinkPage } from './pages/OAuthLinkPage'
 import { OAuthOnboardingPage } from './pages/OAuthOnboardingPage'
 import { ProfilePage } from './pages/ProfilePage'
+import { MemberDetailsPage } from './pages/MemberDetailsPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { RegistrationPendingPage } from './pages/RegistrationPendingPage'
@@ -50,6 +51,9 @@ function LayoutContent() {
   const [resourceLookupFailed, setResourceLookupFailed] = useState(false)
   const [managedAccess, setManagedAccess] = useState<'loading' | 'allowed' | 'denied' | 'failed'>('loading')
   const [accessRevision, setAccessRevision] = useState(0)
+  const [memberAccess, setMemberAccess] = useState<{ owner: string; allowed: boolean }>({ owner: '', allowed: false })
+  const owner = auth.profile?.id
+  const memberAllowed = capabilities?.memberDetailsEnabled === true && memberAccess.owner === auth.profile?.id && memberAccess.allowed
 
   useEffect(() => {
     setHasReservableResources(false)
@@ -64,14 +68,17 @@ function LayoutContent() {
 
   useEffect(() => {
     setManagedAccess('loading')
-    if (isAuthRoute || !auth.profile || !auth.operationsApi.getMyAccess) return
+    setMemberAccess({ owner: '', allowed: false })
+    if (isAuthRoute || !owner || !auth.operationsApi.getMyAccess) return
     let active = true
     const controller = new AbortController()
-    auth.operationsApi.getMyAccess(controller.signal)
-      .then((access) => { if (active) setManagedAccess(access.churchMembership && access.responsibilities.length > 0 ? 'allowed' : 'denied') })
+    const check = () => auth.operationsApi.getMyAccess(controller.signal)
+      .then((access) => { if (active) { setManagedAccess(access.churchMembership && access.responsibilities.length > 0 ? 'allowed' : 'denied'); setMemberAccess({ owner, allowed: access.memberDetailsEligible === true }) } })
       .catch(() => { if (active) setManagedAccess('failed') })
-    return () => { active = false; controller.abort() }
-  }, [auth.operationsApi, auth.profile, isAuthRoute, accessRevision])
+    void check()
+    window.addEventListener('focus', check)
+    return () => { active = false; controller.abort(); window.removeEventListener('focus', check) }
+  }, [auth.operationsApi, owner, isAuthRoute, accessRevision])
 
   const navigation = [
     { icon: UserRound, label: t.nav.personalInfo, path: '/profile' },
@@ -270,7 +277,8 @@ function LayoutContent() {
               {t.resources.loadFailed} <Link to="/resources">{t.nav.resourceReservations}</Link>
             </p> : null}
             {hasPostLoginReturnTo() ? <PostLoginContinuation /> : <Routes>
-              <Route element={<ProfilePage />} path="/profile" />
+              <Route element={<ProfilePage memberDetailsAvailable={memberAllowed} />} path="/profile" />
+              <Route element={memberAllowed ? <MemberDetailsPage key={auth.profile.id} /> : managedAccess === 'loading' || !capabilities && !capabilitiesError ? <Skeleton className="account-page-skeleton" label={t.profile.loading} /> : <Navigate replace to="/profile" />} path="/profile/member-details" />
               <Route element={<SecurityPage />} path="/security" />
               <Route element={<DevicesPage />} path="/devices" />
               <Route element={<NotificationsPage />} path="/notifications" />

@@ -80,6 +80,16 @@ function sanitizeText(value: string) {
     .replace(sensitiveValue, '$1=[redacted]')
 }
 
+const memberPrivateFields = new Set(['familyName', 'givenName', 'gender', 'identityDocument', 'mobile', 'responseKey', 'X-HHC-Member-Envelope'])
+function memberPrivateContext(event?: Record<string, unknown>) {
+  if (typeof location !== 'undefined' && (location.pathname === '/profile/member-details' || location.pathname.startsWith('/profile/member-details/'))) return true
+  const request = event?.request
+  if (request && typeof request === 'object' && 'url' in request && typeof request.url === 'string') {
+    try { return new URL(request.url, 'https://account.alive.org.tw').pathname.startsWith('/api/account/v1/member-details') } catch { return true }
+  }
+  return false
+}
+
 function sanitizeValue(value: unknown, depth = 0): unknown {
   if (depth > 8) return '[truncated]'
   if (typeof value === 'string') return sanitizeText(value)
@@ -87,7 +97,7 @@ function sanitizeValue(value: unknown, depth = 0): unknown {
   if (!value || typeof value !== 'object') return value
 
   return Object.fromEntries(
-    Object.entries(value).map(([key, item]) => [key, sanitizeValue(item, depth + 1)]),
+    Object.entries(value).map(([key, item]) => [key, memberPrivateFields.has(key) ? "[redacted-member-data]" : sanitizeValue(item, depth + 1)]),
   )
 }
 
@@ -143,9 +153,9 @@ export function initObservability() {
       integrations: [Sentry.browserTracingIntegration()],
       tracesSampleRate: 0.1,
       tracePropagationTargets: [/^\/api\//, /^https:\/\/(?:www|account|admin)\.alive\.org\.tw\/api\//],
-      beforeSend: (event) => sanitizeSentryEvent(event as unknown as Record<string, unknown>) as unknown as typeof event,
-      beforeSendTransaction: (event) => sanitizeSentryEvent(event as unknown as Record<string, unknown>) as unknown as typeof event,
-      beforeBreadcrumb: (breadcrumb) => sanitizeValue(breadcrumb) as Breadcrumb,
+      beforeSend: (event) => memberPrivateContext(event as unknown as Record<string, unknown>) ? null : sanitizeSentryEvent(event as unknown as Record<string, unknown>) as unknown as typeof event,
+      beforeSendTransaction: (event) => memberPrivateContext(event as unknown as Record<string, unknown>) ? null : sanitizeSentryEvent(event as unknown as Record<string, unknown>) as unknown as typeof event,
+      beforeBreadcrumb: (breadcrumb) => memberPrivateContext() ? null : sanitizeValue(breadcrumb) as Breadcrumb,
     })
     return Sentry
   }).catch(() => undefined)

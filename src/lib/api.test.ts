@@ -620,6 +620,7 @@ describe('AccountApi', () => {
 	  providers: ['google'],
 	  registrationEnabled: true,
 	  nicknameWriteEnabled: true,
+      memberDetailsEnabled: false,
 	})
   })
 
@@ -753,4 +754,38 @@ describe('AccountApi', () => {
     expect(calls.filter((call) => String(call.input).endsWith('/forgot-password'))).toHaveLength(2)
     expect(calls.slice(-2).every((call) => new Headers(call.init?.headers).get('x-csrf-token') === 'csrf-shared')).toBe(true)
   })
+})
+
+it('does not replay member write envelopes on authorization or CSRF failure', async () => {
+ const refresh = vi.fn(async () => 'new-token')
+ const fetcher = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/csrf-token') ? jsonResponse({ csrf_token: 'csrf' }) : jsonResponse({ error_code: 'ACC_CSRF_TOKEN_INVALID' }, 403))
+ const api = new AccountApi({ baseUrl: '/api/account/v1', fetcher, getAccessToken: () => 'token', refreshAfterUnauthorized: refresh })
+ const response = await api.memberTransportFetch('/member-details', { method: 'PUT', body: 'synthetic-envelope', headers: { 'Content-Type': 'application/jose' } })
+ expect(response.status).toBe(403)
+ expect(fetcher.mock.calls.filter(([url]) => String(url).endsWith('/member-details'))).toHaveLength(1)
+ expect(refresh).not.toHaveBeenCalled()
+})
+it('does not overwrite a new account token during member bootstrap recovery', async () => {
+ let token = 'old-token'
+ const setToken = vi.fn((next: string | null) => { token = next ?? '' })
+ const refresh = vi.fn(async () => { token = 'another-account-token'; return 'old-account-refreshed' })
+ const fetcher = vi.fn(async () => jsonResponse({}, 401))
+ const api = new AccountApi({ baseUrl: '/api/account/v1', fetcher, getAccessToken: () => token, setAccessToken: setToken, refreshAfterUnauthorized: refresh })
+ await api.memberTransportFetch('/member-details/transport-key', { method: 'GET' })
+ expect(token).toBe('another-account-token'); expect(setToken).not.toHaveBeenCalled(); expect(fetcher).toHaveBeenCalledOnce()
+})
+
+it('fetches a fresh CSRF token on the next user action without replaying the rejected envelope', async () => {
+ let csrfCalls = 0
+ const wires: string[] = []
+ const tokens: string[] = []
+ const api = new AccountApi({ baseUrl: '/api/account/v1', fetcher: async (input, init) => {
+  if (String(input).endsWith('/csrf-token')) return jsonResponse({ csrf_token: `csrf-${++csrfCalls}` })
+  wires.push(String(init?.body)); tokens.push(new Headers(init?.headers).get('X-CSRF-Token')!)
+  return jsonResponse({ error_code: 'ACC_CSRF_TOKEN_INVALID' }, 403)
+ } })
+ await api.memberTransportFetch('/member-details', { method: 'PUT', body: 'first-envelope' })
+ expect(wires).toEqual(['first-envelope'])
+ await api.memberTransportFetch('/member-details', { method: 'PUT', body: 'fresh-envelope' })
+ expect(wires).toEqual(['first-envelope', 'fresh-envelope']); expect(tokens).toEqual(['csrf-1', 'csrf-2'])
 })
