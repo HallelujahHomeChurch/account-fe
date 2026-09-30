@@ -76,16 +76,17 @@ function sanitizeText(value: string) {
         return '[redacted-url]'
       }
     })
+    .replace(/(\/api\/account\/v1\/dsr\/downloads\/)[A-Za-z0-9_=-]+/g, '$1[redacted]')
     .replace(email, '[redacted-email]')
     .replace(sensitiveValue, '$1=[redacted]')
 }
 
 const memberPrivateFields = new Set(['familyName', 'givenName', 'gender', 'identityDocument', 'mobile', 'responseKey', 'X-HHC-Member-Envelope'])
 function memberPrivateContext(event?: Record<string, unknown>) {
-  if (typeof location !== 'undefined' && (location.pathname === '/profile/member-details' || location.pathname.startsWith('/profile/member-details/'))) return true
+  if (typeof location !== 'undefined' && ['/profile/member-details', '/data-requests'].some(path => location.pathname === path || location.pathname.startsWith(path + '/'))) return true
   const request = event?.request
   if (request && typeof request === 'object' && 'url' in request && typeof request.url === 'string') {
-    try { return new URL(request.url, 'https://account.alive.org.tw').pathname.startsWith('/api/account/v1/member-details') } catch { return true }
+    try { const pathname = new URL(request.url, 'https://account.alive.org.tw').pathname; return ['/api/account/v1/member-details', '/api/account/v1/dsr/downloads/', '/api/account/v1/dsr/transport-key'].some(path => pathname.startsWith(path)) } catch { return true }
   }
   return false
 }
@@ -118,7 +119,7 @@ export function sanitizeSentryEvent(event: Record<string, unknown>): Record<stri
   if (request && typeof request === 'object' && 'url' in request && typeof request.url === 'string') {
     try {
       const url = new URL(request.url)
-      sanitized.request = { url: `${url.origin}${url.pathname}` }
+      sanitized.request = { url: sanitizeText(`${url.origin}${url.pathname}`) }
     } catch {
       delete sanitized.request
     }

@@ -1,5 +1,5 @@
 import { webcrypto } from 'node:crypto'
-import { CompactEncrypt, compactDecrypt, exportJWK, generateKeyPair } from 'jose'
+import { CompactEncrypt, compactDecrypt, exportJWK, base64url, generateKeyPair } from 'jose'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { MemberDetailsClient, MemberDetailsError, type MemberTransportFetch } from './member-details'
 
@@ -35,12 +35,13 @@ function fixture(scenario = '') {
     const request = JSON.parse(new TextDecoder().decode(plaintext))
     requests.push(request)
     const key = Uint8Array.from(Buffer.from(request.responseKey, 'base64url'))
-    const response = { version: 1, subject, sessionId: request.sessionId, operationId: request.operationId, messageId: request.messageId, method: request.method, path: request.path, status: 200, etag: request.method === 'DELETE' ? '' : etag, issuedAt: request.issuedAt, expiresAt: request.expiresAt, payload: request.method === 'GET' ? { details } : request.method === 'PUT' ? { saved: true } : { deleted: true } }
+    const response = { version: 1, subject, sessionId: request.sessionId, operationId: request.operationId, messageId: request.messageId, method: request.method, path: request.path, status: 200, etag: request.method === 'DELETE' || request.path.startsWith('/api/account/v1/dsr/downloads/') ? '' : etag, issuedAt: request.issuedAt, expiresAt: request.expiresAt, payload: request.method === 'GET' ? request.path.startsWith('/api/account/v1/dsr/downloads/') ? { encoding: 'base64url', mediaType: 'application/zip', data: base64url.encode(encoder.encode('PK' + 'synthetic-export-'.repeat(4096))) } : { details } : request.method === 'PUT' ? { saved: true } : { deleted: true } }
+    if (scenario === 'invalid-details' && currentSession !== sessionId) Object.assign(response, { payload: { details: { ...details, familyName: 42 } } })
     if (scenario === 'owner') response.subject = 'different'
     if (scenario === 'message') response.messageId = crypto.randomUUID()
     if (scenario === 'method') response.method = 'DELETE'
     if (scenario === 'status') response.status = 201
-    if (scenario === 'etag') response.etag = ''
+    if (scenario === 'etag') response.etag = request.path.startsWith('/api/account/v1/dsr/downloads/') ? etag : ''
     if (scenario === 'expired') response.expiresAt = response.issuedAt - 60
     if (scenario === 'unknown-field') Object.assign(response, { unexpected: true })
     if (scenario === 'wrong-key') key[0] ^= 1
@@ -50,7 +51,7 @@ function fixture(scenario = '') {
     if (request.method === 'PUT' && scenario === 'csrf') return Response.json({ error_code: 'ACC_CSRF_TOKEN_INVALID', message: 'invalid CSRF' }, { status: 403 })
     if (request.method === 'PUT' && ['expiry-boundary', 'late-response'].includes(scenario)) vi.setSystemTime((request.expiresAt + (scenario === 'late-response' ? 1 : 0)) * 1000)
     const sealed = await new CompactEncrypt(encoder.encode(JSON.stringify(response))).setProtectedHeader({ alg: 'dir', enc: 'A256GCM', typ: 'hhc-member-response+jwe' }).encrypt(key)
-    return new Response(sealed, { status: 200, headers: { 'Content-Type': 'application/jose', ...(response.method === 'DELETE' ? {} : { ETag: etag }) } })
+    return new Response(sealed, { status: 200, headers: { 'Content-Type': 'application/jose', ...(response.method === 'DELETE' || request.path.startsWith('/api/account/v1/dsr/downloads/') ? {} : { ETag: etag }) } })
   }
   return { client: new MemberDetailsClient(send, subject), calls, requests, setSession: (next: string) => { currentSession = next } }
 }
@@ -109,5 +110,28 @@ it('distinguishes a CSRF rejection from membership revocation without retry', as
  const signal = new AbortController().signal
  await client.load(signal)
  await expect(client.save(details, etag, signal)).rejects.toMatchObject({ code: 'ACC_CSRF_TOKEN_INVALID', status: 403, uncertain: false })
+ expect(calls).toHaveLength(2)
+})
+
+it('decrypts a bounded DSR archive under its own path without requiring member eligibility', async () => {
+ const { client, requests } = fixture()
+ const blob = await client.downloadExport('/api/account/v1/dsr/downloads/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=', new AbortController().signal)
+ expect(blob.type).toBe('application/zip'); expect(blob.size).toBeGreaterThan(16384)
+ expect(requests[0].path).toBe('/api/account/v1/dsr/downloads/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=')
+ expect(requests[0].precondition).toBeNull()
+})
+it.each(['owner', 'message', 'method', 'status', 'etag', 'expired', 'unknown-field', 'wrong-key'])('rejects a DSR %s response before offering a file', async scenario => {
+ const { client, calls } = fixture(scenario)
+ await expect(client.downloadExport('/api/account/v1/dsr/downloads/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=', new AbortController().signal)).rejects.toBeInstanceOf(MemberDetailsError)
+ expect(calls).toHaveLength(1)
+})
+
+it('does not re-pin an editor after an invalid GET in a replacement session', async () => {
+ const { client, calls, setSession } = fixture('invalid-details')
+ const signal = new AbortController().signal
+ await client.load(signal)
+ setSession('b'.repeat(64))
+ await expect(client.load(signal)).rejects.toMatchObject({ code: 'invalid_response' })
+ await expect(client.save(details, etag, signal)).rejects.toMatchObject({ code: 'session_changed', status: 401 })
  expect(calls).toHaveLength(2)
 })

@@ -1,5 +1,5 @@
 import { Button, Card, Form, Input, Label, Skeleton, TextField } from '@hallelujahhomechurch/ui'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Download, Pencil, ShieldOff, UserRoundX } from 'lucide-react'
 
@@ -7,6 +7,7 @@ import { useAuth } from '../auth/auth-context'
 import { loginPath } from '../auth/auth-routes'
 import { useLocale } from '../i18n/locale-context'
 import { dsrDetails } from '../i18n/dsr-details'
+import { MemberDetailsError } from '../lib/member-details'
 import { ApiError, type DSRRequest, type DSRRequestType, type DSRScopeTarget, type DSRCreateDetails } from '../lib/api'
 
 const owners = ['account', 'operations', 'engagement', 'notification', 'asset', 'website_manual', 'website_watermark'] as const
@@ -18,6 +19,9 @@ export function DataRequestsPage() {
   const detailsText = dsrDetails[locale]
   const ownerLabels = { ...t.dataRequests.owners, operations: detailsText.operations, website_watermark: detailsText.watermark }
   const navigate = useNavigate()
+  const privateDownload = useRef<AbortController | null>(null)
+  const owner = auth.profile?.id
+  useEffect(() => () => { privateDownload.current?.abort(); privateDownload.current = null }, [owner, auth.api])
   const [requests, setRequests] = useState<DSRRequest[] | null>(null)
   const [erasure, setErasure] = useState<DSRRequest | null>(null)
   const [email, setEmail] = useState('')
@@ -139,16 +143,25 @@ export function DataRequestsPage() {
 
   async function download(request: DSRRequest) {
     if (!auth.api.issueDSRDownload || !auth.api.redeemDSRDownload) return
+    privateDownload.current?.abort()
+    const controller = new AbortController(); privateDownload.current = controller
     setBusy(true); setError('')
     try {
       const { download_url } = await auth.api.issueDSRDownload(request.id)
-      const blob = await auth.api.redeemDSRDownload(download_url)
+      controller.signal.throwIfAborted()
+      const blob = await auth.api.redeemDSRDownload(download_url, controller.signal)
+      controller.signal.throwIfAborted()
       const url = URL.createObjectURL(blob)
       try {
         const anchor = document.createElement('a')
         anchor.href = url; anchor.download = 'account-data.zip'; anchor.click()
       } finally { URL.revokeObjectURL(url) }
-    } catch (caught) { handleError(caught) } finally { setBusy(false) }
+    } catch (caught) {
+      if (!controller.signal.aborted) {
+        if (caught instanceof MemberDetailsError && caught.code === 'ACC_DSR_EXPORT_TOO_LARGE') setError(detailsText.secureRecovery)
+        else handleError(caught)
+      }
+    } finally { if (privateDownload.current === controller) { privateDownload.current = null; setBusy(false) } }
   }
 
   if (requests === null) return <Skeleton className="account-page-skeleton" label={t.dataRequests.loading} />

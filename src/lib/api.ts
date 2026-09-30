@@ -1,4 +1,4 @@
-import { memberCsrfFailure } from './member-details'
+import { MemberDetailsClient, memberCsrfFailure, type PrivateTransportPath } from './member-details'
 import {
   AccountSessionError,
   createAccountSessionClient,
@@ -69,7 +69,7 @@ export type AuthCapabilities = {
   nicknameWriteEnabled?: boolean
   memberDetailsEnabled?: boolean
   policy?: PolicyCapabilities
-  dsr?: { enabled: boolean }
+  dsr?: { enabled: boolean; encrypted_delivery?: boolean }
 }
 
 export type DSRScopeTarget = 'subscriptions' | 'membership' | 'personalized_bulletins' | 'website_content'
@@ -425,9 +425,16 @@ export class AccountApi {
     return this.request<{ download_url: string }>(`/dsr/requests/${encodeURIComponent(requestId)}/download`, { method: 'POST' })
   }
 
-  async redeemDSRDownload(downloadUrl: string): Promise<Blob> {
+  async redeemDSRDownload(downloadUrl: string, signal = new AbortController().signal): Promise<Blob> {
     if (!/^\/api\/account\/v1\/dsr\/downloads\/[A-Za-z0-9_-]{43}=$/.test(downloadUrl)) {
       throw new Error('Invalid DSR download URL')
+    }
+    const capabilities = await this.getAuthCapabilities()
+    signal.throwIfAborted()
+    if (capabilities.dsr?.encrypted_delivery === true) {
+      const owner = await this.me()
+      signal.throwIfAborted()
+      return new MemberDetailsClient((path, init) => this.memberTransportFetch(path, init), owner.id).downloadExport(downloadUrl, signal)
     }
     const response = await this.authenticatedFetch(downloadUrl)
     if (!response.ok) return this.readResponse<never>(response)
@@ -553,7 +560,7 @@ export class AccountApi {
   }
 
   async getAuthCapabilities(): Promise<AuthCapabilities> {
-    const response = await this.request<{ providers?: string[]; registration_enabled?: boolean; nickname_write_enabled?: boolean; member_details_enabled?: boolean; policy?: PolicyCapabilities; dsr?: { enabled: boolean } }>(
+    const response = await this.request<{ providers?: string[]; registration_enabled?: boolean; nickname_write_enabled?: boolean; member_details_enabled?: boolean; policy?: PolicyCapabilities; dsr?: { enabled: boolean; encrypted_delivery?: boolean } }>(
       '/oauth-providers',
       { auth: false },
     )
@@ -567,7 +574,7 @@ export class AccountApi {
     }
   }
 
-  async memberTransportFetch(path: '/member-details' | '/member-details/transport-key', init: RequestInit) {
+  async memberTransportFetch(path: PrivateTransportPath, init: RequestInit) {
     const headers = new Headers(init.headers)
     const token = this.getAccessToken?.()
     if (token) headers.set('Authorization', `Bearer ${token}`)
@@ -576,7 +583,7 @@ export class AccountApi {
     let response = await send()
     // Bootstrap has no encrypted operation; only it can use the existing refresh
     // coordinator. A write envelope is never replayed by this transport.
-    if (path === '/member-details/transport-key' && response.status === 401) {
+    if ((path === '/member-details/transport-key' || path === '/dsr/transport-key') && response.status === 401) {
       const next = await this.recoverUnauthorized(token ?? null)
       const current = this.getAccessToken?.() ?? null
       if (next && (current === token || current === next)) { this.setAccessToken?.(next); headers.set('Authorization', `Bearer ${next}`); response = await send() }

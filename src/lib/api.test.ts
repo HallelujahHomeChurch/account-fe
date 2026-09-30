@@ -66,6 +66,7 @@ describe('AccountApi', () => {
       fetcher: async (input, init) => {
         if (String(input).endsWith('/csrf-token')) return jsonResponse({ csrf_token: 'csrf' })
         if (String(input).endsWith('/refresh')) return jsonResponse({ access_token: 'new-token' })
+        if (String(input).endsWith('/oauth-providers')) return jsonResponse({ providers: [], dsr: { enabled: true, encrypted_delivery: false } })
         authorizations.push(new Headers(init?.headers).get('authorization'))
         return authorizations.length === 1
           ? jsonResponse({ message: 'expired' }, 401)
