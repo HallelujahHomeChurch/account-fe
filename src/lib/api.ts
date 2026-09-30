@@ -93,6 +93,7 @@ export type DSRPublicEvent = { action: string; case_version: number; created_at:
 export type DSRRequest = {
   public_history?: DSRPublicEvent[]
   public_history_has_more?: boolean
+  public_history_next_cursor?: string
   received_at?: string
   received_source?: 'unknown' | 'portal' | 'email' | 'offline'
   decision_at?: string
@@ -391,6 +392,12 @@ export class AccountApi {
 
   async listDSRRequests() {
     return (await this.request<{ requests: DSRRequest[] }>('/dsr/requests')).requests
+  }
+
+  listDSRPublicHistory(requestId: string, version: number, before?: string) {
+    const query = new URLSearchParams({ case_version: String(version) })
+    if (before) query.set('before', before)
+    return this.request<{ events: DSRPublicEvent[]; case_version: number; next_cursor?: string }>(`/dsr/requests/${encodeURIComponent(requestId)}/history?${query}`)
   }
 
   getDSRRequest(requestId: string) {
