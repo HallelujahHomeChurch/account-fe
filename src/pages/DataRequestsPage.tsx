@@ -188,6 +188,11 @@ export function DataRequestsPage() {
           {request.decision_at ? <p>{detailsText.decision}: <time dateTime={request.decision_at}>{new Date(request.decision_at).toLocaleString(locale)}</time><br />{detailsText.notificationSeparate}</p> : null}
           {request.completed_at ? <p>{detailsText.finished}: <time dateTime={request.completed_at}>{new Date(request.completed_at).toLocaleString(locale)}</time></p> : null}
           {request.scope_targets?.map((target) => <p key={target}>{detailsText.restrictions[target] ?? `${detailsText.scope}: ${target}`}</p>)}
+          {request.public_history?.length ? <details className="dsr-public-history"><summary>{detailsText.publicHistory}</summary><ol>{request.public_history.map((event, index) => <li key={`${event.case_version}:${index}`}>
+            <strong>{event.public_supplement ? detailsText.reply : detailsText.question}</strong> <time dateTime={event.created_at}>{new Date(event.created_at).toLocaleString(locale)}</time>
+            {event.public_message ? <p>{event.public_message}</p> : null}
+            {event.public_supplement ? <><p>{event.public_supplement.description}</p><p>{detailsText.current}: {event.public_supplement.current_value}</p><p>{detailsText.requested}: {event.public_supplement.requested_value}</p></> : null}
+          </li>)}</ol>{request.public_history_has_more ? <p>{detailsText.earlierHistory}</p> : null}</details> : null}
           {request.description ? <p>{request.description}</p> : null}
           {request.current_value ? <p>{detailsText.current}: {request.current_value}</p> : null}
           {request.requested_value ? <p>{detailsText.requested}: {request.requested_value}</p> : null}

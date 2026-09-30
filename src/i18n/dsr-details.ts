@@ -1,5 +1,7 @@
 export const dsrDetails = {
   'zh-Hant': {
+    earlierHistory: '顯示最近 20 筆問答；如需較早紀錄，請聯絡 support@alive.org.tw。',
+    publicHistory: '補件問答紀錄', question: '管理員要求補件', reply: '已送出的補充資料',
     publicDecision: '公開決定與後續方式',
     publicDecisionPending: '這筆舊申請的公開拒絕理由尚待核對。請聯絡 support@alive.org.tw 確認決定與下一步。',
     received: "實際收件時間", decision: "准駁紀錄時間", decisionDeadline: "准駁期限", decisionDeadlinePending: "准駁期限待核對", finished: "執行完成時間", notificationSeparate: "准駁紀錄不代表通知已送達。",
@@ -11,6 +13,8 @@ export const dsrDetails = {
     conflict: '此請求已更新，請重新整理後再操作。', refresh: '重新整理', submitted: '申請時間',
   },
   'zh-Hans': {
+    earlierHistory: '显示最近 20 条问答；如需较早记录，请联系 support@alive.org.tw。',
+    publicHistory: '补件问答记录', question: '管理员要求补件', reply: '已送出的补充资料',
     publicDecision: '公开决定与后续方式',
     publicDecisionPending: '这笔旧申请的公开拒绝理由尚待核对。请联系 support@alive.org.tw 确认决定与下一步。',
     received: "实际收件时间", decision: "准驳记录时间", decisionDeadline: "准驳期限", decisionDeadlinePending: "准驳期限待核对", finished: "执行完成时间", notificationSeparate: "准驳记录不代表通知已送达。",
@@ -22,6 +26,8 @@ export const dsrDetails = {
     conflict: '此请求已更新，请刷新后再操作。', refresh: '刷新', submitted: '申请时间',
   },
   en: {
+    earlierHistory: 'Showing the latest 20 conversation entries. Contact support@alive.org.tw for earlier records.',
+    publicHistory: 'Information conversation', question: 'Information requested', reply: 'Information supplied',
     publicDecision: 'Decision and next steps',
     publicDecisionPending: 'The public reason for this legacy refusal needs verification. Contact support@alive.org.tw to confirm the decision and next steps.',
     received: "Received at", decision: "Decision recorded at", decisionDeadline: "Decision deadline", decisionDeadlinePending: "Decision deadline needs verification", finished: "Processing completed at", notificationSeparate: "A recorded decision does not confirm notification delivery.",
@@ -33,6 +39,8 @@ export const dsrDetails = {
     conflict: 'This request has changed. Refresh before trying again.', refresh: 'Refresh', submitted: 'Submitted at',
   },
   ja: {
+    earlierHistory: '最新20件のやり取りを表示しています。以前の記録は support@alive.org.tw にお問い合わせください。',
+    publicHistory: '追加情報のやり取り', question: '管理者からの追加情報の依頼', reply: '送信した追加情報',
     publicDecision: '判断結果と次の手順',
     publicDecisionPending: 'この過去の拒否理由は確認が必要です。判断結果と次の手順について support@alive.org.tw にお問い合わせください。',
     received: "受領日時", decision: "判断記録日時", decisionDeadline: "判断期限", decisionDeadlinePending: "判断期限の確認が必要です", finished: "処理完了日時", notificationSeparate: "判断の記録は通知の配信確認ではありません。",
@@ -44,6 +52,8 @@ export const dsrDetails = {
     conflict: 'リクエストが更新されました。再読み込みしてから操作してください。', refresh: '再読み込み', submitted: '申請日時',
   },
   ko: {
+    earlierHistory: '최근 대화 20개를 표시합니다. 이전 기록은 support@alive.org.tw에 문의하세요.',
+    publicHistory: '보완 자료 대화 기록', question: '관리자의 보완 요청', reply: '제출한 보완 자료',
     publicDecision: '결정 및 다음 단계',
     publicDecisionPending: '이 과거 거절의 공개 사유는 확인이 필요합니다. 결정과 다음 단계는 support@alive.org.tw 에 문의하세요.',
     received: "접수 시간", decision: "결정 기록 시간", decisionDeadline: "결정 기한", decisionDeadlinePending: "결정 기한 확인 필요", finished: "처리 완료 시간", notificationSeparate: "결정 기록은 알림 전달 확인을 의미하지 않습니다.",
