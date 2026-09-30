@@ -1774,3 +1774,4 @@ textarea::selection {
   border-radius: 10px; background: var(--color-paper-raised); color: var(--color-ink);
   padding: 12px; font: inherit;
 }
+.dsr-public-history p { white-space: pre-wrap; overflow-wrap: anywhere; }
