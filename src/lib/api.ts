@@ -69,6 +69,9 @@ export type AuthCapabilities = {
   dsr?: { enabled: boolean }
 }
 
+export type DSRScopeTarget = 'subscriptions' | 'membership' | 'personalized_bulletins' | 'website_content'
+export type DSRCreateDetails = { description?: string; current_value?: string; requested_value?: string; scope_targets?: DSRScopeTarget[]; scope_confirmed?: boolean }
+
 export type DSRRequestType = 'access_export' | 'correction' | 'restrict_processing' | 'erasure'
 export type DSRRequestStatus = 'submitted' | 'in_review' | 'processing' | 'action_required' | 'completed' | 'rejected' | 'cancelled'
 export type DSRExecutionStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'manual' | 'not_applicable'
@@ -87,6 +90,8 @@ export type DSRExecution = {
 }
 
 export type DSRRequest = {
+  scope_targets?: DSRScopeTarget[]
+  plan_version?: number
   description?: string
   current_value?: string
   requested_value?: string
@@ -382,11 +387,11 @@ export class AccountApi {
     return this.request<DSRRequest>(`/dsr/requests/${encodeURIComponent(requestId)}`)
   }
 
-  createDSRRequest(requestType: DSRRequestType, details: { description?: string; current_value?: string; requested_value?: string } = {}) {
+  createDSRRequest(requestType: DSRRequestType, details: DSRCreateDetails = {}) {
     return this.request<DSRRequest>('/dsr/requests', { method: 'POST', body: { request_type: requestType, ...details } })
   }
 
-  supplementDSRRequest(requestId: string, input: { version: number; description: string; current_value: string; requested_value: string }) {
+  supplementDSRRequest(requestId: string, input: { version: number; description: string; current_value: string; requested_value: string; scope_targets?: DSRScopeTarget[]; scope_confirmed?: boolean }) {
     return this.request<DSRRequest>(`/dsr/requests/${encodeURIComponent(requestId)}/supplement`, { method: 'POST', body: input })
   }
 

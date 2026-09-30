@@ -7,7 +7,7 @@ import { useAuth } from '../auth/auth-context'
 import { loginPath } from '../auth/auth-routes'
 import { useLocale } from '../i18n/locale-context'
 import { dsrDetails } from '../i18n/dsr-details'
-import { ApiError, type DSRRequest, type DSRRequestType } from '../lib/api'
+import { ApiError, type DSRRequest, type DSRRequestType, type DSRScopeTarget, type DSRCreateDetails } from '../lib/api'
 
 const owners = ['account', 'operations', 'engagement', 'notification', 'asset', 'website_manual', 'website_watermark'] as const
 type Details = { description: string; current_value: string; requested_value: string }
@@ -25,6 +25,7 @@ export function DataRequestsPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [scope, setScope] = useState('')
+  const [showRestriction, setShowRestriction] = useState(false)
   const [showCorrection, setShowCorrection] = useState(false)
   const [refreshRevision, setRefreshRevision] = useState(0)
   const [now, setNow] = useState(Date.now)
@@ -96,13 +97,14 @@ export function DataRequestsPage() {
     }
   }
 
-  async function create(type: DSRRequestType, details?: Partial<Details>) {
+  async function create(type: DSRRequestType, details?: DSRCreateDetails) {
     if (!auth.api.createDSRRequest) return
     setBusy(true); setError('')
     try {
       const input = details ?? (scope.trim() ? { description: scope.trim() } : undefined)
       const next = input ? await auth.api.createDSRRequest(type, input) : await auth.api.createDSRRequest(type)
       setShowCorrection(false)
+      setShowRestriction(false)
       setScope('')
       setRequests((current) => [next, ...(current ?? [])])
       if (type === 'erasure') resetErasure(next)
@@ -160,11 +162,12 @@ export function DataRequestsPage() {
       <TextField name="request_scope" value={scope} onChange={setScope}><Label>{detailsText.scope}</Label><Input maxLength={4000} /></TextField>
       <div className="dsr-operation-grid">
         <article className="dsr-operation-card"><Download aria-hidden="true" /><div><h3>{t.dataRequests.requestExport}</h3><p>{t.dataRequests.exportDescription}</p></div><Button isPending={busy} onPress={() => void create('access_export')}>{t.dataRequests.requestExport}</Button></article>
-        <article className="dsr-operation-card"><ShieldOff aria-hidden="true" /><div><h3>{t.dataRequests.restrictProcessing}</h3><p>{t.dataRequests.restrictDescription}</p></div><Button isPending={busy} variant="secondary" onPress={() => void create('restrict_processing')}>{t.dataRequests.restrictProcessing}</Button></article>
+        <article className="dsr-operation-card"><ShieldOff aria-hidden="true" /><div><h3>{t.dataRequests.restrictProcessing}</h3><p>{t.dataRequests.restrictDescription}</p></div><Button isPending={busy} variant="secondary" onPress={() => setShowRestriction(true)}>{t.dataRequests.restrictProcessing}</Button></article>
         <article className="dsr-operation-card"><Pencil aria-hidden="true" /><div><h3>{detailsText.correction}</h3><p>{detailsText.correctionHint}</p></div><Button isPending={busy} variant="secondary" onPress={() => setShowCorrection(true)}>{detailsText.correction}</Button></article>
         <article className="dsr-operation-card is-danger"><UserRoundX aria-hidden="true" /><div><h3>{t.dataRequests.startErasure}</h3><p>{t.dataRequests.erasureDescription}</p></div><Button isPending={busy} variant="danger" onPress={() => void create('erasure')}>{t.dataRequests.startErasure}</Button></article>
       </div>
     </section>
+    {showRestriction ? <Card className="panel-card"><Card.Header><Card.Title>{t.dataRequests.restrictProcessing}</Card.Title></Card.Header><Card.Content><RestrictionScopeForm busy={busy} onSubmit={(targets) => create('restrict_processing', { ...(scope.trim() ? { description: scope.trim() } : {}), scope_targets: targets, scope_confirmed: true })} /></Card.Content></Card> : null}
     {showCorrection ? <Card className="panel-card"><Card.Header><Card.Title>{detailsText.correction}</Card.Title></Card.Header><Card.Content><RequestDetailsForm correction busy={busy} onSubmit={(details) => create('correction', details)} /></Card.Content></Card> : null}
     {erasure ? <Card className="panel-card"><Card.Header><Card.Title>{t.dataRequests.confirmErasureTitle}</Card.Title></Card.Header>
       <Card.Content><Form className="form-stack" onSubmit={confirmErasure}>
@@ -179,9 +182,11 @@ export function DataRequestsPage() {
         <Card.Header><Card.Title>{t.dataRequests.types[request.request_type]}</Card.Title><span className="status-pill">{t.dataRequests.statuses[request.status]}</span></Card.Header>
         <Card.Content>
           <p>{detailsText.submitted}: <time dateTime={request.submitted_at}>{new Date(request.submitted_at).toLocaleString(locale)}</time></p>
+          {request.scope_targets?.map((target) => <p key={target}>{detailsText.restrictions[target] ?? `${detailsText.scope}: ${target}`}</p>)}
           {request.description ? <p>{request.description}</p> : null}
           {request.current_value ? <p>{detailsText.current}: {request.current_value}</p> : null}
           {request.requested_value ? <p>{detailsText.requested}: {request.requested_value}</p> : null}
+          {request.request_type === 'restrict_processing' && request.plan_version !== 1 && request.information_requested && request.executions?.every((execution) => (execution.attempt_count === 0 && !execution.started_at && ['pending', 'manual'].includes(execution.status)) || (execution.status === 'failed' && execution.last_error_code === 'DSR_SCOPE_CONFIRMATION_REQUIRED')) ? <RestrictionScopeForm key={request.id} request={request} busy={busy} onSubmit={async (targets, version) => { if (!auth.api.supplementDSRRequest) return; setBusy(true); setError(''); try { reconcile(await auth.api.supplementDSRRequest(request.id, { version, description: request.description || request.information_requested || detailsText.scope, current_value: '', requested_value: '', scope_targets: targets, scope_confirmed: true })) } catch (caught) { handleError(caught) } finally { setBusy(false) } }} /> : null}
           {request.information_requested && !['completed', 'rejected', 'cancelled'].includes(request.status) ? <section aria-label={detailsText.additional}><p className="form-notice">{request.information_requested}</p><RequestDetailsForm key={request.id} request={request} correction={request.request_type === 'correction'} busy={busy} onSubmit={(details, version) => supplement(request, details, version ?? request.version)} /></section> : null}
           {request.status === 'action_required' ? <p className="form-notice">{t.dataRequests.actionRequired}</p> : null}
           {request.executions?.length ? <ol className="dsr-owner-progress" aria-label={t.dataRequests.ownerProgress}>
@@ -225,4 +230,13 @@ function RequestDetailsForm({ request, correction, busy, onSubmit }: { request?:
 
 function exportUnavailable(request: DSRRequest, now: number) {
   return !request.export_expires_at || Date.parse(request.export_expires_at) <= now
+}
+
+function RestrictionScopeForm({request,busy,onSubmit}:{request?:DSRRequest;busy:boolean;onSubmit:(targets:DSRScopeTarget[],version:number)=>Promise<void>}) {
+ const {locale,messages:t}=useLocale()
+ const text=dsrDetails[locale]
+ const [targets,setTargets]=useState<DSRScopeTarget[]>([])
+ const [confirmed,setConfirmed]=useState(false)
+ const [version,setVersion]=useState(request?.version ?? 0)
+ return <Form className="form-stack" onSubmit={(event)=>{event.preventDefault();if(targets.length && confirmed) void onSubmit(targets,version)}}><fieldset><legend>{t.dataRequests.restrictProcessing}</legend>{(Object.keys(text.restrictions) as DSRScopeTarget[]).map((target)=><label className="auth-consent" key={target}><input type="checkbox" checked={targets.includes(target)} onChange={(event)=>{setConfirmed(false);setTargets((current)=>event.target.checked?[...current,target]:current.filter(value=>value!==target))}}/><span>{text.restrictions[target]}</span></label>)}</fieldset><label className="auth-consent"><input type="checkbox" checked={confirmed} onChange={(event)=>setConfirmed(event.target.checked)}/><span>{text.restrictAcknowledgement}</span></label><>{request && version!==request.version ? <div><p role="status">{text.conflict}</p><Button variant="secondary" onPress={()=>{setTargets([]);setConfirmed(false);setVersion(request.version)}}>{text.refresh}</Button></div>:null}</><Button type="submit" isPending={busy} isDisabled={!targets.length||!confirmed||(request && version!==request.version)}>{text.restrictConfirm}</Button></Form>
 }
