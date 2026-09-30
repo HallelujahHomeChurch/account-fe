@@ -1,5 +1,6 @@
 export const dsrDetails = {
   'zh-Hant': {
+    received: "實際收件時間", decision: "准駁紀錄時間", decisionDeadline: "准駁期限", decisionDeadlinePending: "准駁期限待核對", finished: "執行完成時間", notificationSeparate: "准駁紀錄不代表通知已送達。",
     restrictConfirm: "確認選定的限制", restrictAcknowledgement: "我了解選定限制的影響。",
     restrictions: { subscriptions: "電子報訂閱：停止電子報郵件；Web Push 保持啟用。", membership: "會員用途：撤銷認證會員資格、單位成員身分、角色及職責；解除限制不會自動恢復授權。", personalized_bulletins: "個人化週報：停止取得含個人浮水印的週報。", website_content: "網站內容：交由管理員釐清及處理所指定的內容。" },
     correction: '申請資料更正', correctionHint: '指出資料位置、目前內容與希望更正的內容。', submitCorrection: '送出更正請求', scope: '申請範圍（選填）',
@@ -8,6 +9,7 @@ export const dsrDetails = {
     conflict: '此請求已更新，請重新整理後再操作。', refresh: '重新整理', submitted: '申請時間',
   },
   'zh-Hans': {
+    received: "实际收件时间", decision: "准驳记录时间", decisionDeadline: "准驳期限", decisionDeadlinePending: "准驳期限待核对", finished: "执行完成时间", notificationSeparate: "准驳记录不代表通知已送达。",
     restrictConfirm: "确认选定的限制", restrictAcknowledgement: "我了解选定限制的影响。",
     restrictions: { subscriptions: "电子报订阅：停止电子报邮件；Web Push 保持启用。", membership: "会员用途：撤销认证会员资格、单位成员身份、角色及职责；解除限制不会自动恢复授权。", personalized_bulletins: "个性化周报：停止获取含个人水印的周报。", website_content: "网站内容：由管理员厘清及处理所指定的内容。" },
     correction: '申请数据更正', correctionHint: '指出数据位置、当前内容与希望更正的内容。', submitCorrection: '提交更正请求', scope: '申请范围（选填）',
@@ -16,6 +18,7 @@ export const dsrDetails = {
     conflict: '此请求已更新，请刷新后再操作。', refresh: '刷新', submitted: '申请时间',
   },
   en: {
+    received: "Received at", decision: "Decision recorded at", decisionDeadline: "Decision deadline", decisionDeadlinePending: "Decision deadline needs verification", finished: "Processing completed at", notificationSeparate: "A recorded decision does not confirm notification delivery.",
     restrictConfirm: "Confirm selected restrictions", restrictAcknowledgement: "I understand the effects of the selected restrictions.",
     restrictions: { subscriptions: "Newsletter subscriptions: stop newsletter emails; Web Push stays active.", membership: "Membership: revoke verified membership, unit membership, roles and responsibilities; lifting restrictions does not restore authorization.", personalized_bulletins: "Personalized bulletins: stop access to bulletins with a personal watermark.", website_content: "Website content: an administrator will clarify and process the specified content." },
     correction: 'Request data correction', correctionHint: 'Identify the data, its current value and the requested correction.', submitCorrection: 'Submit correction', scope: 'Request scope (optional)',
@@ -24,6 +27,7 @@ export const dsrDetails = {
     conflict: 'This request has changed. Refresh before trying again.', refresh: 'Refresh', submitted: 'Submitted at',
   },
   ja: {
+    received: "受領日時", decision: "判断記録日時", decisionDeadline: "判断期限", decisionDeadlinePending: "判断期限の確認が必要です", finished: "処理完了日時", notificationSeparate: "判断の記録は通知の配信確認ではありません。",
     restrictConfirm: '選択した制限を確認', restrictAcknowledgement: '選択した制限の影響を理解しました。',
     restrictions: { subscriptions: 'ニュースレター：メール配信を停止します。Web Push は有効のままです。', membership: '会員用途：認証会員資格、所属、役割と責任を取り消します。制限解除で権限は自動復元されません。', personalized_bulletins: '個人用週報：個人透かし付き週報へのアクセスを停止します。', website_content: 'サイトの内容：管理者が指定内容を確認して処理します。' },
     correction: 'データ修正を申請', correctionHint: 'データの場所、現在の内容、希望する修正内容を記載してください。', submitCorrection: '修正リクエストを送信', scope: '対象範囲（任意）',
@@ -32,6 +36,7 @@ export const dsrDetails = {
     conflict: 'リクエストが更新されました。再読み込みしてから操作してください。', refresh: '再読み込み', submitted: '申請日時',
   },
   ko: {
+    received: "접수 시간", decision: "결정 기록 시간", decisionDeadline: "결정 기한", decisionDeadlinePending: "결정 기한 확인 필요", finished: "처리 완료 시간", notificationSeparate: "결정 기록은 알림 전달 확인을 의미하지 않습니다.",
     restrictConfirm: '선택한 제한 확인', restrictAcknowledgement: '선택한 제한의 영향을 이해합니다.',
     restrictions: { subscriptions: '뉴스레터: 이메일 발송을 중단합니다. Web Push는 유지됩니다.', membership: '회원 용도: 인증 회원 자격, 소속, 역할 및 책임을 취소합니다. 제한 해제 시 권한은 자동 복원되지 않습니다.', personalized_bulletins: '개인화 주보: 개인 워터마크가 있는 주보 접근을 중단합니다.', website_content: '웹사이트 콘텐츠: 관리자가 지정 콘텐츠를 확인하고 처리합니다.' },
     correction: '데이터 수정 요청', correctionHint: '데이터 위치, 현재 내용, 수정할 내용을 알려 주세요.', submitCorrection: '수정 요청 보내기', scope: '요청 범위 (선택)',

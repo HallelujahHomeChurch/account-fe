@@ -90,6 +90,12 @@ export type DSRExecution = {
 }
 
 export type DSRRequest = {
+  received_at?: string
+  received_source?: 'unknown' | 'portal' | 'email' | 'offline'
+  decision_at?: string
+  decision_due_at?: string
+  deadline_state?: 'needs_review' | 'confirmed'
+  policy_version?: string
   scope_targets?: DSRScopeTarget[]
   plan_version?: number
   description?: string
