@@ -182,6 +182,10 @@ export function DataRequestsPage() {
         <Card.Header><Card.Title>{t.dataRequests.types[request.request_type]}</Card.Title><span className="status-pill">{t.dataRequests.statuses[request.status]}</span></Card.Header>
         <Card.Content>
           <p>{detailsText.submitted}: <time dateTime={request.submitted_at}>{new Date(request.submitted_at).toLocaleString(locale)}</time></p>
+          {request.received_at ? <p>{detailsText.received}: <time dateTime={request.received_at}>{new Date(request.received_at).toLocaleString(locale)}</time></p> : null}
+          <p>{request.deadline_state === 'confirmed' && request.received_at && request.policy_version && request.decision_due_at ? <>{detailsText.decisionDeadline}: <time dateTime={request.decision_due_at}>{new Date(request.decision_due_at).toLocaleString(locale)}</time></> : detailsText.decisionDeadlinePending}</p>
+          {request.decision_at ? <p>{detailsText.decision}: <time dateTime={request.decision_at}>{new Date(request.decision_at).toLocaleString(locale)}</time><br />{detailsText.notificationSeparate}</p> : null}
+          {request.completed_at ? <p>{detailsText.finished}: <time dateTime={request.completed_at}>{new Date(request.completed_at).toLocaleString(locale)}</time></p> : null}
           {request.scope_targets?.map((target) => <p key={target}>{detailsText.restrictions[target] ?? `${detailsText.scope}: ${target}`}</p>)}
           {request.description ? <p>{request.description}</p> : null}
           {request.current_value ? <p>{detailsText.current}: {request.current_value}</p> : null}

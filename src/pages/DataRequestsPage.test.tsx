@@ -308,3 +308,9 @@ it('requires scope reconfirmation after a legacy case version changes', async ()
  await act(async()=>{})
  expect(supplementDSRRequest).toHaveBeenCalledWith('request-1',expect.objectContaining({version:2,scope_targets:['subscriptions'],scope_confirmed:true}))
 })
+
+it('keeps legacy receipt and deadlines pending review even when processing has started',async()=>{
+ renderPage({listDSRRequests:async()=>[{...baseRequest,started_at:'2026-09-03T00:01:00Z'}]})
+ expect(await screen.findByText('Decision deadline needs verification')).toBeInTheDocument()
+ expect(screen.queryByText('Decision recorded at')).not.toBeInTheDocument()
+})
