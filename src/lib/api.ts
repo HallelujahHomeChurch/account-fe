@@ -72,14 +72,14 @@ export type AuthCapabilities = {
 export type DSRRequestType = 'access_export' | 'correction' | 'restrict_processing' | 'erasure'
 export type DSRRequestStatus = 'submitted' | 'in_review' | 'processing' | 'action_required' | 'completed' | 'rejected' | 'cancelled'
 export type DSRExecutionStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'manual' | 'not_applicable'
-export type DSROwner = 'account' | 'engagement' | 'notification' | 'asset' | 'website_manual'
+export type DSROwner = 'account' | 'engagement' | 'notification' | 'asset' | 'website_manual' | 'operations' | 'website_watermark'
 
 export type DSRExecution = {
   owner: DSROwner
   action: 'export' | 'correct' | 'restrict_processing' | 'erase'
   status: DSRExecutionStatus
   attempt_count: number
-  result_summary: { record_count?: number; checksum?: string; reason_codes?: string[] }
+  result_summary: { record_count?: number; checksum?: string; reason_codes?: string[]; review_scope?: string; public_response?: string; supplement?: string }
   last_error_code?: string
   started_at?: string
   completed_at?: string
@@ -87,6 +87,11 @@ export type DSRExecution = {
 }
 
 export type DSRRequest = {
+  description?: string
+  current_value?: string
+  requested_value?: string
+  information_requested?: string
+
   id: string
   request_type: DSRRequestType
   status: DSRRequestStatus
@@ -377,8 +382,12 @@ export class AccountApi {
     return this.request<DSRRequest>(`/dsr/requests/${encodeURIComponent(requestId)}`)
   }
 
-  createDSRRequest(requestType: DSRRequestType) {
-    return this.request<DSRRequest>('/dsr/requests', { method: 'POST', body: { request_type: requestType } })
+  createDSRRequest(requestType: DSRRequestType, details: { description?: string; current_value?: string; requested_value?: string } = {}) {
+    return this.request<DSRRequest>('/dsr/requests', { method: 'POST', body: { request_type: requestType, ...details } })
+  }
+
+  supplementDSRRequest(requestId: string, input: { version: number; description: string; current_value: string; requested_value: string }) {
+    return this.request<DSRRequest>(`/dsr/requests/${encodeURIComponent(requestId)}/supplement`, { method: 'POST', body: input })
   }
 
   cancelDSRRequest(requestId: string, version: number) {

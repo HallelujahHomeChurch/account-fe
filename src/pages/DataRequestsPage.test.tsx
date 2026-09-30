@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -36,7 +36,7 @@ function renderPage(overrides: Partial<AuthApi> = {}) {
 
 function Location() { return <output data-testid="location">{useLocation().pathname}{useLocation().search}</output> }
 
-afterEach(() => vi.restoreAllMocks())
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
 
 describe('DataRequestsPage', () => {
   it('creates one request type and renders owner progress', async () => {
@@ -49,10 +49,10 @@ describe('DataRequestsPage', () => {
     expect(screen.getByText('Running')).toBeInTheDocument()
   })
 
-  it('presents only the three data-request operations as action cards', async () => {
+  it('presents all four data-request operations as action cards', async () => {
     renderPage()
     const operations = await screen.findByRole('region', { name: 'Create a request' })
-    expect(within(operations).getAllByRole('article')).toHaveLength(3)
+    expect(within(operations).getAllByRole('article')).toHaveLength(4)
     expect(within(operations).getByRole('button', { name: 'Request data export' })).toBeInTheDocument()
     expect(within(operations).getByRole('button', { name: 'Restrict data processing' })).toBeInTheDocument()
     expect(within(operations).getByRole('button', { name: 'Start account erasure' })).toBeInTheDocument()
@@ -120,7 +120,7 @@ describe('DataRequestsPage', () => {
   })
 
   it('downloads and revokes the temporary object URL', async () => {
-    const completed = { ...baseRequest, status: 'completed' as const }
+    const completed = { ...baseRequest, status: 'completed' as const, export_expires_at: '2099-01-01T00:00:00Z' }
     const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:export')
     const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined)
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
@@ -136,7 +136,7 @@ describe('DataRequestsPage', () => {
   })
 
   it('revokes a temporary download URL when the browser click fails', async () => {
-    const completed = { ...baseRequest, status: 'completed' as const }
+    const completed = { ...baseRequest, status: 'completed' as const, export_expires_at: '2099-01-01T00:00:00Z' }
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:failed-export')
     const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined)
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => { throw new Error('blocked') })
@@ -146,4 +146,129 @@ describe('DataRequestsPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Unable to complete the data request.')
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:failed-export')
   })
+})
+
+it('requires correction scope, current value and requested value before submission', async () => {
+  const createDSRRequest = vi.fn(async () => ({ ...baseRequest, request_type: 'correction' as const }))
+  renderPage({ createDSRRequest })
+  await userEvent.click(await screen.findByRole('button', { name: 'Request data correction' }))
+  const submit = screen.getByRole('button', { name: 'Submit correction' })
+  expect(submit).toBeDisabled()
+  await userEvent.type(screen.getByLabelText('Data or location to correct'), '  Profile name  ')
+  await userEvent.type(screen.getByLabelText('Current value'), 'Old name')
+  expect(submit).toBeDisabled()
+  await userEvent.type(screen.getByLabelText('Requested value'), 'New name')
+  await userEvent.click(submit)
+  expect(createDSRRequest).toHaveBeenCalledWith('correction', { description: 'Profile name', current_value: 'Old name', requested_value: 'New name' })
+})
+
+it('includes optional scope in a new export request', async () => {
+  const createDSRRequest = vi.fn(async () => baseRequest)
+  renderPage({ createDSRRequest })
+  await userEvent.type(await screen.findByLabelText('Request scope (optional)'), '  2026 reservations  ')
+  await userEvent.click(screen.getByRole('button', { name: 'Request data export' }))
+  expect(createDSRRequest).toHaveBeenCalledWith('access_export', { description: '2026 reservations' })
+})
+
+it('shows requested information and submits a version-bound supplement', async () => {
+  const request = { ...baseRequest, information_requested: 'Please identify the affected record.', description: 'Existing scope', version: 4 }
+  const supplementDSRRequest = vi.fn(async () => ({ ...request, information_requested: '', version: 5 }))
+  renderPage({ listDSRRequests: async () => [request], supplementDSRRequest })
+  expect(await screen.findByText('Please identify the affected record.')).toBeInTheDocument()
+  await userEvent.clear(screen.getByRole('textbox', { name: 'Additional information' }))
+  await userEvent.type(screen.getByRole('textbox', { name: 'Additional information' }), 'Record A from September')
+  await userEvent.click(screen.getByRole('button', { name: 'Send additional information' }))
+  expect(supplementDSRRequest).toHaveBeenCalledWith('request-1', { version: 4, description: 'Record A from September', current_value: '', requested_value: '' })
+  expect(screen.queryByRole('button', { name: 'Send additional information' })).not.toBeInTheDocument()
+})
+
+it('shows all owner progress and only public reviewer replies', async () => {
+  renderPage({ listDSRRequests: async () => [{ ...baseRequest, executions: [
+    { owner: 'operations', action: 'export', status: 'succeeded', attempt_count: 1, result_summary: { public_response: 'Reservations included.', internal_note: 'DO NOT DISCLOSE' } },
+    { owner: 'website_watermark', action: 'export', status: 'not_applicable', attempt_count: 1, result_summary: {} },
+  ] } as DSRRequest] })
+  expect(await screen.findByText('Reservations and groups')).toBeInTheDocument()
+  expect(screen.getByText('Website access records')).toBeInTheDocument()
+  expect(screen.getByText('Reservations included.')).toBeInTheDocument()
+  expect(screen.queryByText('DO NOT DISCLOSE')).not.toBeInTheDocument()
+})
+
+it('disables expired downloads and offers a new export with the original scope', async () => {
+  const issueDSRDownload = vi.fn()
+  const createDSRRequest = vi.fn(async () => baseRequest)
+  renderPage({ listDSRRequests: async () => [{ ...baseRequest, status: 'completed', export_expires_at: '2020-01-01T00:00:00Z', description: 'Reservations' }], issueDSRDownload, createDSRRequest })
+  expect(await screen.findByRole('button', { name: 'Download data export' })).toBeDisabled()
+  await userEvent.click(screen.getByRole('button', { name: 'Request a new export' }))
+  expect(issueDSRDownload).not.toHaveBeenCalled()
+  expect(createDSRRequest).toHaveBeenCalledWith('access_export', { description: 'Reservations' })
+})
+
+it('polls active requests without overlap and pauses while hidden and after unmount', async () => {
+  vi.useFakeTimers()
+  const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+  let resolvePoll: (requests: DSRRequest[]) => void = () => undefined
+  const listDSRRequests = vi.fn().mockResolvedValueOnce([baseRequest]).mockImplementationOnce(() => new Promise<DSRRequest[]>((resolve) => { resolvePoll = resolve })).mockResolvedValue([{ ...baseRequest, status: 'completed' }])
+  const view = renderPage({ listDSRRequests })
+  await act(async () => {})
+  expect(listDSRRequests).toHaveBeenCalledTimes(1)
+  await act(async () => { await vi.advanceTimersByTimeAsync(30_000) })
+  expect(listDSRRequests).toHaveBeenCalledTimes(2)
+  visibility.mockReturnValue('hidden')
+  fireEvent(document, new Event('visibilitychange'))
+  await act(async () => { await vi.advanceTimersByTimeAsync(90_000) })
+  expect(listDSRRequests).toHaveBeenCalledTimes(2)
+  visibility.mockReturnValue('visible')
+  fireEvent(document, new Event('visibilitychange'))
+  await act(async () => {})
+  expect(listDSRRequests).toHaveBeenCalledTimes(2)
+  await act(async () => { resolvePoll([baseRequest]) })
+  await act(async () => { await vi.advanceTimersByTimeAsync(30_000) })
+  expect(listDSRRequests).toHaveBeenCalledTimes(3)
+  await act(async () => { await vi.advanceTimersByTimeAsync(90_000) })
+  expect(listDSRRequests).toHaveBeenCalledTimes(3)
+  view.unmount()
+  await act(async () => { await vi.advanceTimersByTimeAsync(60_000) })
+  expect(listDSRRequests).toHaveBeenCalledTimes(3)
+})
+
+it('expires a completed export without polling completed requests', async () => {
+  vi.useFakeTimers()
+  const listDSRRequests = vi.fn().mockResolvedValue([{ ...baseRequest, status: 'completed', export_expires_at: new Date(Date.now() + 1000).toISOString() }])
+  renderPage({ listDSRRequests })
+  await act(async () => {})
+  expect(screen.getByRole('button', { name: 'Download data export' })).toBeEnabled()
+  await act(async () => { await vi.advanceTimersByTimeAsync(1001) })
+  expect(screen.getByRole('button', { name: 'Download data export' })).toBeDisabled()
+  await act(async () => { await vi.advanceTimersByTimeAsync(60_000) })
+  expect(listDSRRequests).toHaveBeenCalledTimes(1)
+})
+
+it('keeps the draft base version until a conflicting update is explicitly refreshed', async () => {
+  vi.useFakeTimers()
+  const request = { ...baseRequest, information_requested: 'Please identify the record.', description: 'Original scope', version: 4 }
+  const listDSRRequests = vi.fn().mockResolvedValueOnce([request]).mockResolvedValue([{ ...request, version: 5 }])
+  const supplementDSRRequest = vi.fn().mockRejectedValueOnce(new ApiError(409, 'conflict', 'ACC_DSR_CONFLICT')).mockResolvedValueOnce({ ...request, information_requested: '', version: 6 })
+  renderPage({ listDSRRequests, supplementDSRRequest })
+  await act(async () => {})
+  fireEvent.change(screen.getByRole('textbox', { name: 'Additional information' }), { target: { value: 'My unsent details' } })
+  await act(async () => { await vi.advanceTimersByTimeAsync(30_000) })
+  expect(screen.getByRole('textbox', { name: 'Additional information' })).toHaveValue('My unsent details')
+  fireEvent.submit(screen.getByRole('textbox', { name: 'Additional information' }).closest('form')!)
+  await act(async () => {})
+  expect(supplementDSRRequest).toHaveBeenCalledWith('request-1', { version: 4, description: 'My unsent details', current_value: '', requested_value: '' })
+  const field = screen.getByRole('textbox', { name: 'Additional information' })
+  expect(field).toHaveValue('My unsent details')
+  const form = field.closest('form')!
+  fireEvent.click(within(form).getByRole('button', { name: 'Refresh' }))
+  fireEvent.submit(form)
+  await act(async () => {})
+  expect(supplementDSRRequest).toHaveBeenLastCalledWith('request-1', { version: 5, description: 'My unsent details', current_value: '', requested_value: '' })
+})
+
+ it('keeps cleaned-up exports unavailable and offers a replacement', async () => {
+  const issueDSRDownload = vi.fn()
+  renderPage({ listDSRRequests: async () => [{ ...baseRequest, status: 'completed' }], issueDSRDownload })
+  expect(await screen.findByRole('button', { name: 'Download data export' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Request a new export' })).toBeInTheDocument()
+  expect(issueDSRDownload).not.toHaveBeenCalled()
 })

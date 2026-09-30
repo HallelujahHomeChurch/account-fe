@@ -772,7 +772,7 @@ textarea::selection {
 
 .dsr-operation-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -1754,4 +1754,22 @@ textarea::selection {
     height: 52px;
     font-size: 20px;
   }
+}
+
+/* Header and statement share the public site's full-width top rows. The body
+   owns scrolling, so wrapped statements need no measured sticky offset. */
+.app-shell:has(> .account-topbar) { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+.account-topbar { flex: none; }
+.account-topbar + .account-layout { flex: 1; min-height: 0; grid-template-rows: minmax(0, 1fr); overflow: hidden; }
+.account-topbar .account-header { position: relative; }
+.account-topbar .mobile-shell-brand { display: inline-flex; margin-right: auto; align-items: center; gap: 10px; }
+.account-topbar + .account-layout .account-sidebar { height: 100%; min-height: 0; overflow: auto; }
+.account-topbar + .account-layout .account-content { min-height: 0; overflow: auto; grid-template-rows: auto minmax(0, 1fr); }
+.account-topbar + .account-layout .account-content > .main-panel { grid-row: 2; }
+.account-topbar + .account-layout .account-content:has(.organization-folder-page) { height: 100%; }
+
+.dsr-details-form textarea {
+  width: 100%; min-width: 0; resize: vertical; border: 1px solid var(--color-line);
+  border-radius: 10px; background: var(--color-paper-raised); color: var(--color-ink);
+  padding: 12px; font: inherit;
 }
