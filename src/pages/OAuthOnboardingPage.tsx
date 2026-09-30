@@ -1,3 +1,5 @@
+import { LegalDocuments } from '../components/LegalDocuments'
+import { useCommonLegalReview } from '../components/useCommonLegalReview'
 import { Button, FieldError, Form, Input, Label, OTP, REGEXP_ONLY_DIGITS, TextField } from '@hallelujahhomechurch/ui'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -27,7 +29,9 @@ export function OAuthOnboardingPage() {
   const [policyAccepted, setPolicyAccepted] = useState(false)
   const { capabilities, error: capabilitiesError, retry: retryCapabilities } = useAuthCapabilitiesState()
   const policy = capabilities?.policy
-  const policyReady = Boolean(policy && (!policy.enforced || (policy.terms_version && policy.privacy_notice_version)))
+  const legalReview = useCommonLegalReview(policy)
+  useEffect(() => { setPolicyAccepted(false) }, [locale, policy?.terms_version, policy?.privacy_notice_version, legalReview.snapshot?.snapshotId])
+  const policyReady = legalReview.ready && Boolean(policy && (!policy.enforced || (policy.terms_version && policy.privacy_notice_version)))
 
   useEffect(() => {
     if (window.location.hash) window.history.replaceState(null, '', window.location.pathname)
@@ -105,6 +109,7 @@ export function OAuthOnboardingPage() {
           terms_version: policy.terms_version,
           privacy_notice_version: policy.privacy_notice_version,
           locale,
+          ...(legalReview.snapshot ? {snapshot_id: legalReview.snapshot.snapshotId} : {}),
         })
       : await auth.api.completeOAuthOnboarding(token, linkExisting)
     await auth.completeLogin(response)
@@ -150,7 +155,7 @@ export function OAuthOnboardingPage() {
           {notice && step === 'code' ? <p className="form-notice">{notice}</p> : null}
           {error || !token ? <p className="form-error" role="alert">{error || t.oauthOnboarding.invalid}</p> : null}
           {capabilitiesError || (capabilities && !policyReady) ? (
-            <div role="alert"><p className="form-error">{t.legalAcceptance.loadFailed}</p><Button onPress={retryCapabilities} variant="secondary">{t.legalAcceptance.retry}</Button></div>
+            <div role="alert"><p className="form-error">{t.legalAcceptance.loadFailed}</p><Button onPress={() => {retryCapabilities(); legalReview.retry()}} variant="secondary">{t.legalAcceptance.retry}</Button></div>
           ) : null}
           {step === 'loading' && !error ? <p className="form-notice">{t.oauthOnboarding.loading}</p> : null}
           {step === 'email' && token ? (
@@ -173,7 +178,8 @@ export function OAuthOnboardingPage() {
           {step === 'confirm' ? (
             <div className="form-stack">
               <p className="oauth-account-summary">{status?.masked_email}</p>
-              {policy?.enforced ? <LegalAcceptance checked={policyAccepted} onChange={setPolicyAccepted} /> : null}
+              {policy?.enforced ? <>{legalReview.snapshot ? <LegalDocuments snapshot={legalReview.snapshot} /> : null}
+              <LegalAcceptance disabled={!legalReview.ready} checked={policyAccepted} onChange={setPolicyAccepted} /></> : null}
               <div className="login-actions"><Button isDisabled={!capabilities || !policyReady || Boolean(policy?.enforced && !policyAccepted)} isPending={isSubmitting} onPress={confirm}>{status?.link_confirmation_required || status?.requires_link_confirmation ? t.oauthOnboarding.linkAccount : t.oauthOnboarding.continue}</Button></div>
             </div>
           ) : null}

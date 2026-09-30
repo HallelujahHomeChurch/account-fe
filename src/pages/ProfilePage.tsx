@@ -1,3 +1,4 @@
+import { markProfileSaved } from '../lib/analytics-events'
 import { Button, Card, Form, Input, Label, Modal, Skeleton, TextField } from '@hallelujahhomechurch/ui'
 import { useEffect, useState, type FormEvent } from 'react'
 
@@ -37,6 +38,7 @@ export function ProfilePage() {
         first_name: String(form.get('first_name') ?? ''),
         last_name: String(form.get('last_name') ?? ''),
       })
+      markProfileSaved()
       await auth.refreshProfile()
       setMessage(t.profile.updated)
       setNameDialogOpen(false)
