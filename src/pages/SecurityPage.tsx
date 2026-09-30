@@ -167,8 +167,10 @@ export function SecurityPage() {
     try {
       setMfaSetup(await auth.api.setupMfa())
       setMfaDialog('setup')
-    } catch {
-      setError(t.security.mfaSetupFailed)
+    } catch (caught) {
+      setError(authErrorMessage(caught, t.security.mfaSetupFailed, {
+        ACC_MFA_REQUIRES_PASSWORD: t.security.mfaSetupRequiresPassword,
+      }))
     }
   }
 
@@ -204,8 +206,10 @@ export function SecurityPage() {
       setMfaDialog(null)
       await auth.refreshProfile().catch(() => undefined)
       setMessage(t.security.mfaDisabledNotice)
-    } catch {
-      setError(t.security.mfaDisableFailed)
+    } catch (caught) {
+      setError(authErrorMessage(caught, t.security.mfaDisableFailed, {
+        ACC_MFA_RECENT_AUTH_REQUIRED: t.security.mfaRecentAuthRequired,
+      }))
     }
   }
 
@@ -220,8 +224,10 @@ export function SecurityPage() {
       setMfaSetup((current) => ({ ...(current ?? {}), backup_codes: response.backup_codes ?? [] }))
       setMfaSetupVerified(true)
       setMessage(t.security.backupCodesRegenerated)
-    } catch {
-      setMfaDialogError(t.security.backupCodesRegenerationFailed)
+    } catch (caught) {
+      setMfaDialogError(authErrorMessage(caught, t.security.backupCodesRegenerationFailed, {
+        ACC_MFA_RECENT_AUTH_REQUIRED: t.security.mfaRecentAuthRequired,
+      }))
     }
   }
 
