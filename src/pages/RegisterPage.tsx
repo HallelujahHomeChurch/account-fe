@@ -60,8 +60,7 @@ export function RegisterPage() {
       await auth.api.register({
         email,
         password,
-        first_name: String(form.get('first_name') ?? ''),
-        last_name: String(form.get('last_name') ?? ''),
+        ...(capabilities.nicknameWriteEnabled ? { nickname: String(form.get('nickname') ?? '') } : { first_name: String(form.get('first_name') ?? ''), last_name: String(form.get('last_name') ?? '') }),
         newsletter_opt_in: form.has('newsletter_opt_in'),
         turnstile_token: turnstileToken || undefined,
         policy: policy?.enforced ? {
@@ -78,6 +77,8 @@ export function RegisterPage() {
     } catch (caught) {
       setError(authErrorMessage(caught, t.registration.failed, {
         ACC_REQUEST_INVALID: t.registration.invalidDetails,
+        ACC_PROFILE_NAME_CLIENT_UPDATE_REQUIRED: t.nickname.clientUpdate,
+        ACC_PROFILE_NAME_WRITES_PAUSED: t.nickname.paused,
       }))
     } finally {
       setIsSubmitting(false)
@@ -107,7 +108,14 @@ export function RegisterPage() {
             providerIds={capabilities?.providers ?? null}
           />
           <Form className="form-stack" onSubmit={submit}>
-            <div className="auth-name-fields">
+            {capabilities?.nicknameWriteEnabled ? (
+              <TextField isRequired name="nickname">
+                <Label>{t.nickname.label}</Label>
+                <Input autoComplete="nickname" />
+                <p>{t.nickname.hint}</p>
+                <FieldError />
+              </TextField>
+            ) : (<div className="auth-name-fields">
               <TextField isRequired name="first_name">
                 <Label>{t.registration.firstName}</Label>
                 <Input autoComplete="given-name" />
@@ -118,7 +126,7 @@ export function RegisterPage() {
                 <Input autoComplete="family-name" />
                 <FieldError />
               </TextField>
-            </div>
+            </div>)}
             <TextField isRequired name="email" type="email" validate={(value) => validateEmail(value, t.validation.invalidEmail)}>
               <Label>{t.registration.email}</Label>
               <Input autoComplete="email" />

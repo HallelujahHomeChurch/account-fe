@@ -128,14 +128,16 @@ describe('ProfilePage', () => {
     expect(screen.getByRole('button', { name: 'Dark' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('updates names without sending the legacy avatar URL', async () => {
+  it('updates nickname without sending the legacy avatar URL', async () => {
     let updateBody: unknown
     const api: AuthApi = {
+      getAuthCapabilities: async () => ({ providers: [], registrationEnabled: true, nicknameWriteEnabled: true }),
       login: async () => ({ access_token: 'token' }),
       refreshAccessToken: async () => 'token',
       me: async () => ({
         id: 'u1',
         email: 'ray@example.com',
+        nickname: 'Ray Self',
         first_name: 'Ray',
         last_name: 'Self',
         avatar_url: 'https://cdn.example.com/ray.png',
@@ -161,16 +163,15 @@ describe('ProfilePage', () => {
     expect(await screen.findByText('Ray Self')).toBeInTheDocument()
     expect(screen.queryByLabelText('Avatar URL')).not.toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('button', { name: /edit name/i }))
+    await userEvent.click(screen.getByRole('button', { name: /edit nickname/i }))
 
-    const firstName = await screen.findByLabelText('First name')
+    const firstName = await screen.findByLabelText('Nickname')
     await userEvent.clear(firstName)
     await userEvent.type(firstName, 'Raymond')
     await userEvent.click(screen.getByRole('button', { name: /save changes/i }))
 
     expect(updateBody).toEqual({
-      first_name: 'Raymond',
-      last_name: 'Self',
+      nickname: 'Raymond',
     })
   })
 

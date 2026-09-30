@@ -613,12 +613,13 @@ describe('AccountApi', () => {
   it('reads public registration capability', async () => {
 	const api = new AccountApi({
 	  baseUrl: '/api/account/v1',
-	  fetcher: async () => jsonResponse({ providers: ['google'], registration_enabled: true }),
+	  fetcher: async () => jsonResponse({ providers: ['google'], registration_enabled: true, nickname_write_enabled: true }),
 	})
 
 	await expect(api.getAuthCapabilities()).resolves.toEqual({
 	  providers: ['google'],
 	  registrationEnabled: true,
+	  nicknameWriteEnabled: true,
 	})
   })
 

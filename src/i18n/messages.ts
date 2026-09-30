@@ -161,8 +161,17 @@ const dataRequestMessages = {
   },
 } as const
 
+const nicknameMessages = {
+  "zh-Hant": { label: "暱稱", edit: "編輯暱稱", hint: "用於帳號顯示，不作為真實姓名或匿名保證。", clientUpdate: "頁面已更新，請重新載入後再修改暱稱。", paused: "目前暫停修改名稱，請稍後重試。" },
+  "zh-Hans": { label: "昵称", edit: "编辑昵称", hint: "用于账号显示，不作为真实姓名或匿名保证。", clientUpdate: "页面已更新，请重新加载后再修改昵称。", paused: "目前暂停修改名称，请稍后重试。" },
+  "en": { label: "Nickname", edit: "Edit nickname", hint: "Used to display your account; it is not your legal name or a guarantee of anonymity.", clientUpdate: "This page has changed. Reload before editing your nickname.", paused: "Name updates are temporarily paused. Please try again shortly." },
+  "ja": { label: "ニックネーム", edit: "ニックネームを編集", hint: "アカウントの表示名です。本名や匿名性を保証するものではありません。", clientUpdate: "ページが更新されました。再読み込みしてから編集してください。", paused: "名前の更新を一時停止しています。しばらくしてから再試行してください。" },
+  "ko": { label: "닉네임", edit: "닉네임 수정", hint: "계정 표시 이름이며 실명이나 익명성을 보장하지 않아요.", clientUpdate: "페이지가 변경되었어요. 새로고침한 뒤 수정해 주세요.", paused: "이름 수정을 잠시 중단했어요. 잠시 후 다시 시도해 주세요." },
+} as const
+
 const messageCatalog = {
   'zh-Hant': {
+    nickname: nicknameMessages['zh-Hant'],
     site: {
       accountName: 'HHC 帳戶',
       pageTitle: '帳戶 | 哈利路亞家教會',
@@ -343,7 +352,7 @@ const messageCatalog = {
     },
     profile: {
       loading: '載入帳號中...',
-      fallbackName: '帳號資料',
+      fallbackName: '會員',
       signInPrompt: '登入以管理您的帳號資料。',
       personalDetails: '個人資訊',
       avatar: '頭像',
@@ -462,6 +471,7 @@ const messageCatalog = {
     },
   },
   'zh-Hans': {
+    nickname: nicknameMessages['zh-Hans'],
     site: {
       accountName: 'HHC 帐户',
       pageTitle: '帐户 | 哈利路亚家教会',
@@ -642,7 +652,7 @@ const messageCatalog = {
     },
     profile: {
       loading: '正在加载帐号...',
-      fallbackName: '帐号资料',
+      fallbackName: '会员',
       signInPrompt: '登录以管理您的帐号资料。',
       personalDetails: '个人信息',
       avatar: '头像',
@@ -761,6 +771,7 @@ const messageCatalog = {
     },
   },
   en: {
+    nickname: nicknameMessages['en'],
     site: {
       accountName: 'HHC Account',
       pageTitle: 'Account | Hallelujah Home Church',
@@ -941,7 +952,7 @@ const messageCatalog = {
     },
     profile: {
       loading: 'Loading account...',
-      fallbackName: 'Account profile',
+      fallbackName: 'Member',
       signInPrompt: 'Sign in to manage your account profile.',
       personalDetails: 'Personal details',
       avatar: 'Avatar',
@@ -1060,6 +1071,7 @@ const messageCatalog = {
     },
   },
   ja: {
+    nickname: nicknameMessages['ja'],
     site: {
       accountName: 'HHCアカウント',
       pageTitle: 'アカウント | ハレルヤ家の教会',
@@ -1240,7 +1252,7 @@ const messageCatalog = {
     },
     profile: {
       loading: 'アカウントを読み込んでいます...',
-      fallbackName: 'アカウント情報',
+      fallbackName: 'メンバー',
       signInPrompt: 'ログインしてアカウント情報を管理してください。',
       personalDetails: '個人情報',
       avatar: 'プロフィール画像',
@@ -1359,6 +1371,7 @@ const messageCatalog = {
     },
   },
   ko: {
+    nickname: nicknameMessages['ko'],
     site: {
       accountName: 'HHC 계정',
       pageTitle: '계정 | 할렐루야 가정교회',
@@ -1539,7 +1552,7 @@ const messageCatalog = {
     },
     profile: {
       loading: '계정을 불러오는 중이에요...',
-      fallbackName: '계정 정보',
+      fallbackName: '회원',
       signInPrompt: '로그인하여 계정 정보를 관리해 주세요.',
       personalDetails: '개인 정보',
       avatar: '프로필 사진',

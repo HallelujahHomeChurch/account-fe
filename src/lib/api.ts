@@ -65,6 +65,7 @@ export type PolicyAcceptance = {
 export type AuthCapabilities = {
   providers: string[]
   registrationEnabled: boolean
+  nicknameWriteEnabled?: boolean
   policy?: PolicyCapabilities
   dsr?: { enabled: boolean }
 }
@@ -130,9 +131,12 @@ export type OAuthOnboardingStatus = {
   requires_link_confirmation?: boolean
 }
 
+export type AccountNameUpdate = { nickname: string; first_name?: never; last_name?: never } | { first_name: string; last_name: string; nickname?: never }
+
 export type Profile = {
   id: string
   email: string
+  nickname?: string
   first_name?: string
   last_name?: string
   avatar_url?: string
@@ -294,7 +298,7 @@ export class AccountApi {
     return this.request<Profile>('/me')
   }
 
-  updateProfile(body: { first_name: string; last_name: string }) {
+  updateProfile(body: AccountNameUpdate) {
     return this.request<{ message?: string }>('/profile', { method: 'PUT', body })
   }
 
@@ -320,7 +324,7 @@ export class AccountApi {
     })
   }
 
-  register(body: { email: string; password: string; first_name: string; last_name: string; newsletter_opt_in: boolean; turnstile_token?: string; policy?: PolicyAcceptance }) {
+  register(body: AccountNameUpdate & { email: string; password: string; newsletter_opt_in: boolean; turnstile_token?: string; policy?: PolicyAcceptance }) {
     return this.request<{ message?: string }>('/register', {
       method: 'POST',
       auth: false,
@@ -547,13 +551,14 @@ export class AccountApi {
   }
 
   async getAuthCapabilities(): Promise<AuthCapabilities> {
-    const response = await this.request<{ providers?: string[]; registration_enabled?: boolean; policy?: PolicyCapabilities; dsr?: { enabled: boolean } }>(
+    const response = await this.request<{ providers?: string[]; registration_enabled?: boolean; nickname_write_enabled?: boolean; policy?: PolicyCapabilities; dsr?: { enabled: boolean } }>(
       '/oauth-providers',
       { auth: false },
     )
     return {
       providers: response.providers ?? [],
       registrationEnabled: response.registration_enabled === true,
+      nicknameWriteEnabled: response.nickname_write_enabled === true,
       policy: response.policy,
       dsr: response.dsr,
     }

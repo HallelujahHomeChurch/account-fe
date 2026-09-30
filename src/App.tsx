@@ -205,7 +205,7 @@ function LayoutContent() {
             </Link>
             <AccountMenu
               labels={{
-                greeting: `Hi ${accountGreetingName(auth.profile)}`,
+                greeting: `Hi ${accountGreetingName(auth.profile, t.profile.fallbackName)}`,
                 menu: t.nav.accountMenu,
                 signOut: t.nav.signOut,
               }}
@@ -219,7 +219,7 @@ function LayoutContent() {
               user={{
                 avatarUrl: auth.profile.avatar_url,
                 email: auth.profile.email,
-                name: accountGreetingName(auth.profile),
+                name: accountGreetingName(auth.profile, t.profile.fallbackName),
               }}
               onSignOut={() => void auth.logout()}
             />
