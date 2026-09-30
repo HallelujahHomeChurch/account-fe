@@ -108,6 +108,7 @@ export type DSRRequest = {
   status: DSRRequestStatus
   identity_verified_at: string
   approved_at?: string
+  decision_public_response?: string
   rejected_reason_code?: string
   export_expires_at?: string
   submitted_at: string

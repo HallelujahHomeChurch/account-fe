@@ -314,3 +314,10 @@ it('keeps legacy receipt and deadlines pending review even when processing has s
  expect(await screen.findByText('Decision deadline needs verification')).toBeInTheDocument()
  expect(screen.queryByText('Decision recorded at')).not.toBeInTheDocument()
 })
+
+it('renders the recorded public refusal as text without inventing a legacy reason', async () => {
+ renderPage({ listDSRRequests: async () => [{ ...baseRequest, status: 'rejected', decision_public_response: '<script>Specific public reason</script> Contact support for the next step.' }, { ...baseRequest, id: 'legacy-refusal', status: 'rejected' }] })
+ expect(await screen.findByText('<script>Specific public reason</script> Contact support for the next step.')).toBeInTheDocument()
+ expect(document.querySelector('script')).toBeNull()
+ expect(screen.getByText(/public reason for this legacy refusal needs verification/)).toHaveTextContent('support@alive.org.tw')
+})
