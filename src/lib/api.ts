@@ -1,5 +1,9 @@
 import {
   AccountSessionError,
+  createAccountLegalClient,
+  isLegalSnapshot,
+  type LegalLocale,
+  type LegalSnapshot,
   createAccountSessionClient,
   createRefreshCoordinator,
   exchangeAuthorizationCode,
@@ -50,12 +54,14 @@ export type AuthRequestStatus = {
 }
 
 export type PolicyCapabilities = {
+  snapshot_enforced?: boolean
   enforced: boolean
   terms_version: string
   privacy_notice_version: string
 }
 
 export type PolicyAcceptance = {
+  snapshot_id?: string
   accepted: true
   terms_version: string
   privacy_notice_version: string
@@ -94,6 +100,7 @@ export type DSRPublicEvent = { action: string; case_version: number; created_at:
 export type DSRRequest = {
   public_history?: DSRPublicEvent[]
   public_history_has_more?: boolean
+  public_history_next_cursor?: string
   received_at?: string
   received_source?: 'unknown' | 'portal' | 'email' | 'offline'
   decision_at?: string
@@ -202,6 +209,7 @@ type RequestOptions = {
   auth?: boolean
   retry?: boolean
   csrfRetry?: boolean
+  cache?: RequestCache
 }
 
 const csrfTokenRequests = new Map<string, Promise<string>>()
@@ -228,6 +236,7 @@ export class AccountApi {
   private readonly setAccessToken?: (token: string | null) => void
   private readonly refreshAfterUnauthorized?: (rejectedToken: string) => Promise<string | null>
   private csrfToken: string | null = null
+  readonly legal = createAccountLegalClient((path, options) => this.request<unknown>(path, { ...options, cache: 'no-store' }))
 
   constructor(options: AccountApiOptions) {
     this.baseUrl = options.baseUrl.replace(/\/$/, '')
@@ -292,6 +301,18 @@ export class AccountApi {
       }),
     )
     return token
+  }
+
+  async getCommonLegalSnapshot(locale: LegalLocale): Promise<LegalSnapshot> {
+    const origin = this.baseUrl.replace(/\/account\/v1$/, '')
+    const response = await this.fetcher(`${origin}/legal/common?locale=${locale}`, { cache: 'no-store', credentials: 'omit' })
+    if (!response.ok) throw new ApiError(response.status, 'Legal documents unavailable')
+    const value: unknown = await response.json()
+    const snapshot = value && typeof value === 'object' && 'data' in value ? value.data : undefined
+    if (!isLegalSnapshot(snapshot) || snapshot.manifest.scope !== 'common' || snapshot.manifest.locale !== locale) {
+      throw new ApiError(503, 'Legal documents unavailable')
+    }
+    return snapshot
   }
 
   me() {
@@ -395,6 +416,12 @@ export class AccountApi {
 
   async listDSRRequests() {
     return (await this.request<{ requests: DSRRequest[] }>('/dsr/requests')).requests
+  }
+
+  listDSRPublicHistory(requestId: string, version: number, before?: string) {
+    const query = new URLSearchParams({ case_version: String(version) })
+    if (before) query.set('before', before)
+    return this.request<{ events: DSRPublicEvent[]; case_version: number; next_cursor?: string }>(`/dsr/requests/${encodeURIComponent(requestId)}/history?${query}`)
   }
 
   getDSRRequest(requestId: string) {
@@ -592,6 +619,7 @@ export class AccountApi {
     const response = await this.fetcher(`${this.baseUrl}${path}`, {
       method,
       credentials: 'include',
+      ...(options.cache ? { cache: options.cache } : {}),
       headers,
       body: requestBody,
     })

@@ -7,6 +7,7 @@ import { Link, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 
 import { useAuth } from './auth/auth-context'
 import { consumePostLoginReturnTo, hasPostLoginReturnTo, isAuthRoutePath, loginPath } from './auth/auth-routes'
 import { useLocale } from './i18n/locale-context'
+import { legalReviewLabels } from './i18n/legal-messages'
 import { accountGreetingName } from './lib/account-display'
 import { hasLineLinkAutoContinue } from './lib/line-link-intent'
 import { readRuntimeConfig } from './lib/redirects'
@@ -16,6 +17,8 @@ import { LineBindingPage } from './pages/LineBindingPage'
 import { OAuthCallbackPage } from './pages/OAuthCallbackPage'
 import { OAuthLinkPage } from './pages/OAuthLinkPage'
 import { OAuthOnboardingPage } from './pages/OAuthOnboardingPage'
+import { AnalyticsBoundary } from './components/AnalyticsBoundary'
+import { LegalReviewPage } from './pages/LegalReviewPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { RegisterPage } from './pages/RegisterPage'
@@ -39,8 +42,14 @@ import { OrganizationUnitPage } from './pages/organizations/OrganizationUnitPage
 
 function LayoutContent() {
   const auth = useAuth()
+  const navigate = useNavigate()
   const { locale, messages: t } = useLocale()
   const location = useLocation()
+  useEffect(() => {
+    const required = () => { if (location.pathname === '/resources' || location.pathname.startsWith('/resources/')) navigate(`/legal?return_to=${encodeURIComponent(location.pathname)}`) }
+    window.addEventListener('hhc:legal-required', required)
+    return () => window.removeEventListener('hhc:legal-required', required)
+  }, [location.pathname, navigate])
   const isAuthRoute = isAuthRoutePath(location.pathname)
   const isResourceRoute = location.pathname === '/resources' || location.pathname.startsWith('/resources/')
   const publicSiteUrl = readRuntimeConfig().publicSiteUrl
@@ -262,6 +271,7 @@ function LayoutContent() {
               {t.nav.terms}
             </a>
           </div>
+          <Link className="muted-link" to="/legal">{legalReviewLabels[locale].history}</Link>
         </aside>
         <div className="account-content">
           <LineBrowserNotice />
@@ -271,6 +281,7 @@ function LayoutContent() {
             </p> : null}
             {hasPostLoginReturnTo() ? <PostLoginContinuation /> : <Routes>
               <Route element={<ProfilePage />} path="/profile" />
+              <Route element={<LegalReviewPage key={`${auth.profile.id}:${locale}`} />} path="/legal" />
               <Route element={<SecurityPage />} path="/security" />
               <Route element={<DevicesPage />} path="/devices" />
               <Route element={<NotificationsPage />} path="/notifications" />
@@ -315,7 +326,7 @@ export default function Layout() {
   const { messages: t } = useLocale()
   return (
     <ToastProvider dismissLabel={t.site.dismissNotification} regionLabel={t.site.notifications}>
-      <LayoutContent />
+      <AnalyticsBoundary><LayoutContent /></AnalyticsBoundary>
     </ToastProvider>
   )
 }

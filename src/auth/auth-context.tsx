@@ -1,3 +1,4 @@
+import { markLoginCompleted } from '../lib/analytics-events'
 /* oxlint-disable react/only-export-components */
 import {
   createOAuthTransaction,
@@ -289,6 +290,7 @@ export function AuthProvider({
       bootstrapError: null,
       logoutError: null,
     })
+    markLoginCompleted()
     clearAccountOAuthTransaction()
     return transaction.returnTo
   }, [api, commitState, config, setTokenRef])
@@ -345,6 +347,7 @@ export function AuthProvider({
             bootstrapError: null,
             logoutError: null,
           })
+          markLoginCompleted()
         } else {
           setTokenRef(stateRef.current.accessToken)
         }

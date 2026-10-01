@@ -196,6 +196,13 @@ export class MockAccountApi {
 
   async listDSRRequests() { return this.dsrRequests }
 
+  async listDSRPublicHistory(requestId: string, version: number, before?: string) {
+    const request = await this.getDSRRequest(requestId)
+    if (request.version !== version) throw new ApiError(409, 'Request changed', 'ACC_DSR_CONFLICT')
+    if (before) throw new ApiError(404, 'No retained mock cursor', 'ACC_DSR_NOT_FOUND')
+    return { events: request.public_history ?? [], case_version: version }
+  }
+
   async getDSRRequest(requestId: string) {
     const request = this.dsrRequests.find(({ id }) => id === requestId)
     if (!request) throw new ApiError(404, 'Request not found.', 'ACC_DSR_NOT_FOUND')

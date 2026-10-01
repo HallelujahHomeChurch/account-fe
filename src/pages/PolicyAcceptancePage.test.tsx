@@ -70,3 +70,18 @@ it('consumes a social callback continuation after policy acceptance', async () =
   expect(await screen.findByRole('heading', { name: 'Data requests restored' })).toBeInTheDocument()
   expect(sessionStorage.getItem('hhc_account_post_login_return_to')).toBeNull()
 })
+
+it('requires the reviewed published snapshot before allowing confirmation', async () => {
+ document.cookie='hhc_locale=en; Path=/'
+ window.history.replaceState(null,'','/policy/acceptance#token=review-token')
+ const legalDocument={schemaVersion:1 as const,template:'legal.v1' as const,data:{heroTitle:'Published document',updatedAtLabel:'Updated',updatedAt:'2026-10-01',intro:'Published introduction',sections:[{title:'Section',body:['Published body']}]}}
+ const snapshot={snapshotId:'018f0c1f-18d0-7e81-9f6f-69c456db7001',manifest:{scope:'common' as const,locale:'en' as const,termsVersion:'terms-v1',privacyNoticeVersion:'privacy-v1',termsSHA256:'a'.repeat(64),privacySHA256:'b'.repeat(64)},documents:{terms:legalDocument,privacy:legalDocument}}
+ const confirm=vi.fn().mockResolvedValue({})
+ const api:AuthApi={login:async()=>({}),me:async()=>({id:'u1',email:'user@example.com'}),refreshAccessToken:async()=>null,logout:async()=>({}),confirmPolicyAcceptance:confirm,getCommonLegalSnapshot:async()=>snapshot,getAuthCapabilities:async()=>({providers:[],registrationEnabled:false,policy:{enforced:true,snapshot_enforced:true,terms_version:'terms-v1',privacy_notice_version:'privacy-v1'}})}
+ render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><PolicyAcceptancePage/></AuthProvider></LocaleProvider></MemoryRouter>)
+ await screen.findAllByText('Published body')
+ const checkbox=await screen.findByRole('checkbox')
+ await userEvent.click(checkbox)
+ await userEvent.click(screen.getByRole('button',{name:'Continue'}))
+ expect(confirm).toHaveBeenCalledWith('review-token',expect.objectContaining({snapshot_id:snapshot.snapshotId,locale:'en'}))
+})

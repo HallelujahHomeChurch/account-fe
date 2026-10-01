@@ -754,3 +754,11 @@ describe('AccountApi', () => {
     expect(calls.slice(-2).every((call) => new Headers(call.init?.headers).get('x-csrf-token') === 'csrf-shared')).toBe(true)
   })
 })
+
+it('uses a read-only case-version-bound public history URL', async () => {
+ const fetcher=vi.fn().mockResolvedValue(jsonResponse({events:[],case_version:2}))
+ const api=new AccountApi({baseUrl:'/api/account/v1',fetcher})
+ await expect(api.listDSRPublicHistory('case/id',2,'cursor?')).resolves.toEqual({events:[],case_version:2})
+ expect(String(fetcher.mock.calls[0][0])).toBe('/api/account/v1/dsr/requests/case%2Fid/history?case_version=2&before=cursor%3F')
+ expect(fetcher.mock.calls[0][1]?.method??'GET').toBe('GET')
+})
