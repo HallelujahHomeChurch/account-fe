@@ -86,7 +86,7 @@ export type DSROwner = 'account' | 'engagement' | 'notification' | 'asset' | 'we
 
 export type DSRExecution = {
   owner: DSROwner
-  action: 'export' | 'correct' | 'restrict_processing' | 'erase'
+  action: 'export' | 'correct' | 'restrict_processing' | 'erase' | 'withdraw_restriction'
   status: DSRExecutionStatus
   attempt_count: number
   result_summary: { record_count?: number; checksum?: string; reason_codes?: string[]; review_scope?: string; public_response?: string; supplement?: string }
