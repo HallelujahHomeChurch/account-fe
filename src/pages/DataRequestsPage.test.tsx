@@ -363,3 +363,17 @@ it('preserves loaded history on version conflict and refreshes before continuing
  expect(screen.queryByText('previous question')).not.toBeInTheDocument()
  expect(listDSRPublicHistory).toHaveBeenCalledTimes(1)
 })
+
+it('separates a queued withdrawal from the completed original restriction',async()=>{
+ const request:DSRRequest={...baseRequest,request_type:'restrict_processing',status:'completed',plan_version:1,scope_targets:['membership'],executions:[{owner:'operations',action:'withdraw_restriction',status:'pending',attempt_count:0,result_summary:{}},{owner:'operations',action:'restrict_processing',status:'succeeded',attempt_count:1,result_summary:{}}]}
+ renderPage({listDSRRequests:async()=>[request]})
+ expect(await screen.findByRole('heading',{name:'Restriction withdrawal'})).toBeInTheDocument()
+ expect(screen.getByText('The original restriction remains recorded. Withdrawal does not restore membership, roles, subscriptions or deleted data.')).toBeInTheDocument()
+})
+
+it('does not infer a cleared fence from an unknown withdrawal receipt',async()=>{
+ const request:DSRRequest={...baseRequest,status:'completed',executions:[{owner:'operations',action:'withdraw_restriction',status:'succeeded',attempt_count:1,result_summary:{reason_codes:['DSR_UNKNOWN']}}]}
+ renderPage({listDSRRequests:async()=>[request]})
+ await screen.findByRole('heading',{name:'Restriction withdrawal'})
+ expect(screen.queryByText('This request’s restriction was withdrawn; no other verified restriction remained at execution.')).not.toBeInTheDocument()
+})
