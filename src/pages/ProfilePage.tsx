@@ -1,5 +1,5 @@
 import { markProfileSaved } from '../lib/analytics-events'
-import { Button, Card, Form, Input, Label, Modal, Skeleton, TextField } from '@hallelujahhomechurch/ui'
+import { Button, Card, FieldError, Form, Input, Label, Modal, Skeleton, TextField } from '@hallelujahhomechurch/ui'
 import { useEffect, useState, type FormEvent } from 'react'
 
 import { useAuth } from '../auth/auth-context'
@@ -7,10 +7,14 @@ import { ProfileAvatarEditor } from '../components/ProfileAvatarEditor'
 import { LanguageSelector } from '../components/LanguageSelector'
 import { ThemeSelector } from '../components/ThemeSelector'
 import { useLocale } from '../i18n/locale-context'
+import { useAuthCapabilitiesState } from '../components/SocialAuthOptions'
+import { authErrorMessage } from '../auth/auth-form'
 import { displayAccountName } from '../lib/account-display'
 
 export function ProfilePage() {
   const auth = useAuth()
+  const { capabilities, error: capabilityError, retry: retryCapabilities } = useAuthCapabilitiesState()
+  const nicknameEnabled = capabilities?.nicknameWriteEnabled === true
   const { messages: t } = useLocale()
   const [isNameDialogOpen, setNameDialogOpen] = useState(false)
   const [nameDialogError, setNameDialogError] = useState('')
@@ -35,15 +39,14 @@ export function ProfilePage() {
 
     try {
       await auth.api.updateProfile({
-        first_name: String(form.get('first_name') ?? ''),
-        last_name: String(form.get('last_name') ?? ''),
+        ...(nicknameEnabled ? { nickname: String(form.get('nickname') ?? '') } : { first_name: String(form.get('first_name') ?? ''), last_name: String(form.get('last_name') ?? '') }),
       })
       markProfileSaved()
       await auth.refreshProfile()
       setMessage(t.profile.updated)
       setNameDialogOpen(false)
-    } catch {
-      setNameDialogError(t.profile.updateFailed)
+    } catch (caught) {
+      setNameDialogError(authErrorMessage(caught, t.profile.updateFailed, { ACC_PROFILE_NAME_CLIENT_UPDATE_REQUIRED: t.nickname.clientUpdate, ACC_PROFILE_NAME_WRITES_PAUSED: t.nickname.paused }))
     }
   }
 
@@ -59,6 +62,7 @@ export function ProfilePage() {
 
       {message ? <p className="form-notice" role="status">{message}</p> : null}
       {error ? <p className="form-error" role="alert">{error}</p> : null}
+      {capabilityError ? <div role="alert"><p>{t.profile.updateFailed}</p><Button onPress={retryCapabilities}>{t.legalAcceptance.retry}</Button></div> : null}
 
       <Card className="panel-card settings-card">
         <Card.Header>
@@ -73,11 +77,11 @@ export function ProfilePage() {
           </div>
           <div className="settings-row">
             <div className="settings-row-copy">
-              <span className="settings-row-label">{t.profile.name}</span>
+              <span className="settings-row-label">{t.nickname.label}</span>
               <strong>{name}</strong>
             </div>
-            <Button variant="secondary" onPress={() => setNameDialogOpen(true)}>
-              {t.profile.editName}
+            <Button variant="secondary" isDisabled={!capabilities} onPress={() => setNameDialogOpen(true)}>
+              {nicknameEnabled ? t.nickname.edit : t.profile.editName}
             </Button>
           </div>
           <div className="settings-row">
@@ -115,19 +119,26 @@ export function ProfilePage() {
           <Modal.Container placement="center">
             <Modal.Dialog>
               <Modal.Header>
-                <Modal.Heading>{t.profile.editName}</Modal.Heading>
+                <Modal.Heading>{nicknameEnabled ? t.nickname.edit : t.profile.editName}</Modal.Heading>
               </Modal.Header>
-              <Form key={profile.id} onSubmit={submitName}>
+              <Form key={`${profile.id}-${nicknameEnabled}`} onSubmit={submitName}>
                 <Modal.Body>
                   {nameDialogError ? <p className="form-error" role="alert">{nameDialogError}</p> : null}
-                  <TextField defaultValue={profile.first_name ?? ''} name="first_name">
+                  {nicknameEnabled ? (
+                    <TextField isRequired defaultValue={profile.nickname ?? ''} name="nickname">
+                      <Label>{t.nickname.label}</Label>
+                      <Input autoComplete="nickname" />
+                      <p>{t.nickname.hint}</p>
+                      <FieldError />
+                    </TextField>
+                  ) : (<><TextField defaultValue={profile.first_name ?? ''} name="first_name">
                     <Label>{t.profile.firstName}</Label>
                     <Input autoComplete="given-name" />
                   </TextField>
                   <TextField defaultValue={profile.last_name ?? ''} name="last_name">
                     <Label>{t.profile.lastName}</Label>
                     <Input autoComplete="family-name" />
-                  </TextField>
+                  </TextField></>)}
                 </Modal.Body>
                 <Modal.Footer>
                   <Button variant="ghost" onPress={() => setNameDialogOpen(false)}>

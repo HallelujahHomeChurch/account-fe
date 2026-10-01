@@ -7,6 +7,27 @@ import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
 import { RegisterPage } from './RegisterPage'
 
+it('registers with one nickname when the backend enables nickname writes', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  const register = vi.fn(async (_body: unknown) => ({}))
+  const api: AuthApi = {
+    login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
+    refreshAccessToken: async () => null, logout: async () => ({}), register,
+    getAuthCapabilities: async () => ({ providers: [], registrationEnabled: true, nicknameWriteEnabled: true, policy: { enforced: false, terms_version: '', privacy_notice_version: '' } }),
+  }
+  render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><RegisterPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+  await userEvent.type(await screen.findByLabelText('Nickname'), 'Chosen alias')
+  expect(screen.queryByLabelText('First name')).not.toBeInTheDocument()
+  expect(screen.queryByLabelText('Last name')).not.toBeInTheDocument()
+  for (const [label, value] of [['Email', 'user@example.com'], ['Password', 'Password1!'], ['Confirm password', 'Password1!']]) {
+    await userEvent.type(screen.getByLabelText(label), value)
+  }
+  await userEvent.click(screen.getByRole('button', { name: 'Create account' }))
+  expect(register).toHaveBeenCalledWith(expect.objectContaining({ nickname: 'Chosen alias' }))
+  expect(register.mock.calls[0][0]).not.toHaveProperty('first_name')
+  expect(register.mock.calls[0][0]).not.toHaveProperty('last_name')
+})
+
 it('does not add a second Privacy Notice outside policy acceptance', async () => {
   document.cookie = 'hhc_locale=en; Path=/'
   const api: AuthApi = {

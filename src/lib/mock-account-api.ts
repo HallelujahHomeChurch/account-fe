@@ -1,4 +1,4 @@
-import { ApiError, type Device, type DSRRequest, type DSRRequestType, type LineBindingSummary, type LinkedAccount, type MfaSetup, type Profile } from './api'
+import { ApiError, type AccountNameUpdate, type Device, type DSRRequest, type DSRRequestType, type LineBindingSummary, type LinkedAccount, type MfaSetup, type Profile } from './api'
 
 const token = 'mock-access-token'
 const lineConfirmationNonce = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
@@ -9,6 +9,7 @@ export class MockAccountApi {
   private profile: Profile = {
     id: 'mock-admin',
     email: 'admin',
+    nickname: 'Mock Admin',
     first_name: 'Mock',
     last_name: 'Admin',
     avatar_url: '',
@@ -95,7 +96,7 @@ export class MockAccountApi {
     return this.profile
   }
 
-  async updateProfile(body: { first_name: string; last_name: string }) {
+  async updateProfile(body: AccountNameUpdate) {
     this.profile = { ...this.profile, ...body }
     return { message: 'Profile updated.' }
   }
@@ -315,7 +316,7 @@ export class MockAccountApi {
 
   async getAuthCapabilities() {
     return {
-      providers: ['google', 'line', 'microsoft'], registrationEnabled: true,
+      providers: ['google', 'line', 'microsoft'], registrationEnabled: true, nicknameWriteEnabled: true,
       policy: { enforced: false, terms_version: '', privacy_notice_version: '' },
       dsr: { enabled: true },
     }
