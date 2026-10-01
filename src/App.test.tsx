@@ -521,7 +521,7 @@ describe('App layout', () => {
       'https://www.alive.org.tw/zh-Hant/privacy-policy',
     )
     expect(screen.getByRole('link', { name: '隱私權' })).toHaveAttribute('target', '_blank')
-    expect(screen.getByRole('link', { name: '條款' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: '使用條款' })).toHaveAttribute(
       'href',
       'https://www.alive.org.tw/zh-Hant/terms-of-use',
     )

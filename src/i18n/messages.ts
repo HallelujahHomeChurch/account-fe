@@ -209,7 +209,7 @@ const messageCatalog = {
       openNavigation: '開啟導覽',
       closeNavigation: '關閉導覽',
       privacy: '隱私權',
-      terms: '條款',
+      terms: '使用條款',
     },
     notificationSettings: {
       loading: '正在載入通知設定', emailTitle: 'Email 通知', newsletter: '教會電子報',
@@ -509,7 +509,7 @@ const messageCatalog = {
       openNavigation: '打开导航',
       closeNavigation: '关闭导航',
       privacy: '隐私权',
-      terms: '条款',
+      terms: '使用条款',
     },
     notificationSettings: {
       loading: '正在载入通知设置', emailTitle: 'Email 通知', newsletter: '教会电子报',
@@ -809,7 +809,7 @@ const messageCatalog = {
       openNavigation: 'Open navigation',
       closeNavigation: 'Close navigation',
       privacy: 'Privacy',
-      terms: 'Terms',
+      terms: 'Terms of Use',
     },
     notificationSettings: {
       loading: 'Loading notification settings', emailTitle: 'Email notifications', newsletter: 'Email newsletter',

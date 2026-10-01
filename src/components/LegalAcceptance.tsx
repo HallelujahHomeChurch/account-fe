@@ -4,11 +4,12 @@ import { useLocale } from '../i18n/locale-context'
 import { readRuntimeConfig } from '../lib/redirects'
 
 type LegalAcceptanceProps = {
+  disabled?: boolean
   checked: boolean
   onChange: (checked: boolean) => void
 }
 
-export function LegalAcceptance({ checked, onChange }: LegalAcceptanceProps) {
+export function LegalAcceptance({ checked, onChange, disabled }: LegalAcceptanceProps) {
   const { locale, messages: t } = useLocale()
   const baseUrl = readRuntimeConfig().publicSiteUrl
   const inputId = useId()
@@ -24,6 +25,7 @@ export function LegalAcceptance({ checked, onChange }: LegalAcceptanceProps) {
       <input
         aria-label={accessibleLabel}
         checked={checked}
+        disabled={disabled}
         id={inputId}
         name="policy_accepted"
         onChange={(event) => onChange(event.currentTarget.checked)}

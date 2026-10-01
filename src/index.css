@@ -1774,6 +1774,12 @@ textarea::selection {
   border-radius: 10px; background: var(--color-paper-raised); color: var(--color-ink);
   padding: 12px; font: inherit;
 }
+
+.analytics-preferences {margin: 24px auto; padding: 16px; width: min(100% - 32px, 800px); border-top: 1px solid var(--color-border, #ddd); font-size: 14px;}
+.analytics-preferences summary {cursor: pointer;}
+.analytics-preferences button {min-height: 44px; padding: 8px 16px; border: 1px solid currentColor; border-radius: 6px; cursor: pointer;}
+.legal-documents {display: grid; gap: 32px; margin: 24px 0;}
+.legal-documents p {white-space: pre-line; line-height: 1.7;}
 .dsr-public-history p { white-space: pre-wrap; overflow-wrap: anywhere; }
 
 .member-details-fields { display: grid; gap: 1.25rem; padding: 0; margin: 0 0 1.5rem; border: 0; }
