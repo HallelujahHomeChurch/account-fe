@@ -314,3 +314,21 @@ it('keeps legacy receipt and deadlines pending review even when processing has s
  expect(await screen.findByText('Decision deadline needs verification')).toBeInTheDocument()
  expect(screen.queryByText('Decision recorded at')).not.toBeInTheDocument()
 })
+
+it('renders the recorded public refusal as text without inventing a legacy reason', async () => {
+ renderPage({ listDSRRequests: async () => [{ ...baseRequest, status: 'rejected', decision_public_response: '<script>Specific public reason</script> Contact support for the next step.' }, { ...baseRequest, id: 'legacy-refusal', status: 'rejected' }] })
+ expect(await screen.findByText('<script>Specific public reason</script> Contact support for the next step.')).toBeInTheDocument()
+ expect(document.querySelector('script')).toBeNull()
+ expect(screen.getByText(/public reason for this legacy refusal needs verification/)).toHaveTextContent('support@alive.org.tw')
+})
+
+it('renders multiple public information rounds as escaped read-only history', async () => {
+ renderPage({listDSRRequests: async () => [{...baseRequest, public_history_has_more: true, public_history: [
+ {action:'information_requested',case_version:2,created_at:'2026-09-03T00:00:00Z',public_message:'<script>question one</script>'},
+ {action:'information_supplied',case_version:3,created_at:'2026-09-03T01:00:00Z',public_supplement:{description:'reply one',current_value:'old value',requested_value:'new value'}}
+ ]}]})
+ expect(await screen.findByText('<script>question one</script>')).toBeInTheDocument()
+ expect(screen.getByText('reply one')).toBeInTheDocument()
+ expect(screen.getByText(/Showing the latest 20 conversation entries/)).toBeInTheDocument()
+ expect(document.querySelector('.dsr-public-history script')).toBeNull()
+})

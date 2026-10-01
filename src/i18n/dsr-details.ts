@@ -1,5 +1,9 @@
 export const dsrDetails = {
   'zh-Hant': {
+    earlierHistory: '顯示最近 20 筆問答；如需較早紀錄，請聯絡 support@alive.org.tw。',
+    publicHistory: '補件問答紀錄', question: '管理員要求補件', reply: '已送出的補充資料',
+    publicDecision: '公開決定與後續方式',
+    publicDecisionPending: '這筆舊申請的公開拒絕理由尚待核對。請聯絡 support@alive.org.tw 確認決定與下一步。',
     received: "實際收件時間", decision: "准駁紀錄時間", decisionDeadline: "准駁期限", decisionDeadlinePending: "准駁期限待核對", finished: "執行完成時間", notificationSeparate: "准駁紀錄不代表通知已送達。",
     restrictConfirm: "確認選定的限制", restrictAcknowledgement: "我了解選定限制的影響。",
     restrictions: { subscriptions: "電子報訂閱：停止電子報郵件；Web Push 保持啟用。", membership: "會員用途：撤銷認證會員資格、單位成員身分、角色及職責；解除限制不會自動恢復授權。", personalized_bulletins: "個人化週報：停止取得含個人浮水印的週報。", website_content: "網站內容：交由管理員釐清及處理所指定的內容。" },
@@ -9,6 +13,10 @@ export const dsrDetails = {
     conflict: '此請求已更新，請重新整理後再操作。', refresh: '重新整理', submitted: '申請時間',
   },
   'zh-Hans': {
+    earlierHistory: '显示最近 20 条问答；如需较早记录，请联系 support@alive.org.tw。',
+    publicHistory: '补件问答记录', question: '管理员要求补件', reply: '已送出的补充资料',
+    publicDecision: '公开决定与后续方式',
+    publicDecisionPending: '这笔旧申请的公开拒绝理由尚待核对。请联系 support@alive.org.tw 确认决定与下一步。',
     received: "实际收件时间", decision: "准驳记录时间", decisionDeadline: "准驳期限", decisionDeadlinePending: "准驳期限待核对", finished: "执行完成时间", notificationSeparate: "准驳记录不代表通知已送达。",
     restrictConfirm: "确认选定的限制", restrictAcknowledgement: "我了解选定限制的影响。",
     restrictions: { subscriptions: "电子报订阅：停止电子报邮件；Web Push 保持启用。", membership: "会员用途：撤销认证会员资格、单位成员身份、角色及职责；解除限制不会自动恢复授权。", personalized_bulletins: "个性化周报：停止获取含个人水印的周报。", website_content: "网站内容：由管理员厘清及处理所指定的内容。" },
@@ -18,6 +26,10 @@ export const dsrDetails = {
     conflict: '此请求已更新，请刷新后再操作。', refresh: '刷新', submitted: '申请时间',
   },
   en: {
+    earlierHistory: 'Showing the latest 20 conversation entries. Contact support@alive.org.tw for earlier records.',
+    publicHistory: 'Information conversation', question: 'Information requested', reply: 'Information supplied',
+    publicDecision: 'Decision and next steps',
+    publicDecisionPending: 'The public reason for this legacy refusal needs verification. Contact support@alive.org.tw to confirm the decision and next steps.',
     received: "Received at", decision: "Decision recorded at", decisionDeadline: "Decision deadline", decisionDeadlinePending: "Decision deadline needs verification", finished: "Processing completed at", notificationSeparate: "A recorded decision does not confirm notification delivery.",
     restrictConfirm: "Confirm selected restrictions", restrictAcknowledgement: "I understand the effects of the selected restrictions.",
     restrictions: { subscriptions: "Newsletter subscriptions: stop newsletter emails; Web Push stays active.", membership: "Membership: revoke verified membership, unit membership, roles and responsibilities; lifting restrictions does not restore authorization.", personalized_bulletins: "Personalized bulletins: stop access to bulletins with a personal watermark.", website_content: "Website content: an administrator will clarify and process the specified content." },
@@ -27,6 +39,10 @@ export const dsrDetails = {
     conflict: 'This request has changed. Refresh before trying again.', refresh: 'Refresh', submitted: 'Submitted at',
   },
   ja: {
+    earlierHistory: '最新20件のやり取りを表示しています。以前の記録は support@alive.org.tw にお問い合わせください。',
+    publicHistory: '追加情報のやり取り', question: '管理者からの追加情報の依頼', reply: '送信した追加情報',
+    publicDecision: '判断結果と次の手順',
+    publicDecisionPending: 'この過去の拒否理由は確認が必要です。判断結果と次の手順について support@alive.org.tw にお問い合わせください。',
     received: "受領日時", decision: "判断記録日時", decisionDeadline: "判断期限", decisionDeadlinePending: "判断期限の確認が必要です", finished: "処理完了日時", notificationSeparate: "判断の記録は通知の配信確認ではありません。",
     restrictConfirm: '選択した制限を確認', restrictAcknowledgement: '選択した制限の影響を理解しました。',
     restrictions: { subscriptions: 'ニュースレター：メール配信を停止します。Web Push は有効のままです。', membership: '会員用途：認証会員資格、所属、役割と責任を取り消します。制限解除で権限は自動復元されません。', personalized_bulletins: '個人用週報：個人透かし付き週報へのアクセスを停止します。', website_content: 'サイトの内容：管理者が指定内容を確認して処理します。' },
@@ -36,6 +52,10 @@ export const dsrDetails = {
     conflict: 'リクエストが更新されました。再読み込みしてから操作してください。', refresh: '再読み込み', submitted: '申請日時',
   },
   ko: {
+    earlierHistory: '최근 대화 20개를 표시합니다. 이전 기록은 support@alive.org.tw에 문의하세요.',
+    publicHistory: '보완 자료 대화 기록', question: '관리자의 보완 요청', reply: '제출한 보완 자료',
+    publicDecision: '결정 및 다음 단계',
+    publicDecisionPending: '이 과거 거절의 공개 사유는 확인이 필요합니다. 결정과 다음 단계는 support@alive.org.tw 에 문의하세요.',
     received: "접수 시간", decision: "결정 기록 시간", decisionDeadline: "결정 기한", decisionDeadlinePending: "결정 기한 확인 필요", finished: "처리 완료 시간", notificationSeparate: "결정 기록은 알림 전달 확인을 의미하지 않습니다.",
     restrictConfirm: '선택한 제한 확인', restrictAcknowledgement: '선택한 제한의 영향을 이해합니다.',
     restrictions: { subscriptions: '뉴스레터: 이메일 발송을 중단합니다. Web Push는 유지됩니다.', membership: '회원 용도: 인증 회원 자격, 소속, 역할 및 책임을 취소합니다. 제한 해제 시 권한은 자동 복원되지 않습니다.', personalized_bulletins: '개인화 주보: 개인 워터마크가 있는 주보 접근을 중단합니다.', website_content: '웹사이트 콘텐츠: 관리자가 지정 콘텐츠를 확인하고 처리합니다.' },

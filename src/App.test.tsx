@@ -37,7 +37,7 @@ afterEach(() => {
 })
 
 describe('App layout', () => {
-  it('shows the statement below the signed-in profile header only', async () => {
+  it('keeps the statement below the shared header when navigating account pages', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ data: {
       serverNow: '2026-09-29T02:00:00Z', nextChangeAt: null,
       statement: { id: 'current', title: '正式聲明', body: '聲明內文', resolvedLocale: 'zh-Hant', href: '/zh-Hant/statements/current', popupStartsAt: '2026-09-28T00:00:00Z', popupEndsAt: '2026-10-01T00:00:00Z' },
@@ -45,8 +45,25 @@ describe('App layout', () => {
     render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={signedInApi}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
 
     expect(await screen.findByRole('link', { name: /正式聲明/ })).toHaveAttribute('href', 'https://www.alive.org.tw/zh-Hant/statements/current')
-    await userEvent.click(screen.getByRole('link', { name: 'Security' }))
-    expect(screen.queryByRole('link', { name: /正式聲明/ })).not.toBeInTheDocument()
+    const dialog = await screen.findByRole('dialog', { name: '正式聲明' })
+    await userEvent.click(within(dialog).getAllByRole('button', { name: 'Close' })[0])
+    for (const name of ['Security', 'Devices', 'Notifications', 'Personal info']) {
+      await userEvent.click(screen.getByRole('link', { name }))
+      expect(screen.getByRole('link', { name: /正式聲明/ }).closest('.account-topbar')).not.toBeNull()
+      expect(screen.queryByRole('dialog', { name: '正式聲明' })).not.toBeInTheDocument()
+    }
+    expect(vi.mocked(fetch).mock.calls.filter(([url]) => String(url).startsWith('/api/statements/active'))).toHaveLength(1)
+  })
+
+  it.each(['/security', '/devices', '/notifications'])('opens the statement on first entry through %s', async (path) => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ data: {
+      serverNow: '2026-09-29T02:00:00Z', nextChangeAt: null,
+      statement: { id: `entry-${path}`, title: '首次進入聲明', body: '聲明內文', resolvedLocale: 'zh-Hant', href: '/zh-Hant/statements/current', popupStartsAt: '2026-09-28T00:00:00Z', popupEndsAt: '2026-10-01T00:00:00Z' },
+    } }))))
+    render(<MemoryRouter initialEntries={[path]}><LocaleProvider><AuthProvider api={signedInApi}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+
+    expect(await screen.findByRole('dialog', { name: '首次進入聲明' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /首次進入聲明/ }).closest('.account-topbar')).not.toBeNull()
   })
 
   it.each(['/organizations', '/organizations/unit', '/organizations/unit/members/member'])('redirects an ordinary member away from %s without loading management data', async (path) => {
