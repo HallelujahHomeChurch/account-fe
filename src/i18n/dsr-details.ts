@@ -1,6 +1,8 @@
 export const dsrDetails = {
   'zh-Hant': {
     secureRecovery: '匯出超過安全下載上限。請聯絡 support@alive.org.tw 安排本人授權的安全交付；請勿以 email 傳送個資。',
+    withdrawal: "限制解除", withdrawalHelp: "原限制紀錄保留。解除不會恢復會員、角色、訂閱或已刪除資料。", withdrawalDone: "已撤回此申請的限制；執行當時沒有其他已確認的限制。", withdrawalOther: "已撤回此申請的限制，仍有其他限制。", withdrawalFailed: "解除尚未完成，請聯絡 support@alive.org.tw 核對。",
+    loadEarlier: '載入更早紀錄', historyLoading: '載入中…', historyLoadFailed: '無法載入較早紀錄，請重試。已載入的紀錄仍保留。',
     earlierHistory: '顯示最近 20 筆問答；如需較早紀錄，請聯絡 support@alive.org.tw。',
     publicHistory: '補件問答紀錄', question: '管理員要求補件', reply: '已送出的補充資料',
     publicDecision: '公開決定與後續方式',
@@ -15,6 +17,8 @@ export const dsrDetails = {
   },
   'zh-Hans': {
     secureRecovery: '导出超过安全下载上限。请联系 support@alive.org.tw 安排本人授权的安全交付；请勿通过 email 发送个人资料。',
+    withdrawal: "限制解除", withdrawalHelp: "原限制记录保留。解除不会恢复会员、角色、订阅或已删除数据。", withdrawalDone: "已撤回此申请的限制；执行当时没有其他已确认的限制。", withdrawalOther: "已撤回此申请的限制，仍有其他限制。", withdrawalFailed: "解除尚未完成，请联系 support@alive.org.tw 核对。",
+    loadEarlier: '载入更早记录', historyLoading: '载入中…', historyLoadFailed: '无法载入较早记录，请重试。已载入的记录仍保留。',
     earlierHistory: '显示最近 20 条问答；如需较早记录，请联系 support@alive.org.tw。',
     publicHistory: '补件问答记录', question: '管理员要求补件', reply: '已送出的补充资料',
     publicDecision: '公开决定与后续方式',
@@ -29,6 +33,8 @@ export const dsrDetails = {
   },
   en: {
     secureRecovery: 'This export exceeds the secure download limit. Contact support@alive.org.tw to arrange an owner-authorized secure delivery. Do not email your personal data.',
+    withdrawal: "Restriction withdrawal", withdrawalHelp: "The original restriction remains recorded. Withdrawal does not restore membership, roles, subscriptions or deleted data.", withdrawalDone: "This request’s restriction was withdrawn; no other verified restriction remained at execution.", withdrawalOther: "This request’s restriction was withdrawn; other restrictions remain.", withdrawalFailed: "Withdrawal is incomplete. Contact support@alive.org.tw for review.",
+    loadEarlier: 'Load earlier entries', historyLoading: 'Loading…', historyLoadFailed: 'Could not load earlier entries. Retry; loaded entries are preserved.',
     earlierHistory: 'Showing the latest 20 conversation entries. Contact support@alive.org.tw for earlier records.',
     publicHistory: 'Information conversation', question: 'Information requested', reply: 'Information supplied',
     publicDecision: 'Decision and next steps',
@@ -43,6 +49,8 @@ export const dsrDetails = {
   },
   ja: {
     secureRecovery: '安全なダウンロードの上限を超えています。support@alive.org.tw に本人が承認した安全な受け渡しをご相談ください。個人情報をメールで送らないでください。',
+    withdrawal: "処理制限の解除", withdrawalHelp: "元の制限記録は保持されます。解除しても会員資格、役割、購読、削除済みデータは復元されません。", withdrawalDone: "この申請の制限は解除されました。実行時に確認された他の制限はありませんでした。", withdrawalOther: "この申請の制限は解除されました。他の制限は継続しています。", withdrawalFailed: "解除は未完了です。support@alive.org.tw に確認してください。",
+    loadEarlier: '以前の記録を読み込む', historyLoading: '読み込み中…', historyLoadFailed: '以前の記録を読み込めませんでした。再試行してください。読み込み済みの記録は保持されます。',
     earlierHistory: '最新20件のやり取りを表示しています。以前の記録は support@alive.org.tw にお問い合わせください。',
     publicHistory: '追加情報のやり取り', question: '管理者からの追加情報の依頼', reply: '送信した追加情報',
     publicDecision: '判断結果と次の手順',
@@ -57,6 +65,8 @@ export const dsrDetails = {
   },
   ko: {
     secureRecovery: '안전한 다운로드 한도를 초과했습니다. support@alive.org.tw에 본인 승인 보안 전달을 요청하세요. 개인정보를 이메일로 보내지 마세요.',
+    withdrawal: "처리 제한 해제", withdrawalHelp: "기존 제한 기록은 유지됩니다. 해제해도 회원 자격, 역할, 구독 또는 삭제된 데이터는 복원되지 않습니다.", withdrawalDone: "이 신청의 제한이 해제되었습니다. 실행 당시 확인된 다른 제한은 없었습니다.", withdrawalOther: "이 신청의 제한이 해제되었지만 다른 제한은 유지됩니다.", withdrawalFailed: "해제가 완료되지 않았습니다. support@alive.org.tw 에 문의하세요.",
+    loadEarlier: '이전 기록 불러오기', historyLoading: '불러오는 중…', historyLoadFailed: '이전 기록을 불러오지 못했습니다. 다시 시도하세요. 이미 불러온 기록은 유지됩니다.',
     earlierHistory: '최근 대화 20개를 표시합니다. 이전 기록은 support@alive.org.tw에 문의하세요.',
     publicHistory: '보완 자료 대화 기록', question: '관리자의 보완 요청', reply: '제출한 보완 자료',
     publicDecision: '결정 및 다음 단계',

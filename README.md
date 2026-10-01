@@ -50,3 +50,19 @@ headers, and `/api/*` routing.
 Native OAuth callbacks are restricted to `hhc-presenter://auth/account`.
 Set `VITE_ALLOWED_REDIRECT_SCHEMES=hhc-presenter` in the production build
 environment; no other native scheme is supported.
+
+## Legal review and optional analytics
+
+`/legal` reads qualified current documents and the signed-in account's acceptance
+history through the existing Account transport. The confirmation binds the exact
+snapshot displayed and resets on version or language changes. Legacy records show
+that no historical document was retained instead of substituting today's text.
+Resource requests requiring confirmation lead to this review page; own request
+history and cancellation keep their existing owner authorization.
+
+`VITE_GA_MEASUREMENT_ID` stays unset until reviewed disclosure and GA stream
+settings are ready. Only production `account.alive.org.tw`, explicit analytics
+consent, and query/fragment-free login or general profile pages are eligible.
+Sensitive routes reload before mounting when GA has started. Only successful
+interactive login and ordinary profile saves emit fixed events; hydration and
+session refresh do not. No account identity or form data is sent to analytics.

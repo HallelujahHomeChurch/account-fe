@@ -1,3 +1,5 @@
+import { LegalDocuments } from '../components/LegalDocuments'
+import { useCommonLegalReview } from '../components/useCommonLegalReview'
 import { Button, FieldError, Form, Input, Label, TextField } from '@hallelujahhomechurch/ui'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
@@ -31,7 +33,9 @@ export function RegisterPage() {
   const { capabilities, error: capabilitiesError, retry: retryCapabilities } = useAuthCapabilitiesState()
   const [policyAccepted, setPolicyAccepted] = useState(false)
   const policy = capabilities?.policy
-  const policyReady = Boolean(policy && (!policy.enforced || (policy.terms_version && policy.privacy_notice_version)))
+  const legalReview = useCommonLegalReview(policy)
+  useEffect(() => { setPolicyAccepted(false) }, [locale, policy?.terms_version, policy?.privacy_notice_version, legalReview.snapshot?.snapshotId])
+  const policyReady = legalReview.ready && Boolean(policy && (!policy.enforced || (policy.terms_version && policy.privacy_notice_version)))
   const handleTurnstileToken = useCallback((token: string) => setTurnstileToken(token), [])
 
   useEffect(() => {
@@ -68,6 +72,7 @@ export function RegisterPage() {
           terms_version: policy.terms_version,
           privacy_notice_version: policy.privacy_notice_version,
           locale,
+          ...(legalReview.snapshot ? {snapshot_id: legalReview.snapshot.snapshotId} : {}),
         } : undefined,
       })
       navigate(`/register/check-email${authRequestSearch}`, {
@@ -98,7 +103,7 @@ export function RegisterPage() {
           {capabilitiesError || (capabilities && !policyReady) ? (
             <div role="alert">
               <p className="form-error">{t.legalAcceptance.loadFailed}</p>
-              <Button onPress={retryCapabilities} variant="secondary">{t.legalAcceptance.retry}</Button>
+              <Button onPress={() => {retryCapabilities(); legalReview.retry()}} variant="secondary">{t.legalAcceptance.retry}</Button>
             </div>
           ) : null}
           <SocialAuthOptions
@@ -149,7 +154,8 @@ export function RegisterPage() {
 					<small>{t.registration.newsletterOptOut}</small>
 				</span>
 			</label>
-            {policy?.enforced ? <LegalAcceptance checked={policyAccepted} onChange={setPolicyAccepted} /> : null}
+            {policy?.enforced ? <>{legalReview.snapshot ? <LegalDocuments snapshot={legalReview.snapshot} /> : null}
+              <LegalAcceptance disabled={!legalReview.ready} checked={policyAccepted} onChange={setPolicyAccepted} /></> : null}
             <Turnstile siteKey={turnstileSiteKey} onToken={handleTurnstileToken} />
             <div className="login-actions auth-actions-between">
               <Link className="muted-link" to={`/login${authRequestSearch}`}>{t.registration.backToLogin}</Link>

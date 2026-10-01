@@ -356,3 +356,48 @@ it('explains owner-authorized secure recovery when the encrypted export is too l
  expect(await screen.findByText(/support@alive.org.tw/)).toHaveTextContent(/Do not email your personal data/i)
  expect(createObjectURL).not.toHaveBeenCalled()
 })
+
+it('loads older public rounds without losing current entries on failed retry', async () => {
+ const older={action:'information_requested',case_version:1,created_at:'2026-09-01T00:00:00Z',public_message:'older question'}
+ const listDSRPublicHistory=vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({events:[older],case_version:1})
+ renderPage({listDSRRequests:async()=>[{...baseRequest,public_history_has_more:true,public_history_next_cursor:'cursor-one',public_history:[{...older,case_version:2,public_message:'latest question'}]}],listDSRPublicHistory})
+ await screen.findByText('latest question')
+ await userEvent.click(screen.getByRole('button',{name:'Load earlier entries'}))
+ expect(await screen.findByRole('alert')).toHaveTextContent('Could not load earlier entries')
+ expect(screen.getByText('latest question')).toBeInTheDocument()
+ await userEvent.click(screen.getByRole('button',{name:'Load earlier entries'}))
+ expect(await screen.findByText('older question')).toBeInTheDocument()
+ expect(screen.getByText('latest question')).toBeInTheDocument()
+ expect(listDSRPublicHistory).toHaveBeenNthCalledWith(2,'request-1',1,'cursor-one')
+ expect(screen.queryByRole('button',{name:'Load earlier entries'})).not.toBeInTheDocument()
+})
+
+it('preserves loaded history on version conflict and refreshes before continuing', async () => {
+ const event={action:'information_requested',case_version:2,created_at:'2026-09-03T00:00:00Z',public_message:'previous question'}
+ const listDSRRequests=vi.fn().mockResolvedValueOnce([{...baseRequest,public_history_has_more:true,public_history_next_cursor:'old-cursor',public_history:[event]}]).mockResolvedValueOnce([{...baseRequest,version:2,public_history:[{...event,public_message:'fresh question'}]}])
+ const listDSRPublicHistory=vi.fn().mockRejectedValue(new ApiError(409,'changed','ACC_DSR_CONFLICT'))
+ renderPage({listDSRRequests,listDSRPublicHistory})
+ await screen.findByText('previous question')
+ await userEvent.click(screen.getByRole('button',{name:'Load earlier entries'}))
+ expect(await screen.findByRole('alert')).toHaveTextContent('changed')
+ expect(screen.getByText('previous question')).toBeInTheDocument()
+ expect(screen.queryByRole('button',{name:'Load earlier entries'})).not.toBeInTheDocument()
+ await userEvent.click(within(document.querySelector('.dsr-public-history')!).getByRole('button',{name:'Refresh'}))
+ expect(await screen.findByText('fresh question')).toBeInTheDocument()
+ expect(screen.queryByText('previous question')).not.toBeInTheDocument()
+ expect(listDSRPublicHistory).toHaveBeenCalledTimes(1)
+})
+
+it('separates a queued withdrawal from the completed original restriction',async()=>{
+ const request:DSRRequest={...baseRequest,request_type:'restrict_processing',status:'completed',plan_version:1,scope_targets:['membership'],executions:[{owner:'operations',action:'withdraw_restriction',status:'pending',attempt_count:0,result_summary:{}},{owner:'operations',action:'restrict_processing',status:'succeeded',attempt_count:1,result_summary:{}}]}
+ renderPage({listDSRRequests:async()=>[request]})
+ expect(await screen.findByRole('heading',{name:'Restriction withdrawal'})).toBeInTheDocument()
+ expect(screen.getByText('The original restriction remains recorded. Withdrawal does not restore membership, roles, subscriptions or deleted data.')).toBeInTheDocument()
+})
+
+it('does not infer a cleared fence from an unknown withdrawal receipt',async()=>{
+ const request:DSRRequest={...baseRequest,status:'completed',executions:[{owner:'operations',action:'withdraw_restriction',status:'succeeded',attempt_count:1,result_summary:{reason_codes:['DSR_UNKNOWN']}}]}
+ renderPage({listDSRRequests:async()=>[request]})
+ await screen.findByRole('heading',{name:'Restriction withdrawal'})
+ expect(screen.queryByText('This request’s restriction was withdrawn; no other verified restriction remained at execution.')).not.toBeInTheDocument()
+})

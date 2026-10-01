@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Download, Pencil, ShieldOff, UserRoundX } from 'lucide-react'
 
+import { DSRPublicHistory } from './DSRPublicHistory'
 import { useAuth } from '../auth/auth-context'
 import { loginPath } from '../auth/auth-routes'
 import { useLocale } from '../i18n/locale-context'
@@ -48,12 +49,12 @@ export function DataRequestsPage() {
         resetErasure(value.find((request) => request.request_type === 'erasure' && request.status === 'submitted') ?? null)
       }
     }).catch(() => {
-      if (active) { setRequests([]); setError(t.dataRequests.loadFailed) }
+      if (active) { setRequests((current) => current ?? []); setError(t.dataRequests.loadFailed) }
     })
     return () => { active = false }
   }, [auth.api, t.dataRequests.loadFailed, refreshRevision])
 
-  const hasPending = requests?.some((request) => ['submitted', 'in_review', 'processing', 'action_required'].includes(request.status)) === true
+  const hasPending = requests?.some((request) => (['submitted', 'in_review', 'processing', 'action_required'].includes(request.status)||request.executions?.some(e=>e.action==='withdraw_restriction'&&['pending','running'].includes(e.status)))) === true
   useEffect(() => {
     if (!hasPending || busy || !auth.api.listDSRRequests) return
     let active = true
@@ -201,11 +202,7 @@ export function DataRequestsPage() {
           {request.decision_at ? <p>{detailsText.decision}: <time dateTime={request.decision_at}>{new Date(request.decision_at).toLocaleString(locale)}</time><br />{detailsText.notificationSeparate}</p> : null}
           {request.completed_at ? <p>{detailsText.finished}: <time dateTime={request.completed_at}>{new Date(request.completed_at).toLocaleString(locale)}</time></p> : null}
           {request.scope_targets?.map((target) => <p key={target}>{detailsText.restrictions[target] ?? `${detailsText.scope}: ${target}`}</p>)}
-          {request.public_history?.length ? <details className="dsr-public-history"><summary>{detailsText.publicHistory}</summary><ol>{request.public_history.map((event, index) => <li key={`${event.case_version}:${index}`}>
-            <strong>{event.public_supplement ? detailsText.reply : detailsText.question}</strong> <time dateTime={event.created_at}>{new Date(event.created_at).toLocaleString(locale)}</time>
-            {event.public_message ? <p>{event.public_message}</p> : null}
-            {event.public_supplement ? <><p>{event.public_supplement.description}</p><p>{detailsText.current}: {event.public_supplement.current_value}</p><p>{detailsText.requested}: {event.public_supplement.requested_value}</p></> : null}
-          </li>)}</ol>{request.public_history_has_more ? <p>{detailsText.earlierHistory}</p> : null}</details> : null}
+          <DSRPublicHistory key={`${request.id}:${request.version}`} request={request} onRefresh={() => setRefreshRevision((value) => value + 1)} />
           {request.description ? <p>{request.description}</p> : null}
           {request.current_value ? <p>{detailsText.current}: {request.current_value}</p> : null}
           {request.requested_value ? <p>{detailsText.requested}: {request.requested_value}</p> : null}
@@ -213,9 +210,10 @@ export function DataRequestsPage() {
           {request.information_requested && !canConfirmLegacyRestriction(request) && !['completed', 'rejected', 'cancelled'].includes(request.status) ? <section aria-label={detailsText.additional}><p className="form-notice">{request.information_requested}</p><RequestDetailsForm key={request.id} request={request} correction={request.request_type === 'correction'} busy={busy} onSubmit={(details, version) => supplement(request, details, version ?? request.version)} /></section> : null}
           {request.status === 'action_required' ? <p className="form-notice">{t.dataRequests.actionRequired}</p> : null}
           {request.executions?.length ? <ol className="dsr-owner-progress" aria-label={t.dataRequests.ownerProgress}>
-            {owners.flatMap((owner) => { const execution = request.executions?.find((item) => item.owner === owner); return execution ? [<li key={owner}><span>{ownerLabels[owner]}</span><strong>{t.dataRequests.executionStatuses[execution.status]}</strong></li>] : [] })}
+            {owners.flatMap((owner) => { const execution = request.executions?.find((item) => item.owner === owner && item.action!=='withdraw_restriction'); return execution ? [<li key={owner}><span>{ownerLabels[owner]}</span><strong>{t.dataRequests.executionStatuses[execution.status]}</strong></li>] : [] })}
           </ol> : null}
-          {request.executions?.filter((execution) => execution.result_summary.public_response).map((execution) => <p key={execution.owner}><strong>{ownerLabels[execution.owner]}: </strong><span>{execution.result_summary.public_response}</span></p>)}
+          {request.executions?.some(e=>e.action==='withdraw_restriction')?<section aria-label={detailsText.withdrawal}><h3>{detailsText.withdrawal}</h3><p>{detailsText.withdrawalHelp}</p><ul>{request.executions.filter(e=>e.action==='withdraw_restriction').map(e=><li key={`${e.owner}:${e.action}`}><span>{ownerLabels[e.owner]}: </span><strong>{t.dataRequests.executionStatuses[e.status]}</strong>{e.status==='succeeded'?<p>{e.result_summary.reason_codes?.includes('DSR_OTHER_RESTRICTIONS_REMAIN')?detailsText.withdrawalOther:e.result_summary.reason_codes?.includes('DSR_RESTRICTION_WITHDRAWN')?detailsText.withdrawalDone:detailsText.withdrawalFailed}</p>:e.status==='failed'?<p>{detailsText.withdrawalFailed}</p>:null}</li>)}</ul></section>:null}
+          {request.executions?.filter((execution) => execution.result_summary.public_response).map((execution) => <p key={`${execution.owner}:${execution.action}`}><strong>{ownerLabels[execution.owner]}: </strong><span>{execution.result_summary.public_response}</span></p>)}
           {request.export_expires_at ? <p>{detailsText.deadline}: <time dateTime={request.export_expires_at}>{new Date(request.export_expires_at).toLocaleString(locale)}</time></p> : null}
           {request.request_type === 'access_export' && request.status === 'completed' && exportUnavailable(request, now) ? <p className="form-notice">{detailsText.expired}</p> : null}
           <div className="dsr-request-actions">

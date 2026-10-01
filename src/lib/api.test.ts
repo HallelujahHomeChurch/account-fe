@@ -790,3 +790,10 @@ it('fetches a fresh CSRF token on the next user action without replaying the rej
  await api.memberTransportFetch('/member-details', { method: 'PUT', body: 'fresh-envelope' })
  expect(wires).toEqual(['first-envelope', 'fresh-envelope']); expect(tokens).toEqual(['csrf-1', 'csrf-2'])
 })
+it('uses a read-only case-version-bound public history URL', async () => {
+ const fetcher=vi.fn().mockResolvedValue(jsonResponse({events:[],case_version:2}))
+ const api=new AccountApi({baseUrl:'/api/account/v1',fetcher})
+ await expect(api.listDSRPublicHistory('case/id',2,'cursor?')).resolves.toEqual({events:[],case_version:2})
+ expect(String(fetcher.mock.calls[0][0])).toBe('/api/account/v1/dsr/requests/case%2Fid/history?case_version=2&before=cursor%3F')
+ expect(fetcher.mock.calls[0][1]?.method??'GET').toBe('GET')
+})
