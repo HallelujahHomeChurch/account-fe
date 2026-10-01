@@ -332,3 +332,34 @@ it('renders multiple public information rounds as escaped read-only history', as
  expect(screen.getByText(/Showing the latest 20 conversation entries/)).toBeInTheDocument()
  expect(document.querySelector('.dsr-public-history script')).toBeNull()
 })
+
+it('loads older public rounds without losing current entries on failed retry', async () => {
+ const older={action:'information_requested',case_version:1,created_at:'2026-09-01T00:00:00Z',public_message:'older question'}
+ const listDSRPublicHistory=vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({events:[older],case_version:1})
+ renderPage({listDSRRequests:async()=>[{...baseRequest,public_history_has_more:true,public_history_next_cursor:'cursor-one',public_history:[{...older,case_version:2,public_message:'latest question'}]}],listDSRPublicHistory})
+ await screen.findByText('latest question')
+ await userEvent.click(screen.getByRole('button',{name:'Load earlier entries'}))
+ expect(await screen.findByRole('alert')).toHaveTextContent('Could not load earlier entries')
+ expect(screen.getByText('latest question')).toBeInTheDocument()
+ await userEvent.click(screen.getByRole('button',{name:'Load earlier entries'}))
+ expect(await screen.findByText('older question')).toBeInTheDocument()
+ expect(screen.getByText('latest question')).toBeInTheDocument()
+ expect(listDSRPublicHistory).toHaveBeenNthCalledWith(2,'request-1',1,'cursor-one')
+ expect(screen.queryByRole('button',{name:'Load earlier entries'})).not.toBeInTheDocument()
+})
+
+it('preserves loaded history on version conflict and refreshes before continuing', async () => {
+ const event={action:'information_requested',case_version:2,created_at:'2026-09-03T00:00:00Z',public_message:'previous question'}
+ const listDSRRequests=vi.fn().mockResolvedValueOnce([{...baseRequest,public_history_has_more:true,public_history_next_cursor:'old-cursor',public_history:[event]}]).mockResolvedValueOnce([{...baseRequest,version:2,public_history:[{...event,public_message:'fresh question'}]}])
+ const listDSRPublicHistory=vi.fn().mockRejectedValue(new ApiError(409,'changed','ACC_DSR_CONFLICT'))
+ renderPage({listDSRRequests,listDSRPublicHistory})
+ await screen.findByText('previous question')
+ await userEvent.click(screen.getByRole('button',{name:'Load earlier entries'}))
+ expect(await screen.findByRole('alert')).toHaveTextContent('changed')
+ expect(screen.getByText('previous question')).toBeInTheDocument()
+ expect(screen.queryByRole('button',{name:'Load earlier entries'})).not.toBeInTheDocument()
+ await userEvent.click(within(document.querySelector('.dsr-public-history')!).getByRole('button',{name:'Refresh'}))
+ expect(await screen.findByText('fresh question')).toBeInTheDocument()
+ expect(screen.queryByText('previous question')).not.toBeInTheDocument()
+ expect(listDSRPublicHistory).toHaveBeenCalledTimes(1)
+})

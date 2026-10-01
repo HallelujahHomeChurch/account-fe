@@ -1,5 +1,6 @@
 export const dsrDetails = {
   'zh-Hant': {
+    loadEarlier: '載入更早紀錄', historyLoading: '載入中…', historyLoadFailed: '無法載入較早紀錄，請重試。已載入的紀錄仍保留。',
     earlierHistory: '顯示最近 20 筆問答；如需較早紀錄，請聯絡 support@alive.org.tw。',
     publicHistory: '補件問答紀錄', question: '管理員要求補件', reply: '已送出的補充資料',
     publicDecision: '公開決定與後續方式',
@@ -13,6 +14,7 @@ export const dsrDetails = {
     conflict: '此請求已更新，請重新整理後再操作。', refresh: '重新整理', submitted: '申請時間',
   },
   'zh-Hans': {
+    loadEarlier: '载入更早记录', historyLoading: '载入中…', historyLoadFailed: '无法载入较早记录，请重试。已载入的记录仍保留。',
     earlierHistory: '显示最近 20 条问答；如需较早记录，请联系 support@alive.org.tw。',
     publicHistory: '补件问答记录', question: '管理员要求补件', reply: '已送出的补充资料',
     publicDecision: '公开决定与后续方式',
@@ -26,6 +28,7 @@ export const dsrDetails = {
     conflict: '此请求已更新，请刷新后再操作。', refresh: '刷新', submitted: '申请时间',
   },
   en: {
+    loadEarlier: 'Load earlier entries', historyLoading: 'Loading…', historyLoadFailed: 'Could not load earlier entries. Retry; loaded entries are preserved.',
     earlierHistory: 'Showing the latest 20 conversation entries. Contact support@alive.org.tw for earlier records.',
     publicHistory: 'Information conversation', question: 'Information requested', reply: 'Information supplied',
     publicDecision: 'Decision and next steps',
@@ -39,6 +42,7 @@ export const dsrDetails = {
     conflict: 'This request has changed. Refresh before trying again.', refresh: 'Refresh', submitted: 'Submitted at',
   },
   ja: {
+    loadEarlier: '以前の記録を読み込む', historyLoading: '読み込み中…', historyLoadFailed: '以前の記録を読み込めませんでした。再試行してください。読み込み済みの記録は保持されます。',
     earlierHistory: '最新20件のやり取りを表示しています。以前の記録は support@alive.org.tw にお問い合わせください。',
     publicHistory: '追加情報のやり取り', question: '管理者からの追加情報の依頼', reply: '送信した追加情報',
     publicDecision: '判断結果と次の手順',
@@ -52,6 +56,7 @@ export const dsrDetails = {
     conflict: 'リクエストが更新されました。再読み込みしてから操作してください。', refresh: '再読み込み', submitted: '申請日時',
   },
   ko: {
+    loadEarlier: '이전 기록 불러오기', historyLoading: '불러오는 중…', historyLoadFailed: '이전 기록을 불러오지 못했습니다. 다시 시도하세요. 이미 불러온 기록은 유지됩니다.',
     earlierHistory: '최근 대화 20개를 표시합니다. 이전 기록은 support@alive.org.tw에 문의하세요.',
     publicHistory: '보완 자료 대화 기록', question: '관리자의 보완 요청', reply: '제출한 보완 자료',
     publicDecision: '결정 및 다음 단계',
