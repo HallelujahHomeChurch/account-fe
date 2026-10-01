@@ -95,7 +95,10 @@ export type DSRExecution = {
   updated_at?: string
 }
 
+export type DSRPublicEvent = { action: string; case_version: number; created_at: string; public_message?: string; public_supplement?: { description: string; current_value: string; requested_value: string } }
 export type DSRRequest = {
+  public_history?: DSRPublicEvent[]
+  public_history_has_more?: boolean
   received_at?: string
   received_source?: 'unknown' | 'portal' | 'email' | 'offline'
   decision_at?: string

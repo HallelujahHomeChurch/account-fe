@@ -238,7 +238,7 @@ function LayoutContent() {
               </div>
             ) : null}
           </header>
-          {location.pathname === '/profile' ? <StatementStrip /> : null}
+          <StatementStrip />
       </div>
       <div className="account-layout">
         <aside className="account-sidebar" aria-label={t.nav.accountSections}>
