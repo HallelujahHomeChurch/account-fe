@@ -62,6 +62,7 @@ export class OperationsApi implements OperationsApiClient {
       },
       onResponse: async ({ request, schemaPath, response }) => {
         recordRequestId(response)
+        if (response.status === 428 && schemaPath.startsWith('/api/operations/me/resources')) window.dispatchEvent(new Event('hhc:legal-required'))
         const context = { operation: schemaPath, method: request.method }
         if (response.status >= 500) reportApiFailure(context, 'http', response)
         if (!response.ok) return

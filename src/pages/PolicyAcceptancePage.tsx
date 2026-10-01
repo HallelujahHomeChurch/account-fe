@@ -1,3 +1,5 @@
+import { LegalDocuments } from '../components/LegalDocuments'
+import { useCommonLegalReview } from '../components/useCommonLegalReview'
 import { Button } from '@hallelujahhomechurch/ui'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -22,7 +24,9 @@ export function PolicyAcceptancePage() {
   const [currentPolicy, setCurrentPolicy] = useState<PolicyCapabilities | null>(null)
   const { capabilities, error: capabilitiesError, retry } = useAuthCapabilitiesState()
   const policy = currentPolicy ?? capabilities?.policy ?? null
-  const policyReady = Boolean(policy?.terms_version && policy.privacy_notice_version)
+  const legalReview = useCommonLegalReview(policy)
+  useEffect(() => { setAccepted(false) }, [locale, policy?.terms_version, policy?.privacy_notice_version, legalReview.snapshot?.snapshotId])
+  const policyReady = legalReview.ready && Boolean(policy?.terms_version && policy.privacy_notice_version)
 
   useEffect(() => {
     if (!token) clearPostLoginReturnTo()
@@ -30,7 +34,7 @@ export function PolicyAcceptancePage() {
   }, [token])
 
   async function submit() {
-    if (!token || !policy?.terms_version || !policy.privacy_notice_version || !accepted || !auth.api.confirmPolicyAcceptance) return
+    if (!policyReady || !token || !policy?.terms_version || !policy.privacy_notice_version || !accepted || !auth.api.confirmPolicyAcceptance) return
     setError('')
     setIsSubmitting(true)
     try {
@@ -39,6 +43,7 @@ export function PolicyAcceptancePage() {
         terms_version: policy.terms_version,
         privacy_notice_version: policy.privacy_notice_version,
         locale,
+        ...(legalReview.snapshot ? {snapshot_id: legalReview.snapshot.snapshotId} : {}),
       })
       await auth.completeLogin(response)
       if (response.redirect_type !== 'oauth') navigate(consumePostLoginReturnTo(), { replace: true })
@@ -49,6 +54,7 @@ export function PolicyAcceptancePage() {
           setToken(data.policy_token)
           setCurrentPolicy({
             enforced: true,
+            snapshot_enforced: policy?.snapshot_enforced,
             terms_version: data.terms_version,
             privacy_notice_version: data.privacy_notice_version,
           })
@@ -85,12 +91,13 @@ export function PolicyAcceptancePage() {
           {!invalid && (capabilitiesError || (capabilities && !policyReady)) ? (
             <div role="alert">
               <p className="form-error">{t.legalAcceptance.loadFailed}</p>
-              <Button onPress={retry} variant="secondary">{t.legalAcceptance.retry}</Button>
+              <Button onPress={() => {retry(); legalReview.retry()}} variant="secondary">{t.legalAcceptance.retry}</Button>
             </div>
           ) : null}
           {!invalid && policyReady ? (
             <div className="form-stack">
-              <LegalAcceptance checked={accepted} onChange={setAccepted} />
+              {legalReview.snapshot ? <LegalDocuments snapshot={legalReview.snapshot} /> : null}
+              <LegalAcceptance disabled={!legalReview.ready} checked={accepted} onChange={setAccepted} />
               <div className="login-actions">
                 <Button isDisabled={!accepted} isPending={isSubmitting} onPress={submit}>
                   {t.policyAcceptance.continue}
