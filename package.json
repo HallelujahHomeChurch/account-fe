@@ -23,6 +23,7 @@
     "@hallelujahhomechurch/preferences": "1.0.28",
     "@hallelujahhomechurch/ui": "1.0.27",
     "@sentry/react": "10.69.0",
+    "jose": "6.2.1",
     "lucide-react": "^1.24.0",
     "react": "19.2.7",
     "react-dom": "19.2.7",

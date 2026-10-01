@@ -1781,3 +1781,9 @@ textarea::selection {
 .legal-documents {display: grid; gap: 32px; margin: 24px 0;}
 .legal-documents p {white-space: pre-line; line-height: 1.7;}
 .dsr-public-history p { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.member-details-fields { display: grid; gap: 1.25rem; padding: 0; margin: 0 0 1.5rem; border: 0; }
+.member-gender-field { display: grid; gap: .5rem; }
+.member-gender-field select { width: 100%; padding: .75rem; border: 1px solid var(--color-line); border-radius: .5rem; background: var(--color-paper); color: inherit; }
+.member-details-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+.member-details-link { flex-shrink: 0; }

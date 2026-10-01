@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App, { PostLoginContinuation } from './App'
 import { AuthProvider, type AuthApi } from './auth/auth-context'
 import { LocaleProvider } from './i18n/locale-context'
+import { MemberDetailsClient } from './lib/member-details'
 import { ApiError } from './lib/api'
 import { clearLineLinkAutoContinue, markLineLinkAutoContinue } from './lib/line-link-intent'
 import { clearPostLoginReturnTo, hasPostLoginReturnTo, savePostLoginReturnTo } from './auth/auth-routes'
@@ -537,3 +538,39 @@ function NavigationProbe() {
     </>
   )
 }
+
+it.each([
+ { enabled: false, eligible: true },
+ { enabled: true, eligible: false },
+ { enabled: true, eligible: undefined },
+])('hides private member entry for missing rollout or effective church eligibility $enabled/$eligible', async ({ enabled, eligible }) => {
+ const memberTransportFetch = vi.fn()
+ const account: AuthApi = { ...signedInApi, getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, memberDetailsEnabled: enabled }), memberTransportFetch }
+ const operations = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValue({ churchMembership: { id: 'member' }, responsibilities: [], memberDetailsEligible: eligible }) }
+ render(<MemoryRouter initialEntries={['/profile/member-details']}><LocaleProvider><AuthProvider api={account} operationsApi={operations as never}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+ await waitFor(() => expect(screen.getByTestId('route-path')).toHaveTextContent(/^\/profile$/))
+ expect(screen.queryByRole('link', { name: 'Member details' })).not.toBeInTheDocument()
+ expect(memberTransportFetch).not.toHaveBeenCalled()
+})
+it('shows a private-page link only for the explicit rollout and effective church member flag', async () => {
+ const account: AuthApi = { ...signedInApi, getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, memberDetailsEnabled: true }) }
+ const operations = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValue({ churchMembership: { id: 'member' }, responsibilities: [], memberDetailsEligible: true }) }
+ render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={account} operationsApi={operations as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+ expect(await screen.findByRole('link', { name: 'Member details' })).toHaveAttribute('href', '/profile/member-details')
+ expect(screen.queryByLabelText('Family name')).not.toBeInTheDocument()
+})
+
+it('keeps the private editor mounted when focus refresh returns a new profile object for the same owner', async () => {
+ const load = vi.spyOn(MemberDetailsClient.prototype, 'load').mockResolvedValue({ details: { familyName: 'SyntheticPrivate', givenName: null, gender: null, identityDocument: null, mobile: null }, etag: null })
+ const me = vi.fn(async () => ({ id: 'same-owner', email: 'same@example.test' }))
+ const account: AuthApi = { ...signedInApi, me, getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, memberDetailsEnabled: true }), memberTransportFetch: vi.fn() }
+ const operations = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValue({ churchMembership: { id: 'member' }, responsibilities: [], memberDetailsEligible: true }) }
+ try {
+  render(<MemoryRouter initialEntries={['/profile/member-details']}><LocaleProvider><AuthProvider api={account} operationsApi={operations as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+  const field = await screen.findByLabelText('Family name'); await userEvent.type(field, 'Draft')
+  const previous = me.mock.calls.length
+  fireEvent.focus(window)
+  await waitFor(() => expect(me.mock.calls.length).toBeGreaterThan(previous))
+  expect(await screen.findByLabelText('Family name')).toBe(field); expect(field).toHaveValue('SyntheticPrivateDraft'); expect(load).toHaveBeenCalledOnce()
+ } finally { load.mockRestore() }
+})

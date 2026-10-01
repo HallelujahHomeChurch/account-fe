@@ -14,7 +14,7 @@ type OperationsClient = ReturnType<typeof createOperationsClient>
 
 export type ReservableResource = Schemas['ReservableResource']
 export type ResourceReservation = Schemas['ResourceReservation']
-export type OperationsAccess = Schemas['AccessSnapshot']
+export type OperationsAccess = Schemas['AccessSnapshot'] & { memberDetailsEligible?: boolean }
 export type ManagedActions = Schemas['ManagedActions']
 export type ManagedUnit = Schemas['ManagedUnit']
 export type ManagedUnitFolder = Schemas['ManagedUnitFolder']

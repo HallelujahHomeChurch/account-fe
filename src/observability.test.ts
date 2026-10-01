@@ -30,3 +30,9 @@ describe('observability privacy boundary', () => {
     expect(addBreadcrumb).toHaveBeenCalledWith(expect.objectContaining({ data: { request_id: 'req-123' } }))
   })
 })
+
+it('redacts every member field and the response key from delayed metadata', () => {
+ const sentinel = 'DO_NOT_CAPTURE_PRIVATE_SENTINEL'
+ const result = sanitizeSentryEvent({ extra: { familyName: sentinel, givenName: sentinel, gender: sentinel, identityDocument: sentinel, mobile: sentinel, responseKey: sentinel, 'X-HHC-Member-Envelope': sentinel } })
+ expect(JSON.stringify(result)).not.toContain(sentinel)
+})

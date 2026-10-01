@@ -35,3 +35,22 @@ it('does not import the SDK without a DSN', async () => {
   expect(initObservability()).toBeUndefined()
   expect(factory).not.toHaveBeenCalled()
 })
+
+it('drops private member page events, transactions and breadcrumbs', async () => {
+ vi.stubEnv('VITE_SENTRY_DSN', 'https://public@example.test/1')
+ const init = vi.fn()
+ vi.doMock('@sentry/react', () => ({ init, captureException: vi.fn(), addBreadcrumb: vi.fn(), browserTracingIntegration: vi.fn() }))
+ const { initObservability } = await import('./observability')
+ await initObservability()
+ const hooks = init.mock.calls[0][0]
+ const original = location.pathname
+ try {
+  history.replaceState(null, '', '/profile/member-details')
+  const event = { extra: { value: 'DO_NOT_CAPTURE_PRIVATE_SENTINEL' } }
+  expect(hooks.beforeSend(event)).toBeNull()
+  expect(hooks.beforeSendTransaction(event)).toBeNull()
+  expect(hooks.beforeBreadcrumb({ message: 'DO_NOT_CAPTURE_PRIVATE_SENTINEL' })).toBeNull()
+  history.replaceState(null, '', '/profile')
+  expect(hooks.beforeSend({ request: { url: '/api/account/v1/member-details' } })).toBeNull()
+ } finally { history.replaceState(null, '', original) }
+})

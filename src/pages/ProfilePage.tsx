@@ -1,6 +1,8 @@
 import { markProfileSaved } from '../lib/analytics-events'
 import { Button, Card, FieldError, Form, Input, Label, Modal, Skeleton, TextField } from '@hallelujahhomechurch/ui'
 import { useEffect, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
+import { memberDetailsMessages } from '../i18n/member-details'
 
 import { useAuth } from '../auth/auth-context'
 import { ProfileAvatarEditor } from '../components/ProfileAvatarEditor'
@@ -11,11 +13,11 @@ import { useAuthCapabilitiesState } from '../components/SocialAuthOptions'
 import { authErrorMessage } from '../auth/auth-form'
 import { displayAccountName } from '../lib/account-display'
 
-export function ProfilePage() {
+export function ProfilePage({ memberDetailsAvailable = false }: { memberDetailsAvailable?: boolean }) {
   const auth = useAuth()
   const { capabilities, error: capabilityError, retry: retryCapabilities } = useAuthCapabilitiesState()
   const nicknameEnabled = capabilities?.nicknameWriteEnabled === true
-  const { messages: t } = useLocale()
+  const { locale, messages: t } = useLocale()
   const [isNameDialogOpen, setNameDialogOpen] = useState(false)
   const [nameDialogError, setNameDialogError] = useState('')
   const [message, setMessage] = useState('')
@@ -63,6 +65,8 @@ export function ProfilePage() {
       {message ? <p className="form-notice" role="status">{message}</p> : null}
       {error ? <p className="form-error" role="alert">{error}</p> : null}
       {capabilityError ? <div role="alert"><p>{t.profile.updateFailed}</p><Button onPress={retryCapabilities}>{t.legalAcceptance.retry}</Button></div> : null}
+
+      {memberDetailsAvailable ? <Card className="panel-card settings-card"><Card.Content className="settings-list"><div className="settings-row"><div className="settings-row-copy"><span className="settings-row-label">{memberDetailsMessages[locale].title}</span><p>{memberDetailsMessages[locale].privacy}</p></div><Link className="member-details-link" to="/profile/member-details">{memberDetailsMessages[locale].title}</Link></div></Card.Content></Card> : null}
 
       <Card className="panel-card settings-card">
         <Card.Header>
