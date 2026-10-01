@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
 import { ApiError, type DSRRequest } from '../lib/api'
+import { MemberDetailsError } from '../lib/member-details'
 import { DataRequestsPage } from './DataRequestsPage'
 
 const profile = { id: 'u1', email: 'ray@example.com' }
@@ -331,6 +332,29 @@ it('renders multiple public information rounds as escaped read-only history', as
  expect(screen.getByText('reply one')).toBeInTheDocument()
  expect(screen.getByText(/Showing the latest 20 conversation entries/)).toBeInTheDocument()
  expect(document.querySelector('.dsr-public-history script')).toBeNull()
+})
+
+it('aborts an encrypted download on unmount and never exposes a late Blob', async () => {
+ const completed = { ...baseRequest, status: 'completed' as const, export_expires_at: '2099-01-01T00:00:00Z' }
+ const createObjectURL = vi.spyOn(URL, 'createObjectURL')
+ let downloadSignal: AbortSignal | undefined
+ let resolve!: (blob: Blob) => void
+ const redeemDSRDownload = vi.fn(async (_url: string, signal?: AbortSignal) => { downloadSignal = signal; return new Promise<Blob>(done => { resolve = done }) })
+ const view = renderPage({ listDSRRequests: async () => [completed], issueDSRDownload: async () => ({ download_url: '/api/account/v1/dsr/downloads/token' }), redeemDSRDownload })
+ await userEvent.click(await screen.findByRole('button', { name: 'Download data export' }))
+ await waitFor(() => expect(redeemDSRDownload).toHaveBeenCalledTimes(1))
+ view.unmount()
+ expect(downloadSignal?.aborted).toBe(true)
+ await act(async () => resolve(new Blob(['private export'])))
+ expect(createObjectURL).not.toHaveBeenCalled()
+})
+it('explains owner-authorized secure recovery when the encrypted export is too large', async () => {
+ const completed = { ...baseRequest, status: 'completed' as const, export_expires_at: '2099-01-01T00:00:00Z' }
+ const createObjectURL = vi.spyOn(URL, 'createObjectURL')
+ renderPage({ listDSRRequests: async () => [completed], issueDSRDownload: async () => ({ download_url: '/api/account/v1/dsr/downloads/token' }), redeemDSRDownload: async () => { throw new MemberDetailsError('ACC_DSR_EXPORT_TOO_LARGE', 413) } })
+ await userEvent.click(await screen.findByRole('button', { name: 'Download data export' }))
+ expect(await screen.findByText(/support@alive.org.tw/)).toHaveTextContent(/Do not email your personal data/i)
+ expect(createObjectURL).not.toHaveBeenCalled()
 })
 
 it('loads older public rounds without losing current entries on failed retry', async () => {

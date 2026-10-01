@@ -52,5 +52,10 @@ it('drops private member page events, transactions and breadcrumbs', async () =>
   expect(hooks.beforeBreadcrumb({ message: 'DO_NOT_CAPTURE_PRIVATE_SENTINEL' })).toBeNull()
   history.replaceState(null, '', '/profile')
   expect(hooks.beforeSend({ request: { url: '/api/account/v1/member-details' } })).toBeNull()
+  expect(hooks.beforeSend({ request: { url: '/api/account/v1/dsr/downloads/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' } })).toBeNull()
+  history.replaceState(null, '', '/data-requests')
+  expect(hooks.beforeSend({ extra: { data: 'synthetic-private-archive' } })).toBeNull()
+  expect(hooks.beforeBreadcrumb({ category: 'ui' })).toBeNull()
+  history.replaceState(null, '', '/profile')
  } finally { history.replaceState(null, '', original) }
 })
