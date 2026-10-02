@@ -425,7 +425,7 @@ describe('App layout', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('shows admin management only for an account with a canonical staff permission', async () => {
+  it.each(['cms:pages:read', 'iam:service-principals:read', 'cms:recordings:read'])('shows admin management for %s', async (permission) => {
     const user = userEvent.setup()
     const adminApi: AuthApi = {
       ...signedInApi,
@@ -434,7 +434,7 @@ describe('App layout', () => {
         email: 'ray@example.com',
         first_name: 'Ray',
         last_name: 'Self',
-        permissions: ['cms:pages:read'],
+        permissions: [permission],
       }),
     }
 
