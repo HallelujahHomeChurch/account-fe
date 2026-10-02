@@ -59,3 +59,11 @@ it('drops private member page events, transactions and breadcrumbs', async () =>
   history.replaceState(null, '', '/profile')
  } finally { history.replaceState(null, '', original) }
 })
+
+it('keeps caught-error handling safe when the SDK cannot load', async () => {
+  vi.stubEnv('VITE_SENTRY_DSN', 'https://public@example.test/1')
+  vi.doMock('@sentry/react', () => { throw new Error('SDK unavailable') })
+  const { reportReactError, initObservability } = await import('./observability')
+  expect(() => reportReactError(new Error('render failed'), { componentStack: '\n    at Broken' })).not.toThrow()
+  await expect(initObservability()).resolves.toBeUndefined()
+})
