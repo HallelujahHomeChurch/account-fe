@@ -1,3 +1,4 @@
+import type { ErrorInfo } from 'react'
 import type { Breadcrumb } from '@sentry/react'
 import type { AccountAuthEvent } from '@hallelujahhomechurch/account-client'
 
@@ -161,4 +162,13 @@ export function initObservability() {
     return Sentry
   }).catch(() => undefined)
   return sentryReady
+}
+
+export function reportReactError(error: unknown, errorInfo: ErrorInfo) {
+  void initObservability()?.then((Sentry) => {
+    Sentry?.captureReactException(error, errorInfo, {
+      mechanism: { handled: true, type: 'auto.function.react.error_handler' },
+      captureContext: { contexts: { react: { componentStack: errorInfo.componentStack } } },
+    })
+  }).catch(() => {})
 }
