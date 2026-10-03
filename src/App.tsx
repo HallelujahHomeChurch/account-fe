@@ -61,7 +61,24 @@ function LayoutContent() {
   const [accessRevision, setAccessRevision] = useState(0)
   const [memberAccess, setMemberAccess] = useState<{ owner: string; allowed: boolean }>({ owner: '', allowed: false })
   const owner = auth.profile?.id
-  const memberAllowed = capabilities?.memberDetailsEnabled === true && memberAccess.owner === auth.profile?.id && memberAccess.allowed
+  const [memberTransportAccess, setMemberTransportAccess] = useState<{ owner: string; allowed: boolean }>({ owner: '', allowed: false })
+  const memberEligible = memberAccess.owner === owner && memberAccess.allowed
+  const memberAllowed = capabilities?.memberDetailsEnabled === true && memberEligible && memberTransportAccess.owner === owner && memberTransportAccess.allowed
+  const memberAuthorizationPending = capabilities?.memberDetailsEnabled === true && memberEligible && memberTransportAccess.owner !== owner
+
+  useEffect(() => {
+    setMemberTransportAccess({ owner: '', allowed: false })
+    if (!owner || !memberEligible || capabilities?.memberDetailsEnabled !== true) return
+    let active = true
+    const controller = new AbortController()
+    const check = async () => {
+      let allowed = false
+      try { allowed = (await auth.api.memberTransportFetch?.('/member-details/transport-key', { method: 'GET', signal: controller.signal, cache: 'no-store' }))?.ok === true } catch { allowed = false }
+      if (active) setMemberTransportAccess({ owner, allowed })
+    }
+    void check()
+    return () => { active = false; controller.abort() }
+  }, [auth.api, capabilities?.memberDetailsEnabled, owner, memberEligible])
 
   useEffect(() => {
     setHasReservableResources(false)
@@ -286,7 +303,7 @@ function LayoutContent() {
             </p> : null}
             {hasPostLoginReturnTo() ? <PostLoginContinuation /> : <Routes>
               <Route element={<ProfilePage memberDetailsAvailable={memberAllowed} />} path="/profile" />
-              <Route element={memberAllowed ? <MemberDetailsPage key={auth.profile.id} /> : managedAccess === 'loading' || !capabilities && !capabilitiesError ? <Skeleton className="account-page-skeleton" label={t.profile.loading} /> : <Navigate replace to="/profile" />} path="/profile/member-details" />
+              <Route element={memberAllowed ? <MemberDetailsPage key={auth.profile.id} /> : managedAccess === 'loading' || memberAuthorizationPending || !capabilities && !capabilitiesError ? <Skeleton className="account-page-skeleton" label={t.profile.loading} /> : <Navigate replace to="/profile" />} path="/profile/member-details" />
               <Route element={<LegalReviewPage key={`${auth.profile.id}:${locale}`} />} path="/legal" />
               <Route element={<SecurityPage />} path="/security" />
               <Route element={<DevicesPage />} path="/devices" />
