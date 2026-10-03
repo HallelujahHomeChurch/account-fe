@@ -549,14 +549,17 @@ it.each([
  const operations = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValue({ churchMembership: { id: 'member' }, responsibilities: [], memberDetailsEligible: eligible }) }
  render(<MemoryRouter initialEntries={['/profile/member-details']}><LocaleProvider><AuthProvider api={account} operationsApi={operations as never}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
  await waitFor(() => expect(screen.getByTestId('route-path')).toHaveTextContent(/^\/profile$/))
- expect(screen.queryByRole('link', { name: 'Member details' })).not.toBeInTheDocument()
+ expect(screen.queryByRole('button', { name: 'Member details' })).not.toBeInTheDocument()
  expect(memberTransportFetch).not.toHaveBeenCalled()
 })
-it('shows a private-page link only for the explicit rollout and effective church member flag', async () => {
+it('shows a private-page button only for the explicit rollout and effective church member flag', async () => {
  const account: AuthApi = { ...signedInApi, getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, memberDetailsEnabled: true }), memberTransportFetch: vi.fn().mockResolvedValue(new Response(null, { status: 200 })) }
  const operations = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValue({ churchMembership: { id: 'member' }, responsibilities: [], memberDetailsEligible: true }) }
  render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={account} operationsApi={operations as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
- expect(await screen.findByRole('link', { name: 'Member details' })).toHaveAttribute('href', '/profile/member-details')
+ const entry = await screen.findByRole('button', { name: 'Member details' })
+ expect(entry.closest('.settings-card')).toContainElement(screen.getByText('Appearance'))
+ expect(document.querySelectorAll('.settings-card')).toHaveLength(1)
+ expect(screen.queryByText('These private details do not appear on your general profile.')).not.toBeInTheDocument()
  expect(screen.queryByLabelText('Family name')).not.toBeInTheDocument()
 })
 
@@ -582,7 +585,7 @@ it.each([403, 503])('hides the private entry when backend collection authorizati
  const operations = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValue({ churchMembership: { id: 'member' }, responsibilities: [], memberDetailsEligible: true }) }
  render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={account} operationsApi={operations as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
  await waitFor(() => expect(memberTransportFetch).toHaveBeenCalledWith('/member-details/transport-key', expect.objectContaining({ method: 'GET' })))
- expect(screen.queryByRole('link', { name: 'Member details' })).not.toBeInTheDocument()
+ expect(screen.queryByRole('button', { name: 'Member details' })).not.toBeInTheDocument()
 })
 
 it('waits for backend collection authorization on a direct private-page visit', async () => {
