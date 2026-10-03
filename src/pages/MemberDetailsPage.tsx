@@ -1,6 +1,9 @@
+import { isSupportedCountry } from 'libphonenumber-js/min'
 import { Button, Card, Form, Input, Label, Skeleton, TextField } from '@hallelujahhomechurch/ui'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, Navigate, UNSAFE_DataRouterContext, useBlocker } from 'react-router-dom'
+import { MobileNumberField } from '../components/MobileNumberField'
+import { normalizeMobile } from '../lib/mobile-number'
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import { memberDetailsMessages } from '../i18n/member-details'
@@ -74,7 +77,9 @@ export function MemberDetailsPage() {
   if (!client || state !== 'ready') return
   const form = new FormData(event.currentTarget)
   const value = (name: string) => String(form.get(name) ?? '').trim() || null
-  const input = { familyName: value('familyName'), givenName: value('givenName'), gender: value('gender'), identityDocument: value('identityDocument')?.toUpperCase() ?? null, mobile: value('mobile') }
+  const country = String(form.get('mobileCountry') ?? '')
+  if (!isSupportedCountry(country)) { setError('invalid'); return }
+  const input = { familyName: value('familyName'), givenName: value('givenName'), gender: value('gender'), identityDocument: value('identityDocument')?.toUpperCase() ?? null, mobile: normalizeMobile(String(form.get('mobile') ?? ''), country) }
   if (!isMemberDetails(input)) { setError('invalid'); return }
   request.current?.abort(); const controller = new AbortController(); request.current = controller
   setState('busy'); setError(''); setNotice('')
@@ -95,22 +100,23 @@ export function MemberDetailsPage() {
  if (state === 'denied') return <Navigate replace to="/profile" />
  return <section className="account-document" data-sentry-block data-sentry-mask>
   {dataRouter ? <DirtyNavigationGuard dirty={dirty} message={t.leave} /> : null}
-  <div className="page-heading"><h1>{t.title}</h1><p>{t.privacy}</p></div>
+  <div className="page-heading"><h1>{t.title}</h1></div>
   <Link to="/profile">{t.back}</Link>
   {notice ? <p className="form-notice" role="status">{t[notice]}</p> : null}
   {error ? <p className="form-error" role="alert">{t[error]}</p> : null}
   {state === 'recover' ? <Button onPress={reload}>{t.retry}</Button> : null}
   {state === 'loading' ? <Skeleton className="account-page-skeleton" label={t.loading} /> : state === 'failed' ? <Button onPress={reload}>{t.retry}</Button> : details ? <Card className="panel-card settings-card">
-   <Card.Header><Card.Title>{t.title}</Card.Title><p>{t.optional}</p></Card.Header>
+   <Card.Header><Card.Title>{t.title}</Card.Title></Card.Header>
    <Card.Content><Form key={etag ?? "empty"} onSubmit={submit} autoComplete="off">
     <fieldset onChange={() => setDirty(true)} disabled={state !== 'ready'} className="member-details-fields">
      <legend className="sr-only">{t.title}</legend>
-     {(['familyName', 'givenName', 'gender', 'identityDocument', 'mobile'] as const).map(field => field === 'gender' ? <label key={field} className="member-gender-field">{t.gender}<select name="gender" defaultValue={details.gender ?? ''}>
+     {(['familyName', 'givenName', 'gender', 'identityDocument'] as const).map(field => field === 'gender' ? <label key={field} className="member-gender-field">{t.gender}<select name="gender" defaultValue={details.gender ?? ''}>
       <option value="">{t.unspecified}</option>
       {(['male', 'female', 'other', 'prefer_not_to_say'] as const).map(gender => <option key={gender} value={gender}>{t[gender]}</option>)}
-     </select></label> : <TextField key={field} name={field} type={field === 'mobile' ? 'tel' : 'text'} defaultValue={details[field] ?? ''} autoComplete="off">
-      <Label>{t[field]}</Label><Input placeholder={field === 'mobile' ? '+886912345678' : undefined} />
+     </select></label> : <TextField key={field} name={field} type="text" defaultValue={details[field] ?? ''} autoComplete="off">
+      <Label>{t[field]}</Label><Input />
      </TextField>)}
+     <MobileNumberField mobile={details.mobile} isDisabled={state !== 'ready'} onDirty={() => setDirty(true)} />
     </fieldset>
     <div className="member-details-actions"><Button type="submit" isDisabled={state !== 'ready'}>{t.save}</Button><Button variant="ghost" isDisabled={!etag || state !== 'ready'} onPress={() => void remove()}>{t.remove}</Button></div>
    </Form></Card.Content>

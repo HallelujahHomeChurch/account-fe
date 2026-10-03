@@ -1,7 +1,7 @@
 import { markProfileSaved } from '../lib/analytics-events'
 import { Button, Card, FieldError, Form, Input, Label, Modal, Skeleton, TextField } from '@hallelujahhomechurch/ui'
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { memberDetailsMessages } from '../i18n/member-details'
 
 import { useAuth } from '../auth/auth-context'
@@ -15,6 +15,7 @@ import { displayAccountName } from '../lib/account-display'
 
 export function ProfilePage({ memberDetailsAvailable = false }: { memberDetailsAvailable?: boolean }) {
   const auth = useAuth()
+  const navigate = useNavigate()
   const { capabilities, error: capabilityError, retry: retryCapabilities } = useAuthCapabilitiesState()
   const nicknameEnabled = capabilities?.nicknameWriteEnabled === true
   const { locale, messages: t } = useLocale()
@@ -66,8 +67,6 @@ export function ProfilePage({ memberDetailsAvailable = false }: { memberDetailsA
       {error ? <p className="form-error" role="alert">{error}</p> : null}
       {capabilityError ? <div role="alert"><p>{t.profile.updateFailed}</p><Button onPress={retryCapabilities}>{t.legalAcceptance.retry}</Button></div> : null}
 
-      {memberDetailsAvailable ? <Card className="panel-card settings-card"><Card.Content className="settings-list"><div className="settings-row"><div className="settings-row-copy"><span className="settings-row-label">{memberDetailsMessages[locale].title}</span><p>{memberDetailsMessages[locale].privacy}</p></div><Link className="member-details-link" to="/profile/member-details">{memberDetailsMessages[locale].title}</Link></div></Card.Content></Card> : null}
-
       <Card className="panel-card settings-card">
         <Card.Header>
           <Card.Title>{t.profile.personalDetails}</Card.Title>
@@ -109,6 +108,13 @@ export function ProfilePage({ memberDetailsAvailable = false }: { memberDetailsA
             </div>
             <ThemeSelector />
           </div>
+          {memberDetailsAvailable ? (
+            <div className="settings-row member-details-entry">
+              <Button variant="secondary" onPress={() => navigate('/profile/member-details')}>
+                {memberDetailsMessages[locale].title}
+              </Button>
+            </div>
+          ) : null}
         </Card.Content>
       </Card>
 
