@@ -553,7 +553,7 @@ it.each([
  expect(memberTransportFetch).not.toHaveBeenCalled()
 })
 it('shows a private-page link only for the explicit rollout and effective church member flag', async () => {
- const account: AuthApi = { ...signedInApi, getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, memberDetailsEnabled: true }) }
+ const account: AuthApi = { ...signedInApi, getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, memberDetailsEnabled: true }), memberTransportFetch: vi.fn().mockResolvedValue(new Response(null, { status: 200 })) }
  const operations = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValue({ churchMembership: { id: 'member' }, responsibilities: [], memberDetailsEligible: true }) }
  render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={account} operationsApi={operations as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
  expect(await screen.findByRole('link', { name: 'Member details' })).toHaveAttribute('href', '/profile/member-details')
@@ -563,7 +563,8 @@ it('shows a private-page link only for the explicit rollout and effective church
 it('keeps the private editor mounted when focus refresh returns a new profile object for the same owner', async () => {
  const load = vi.spyOn(MemberDetailsClient.prototype, 'load').mockResolvedValue({ details: { familyName: 'SyntheticPrivate', givenName: null, gender: null, identityDocument: null, mobile: null }, etag: null })
  const me = vi.fn(async () => ({ id: 'same-owner', email: 'same@example.test' }))
- const account: AuthApi = { ...signedInApi, me, getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, memberDetailsEnabled: true }), memberTransportFetch: vi.fn() }
+ const memberTransportFetch = vi.fn().mockResolvedValueOnce(new Response(null, { status: 200 })).mockResolvedValue(new Response(null, { status: 503 }))
+ const account: AuthApi = { ...signedInApi, me, getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, memberDetailsEnabled: true }), memberTransportFetch }
  const operations = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValue({ churchMembership: { id: 'member' }, responsibilities: [], memberDetailsEligible: true }) }
  try {
   render(<MemoryRouter initialEntries={['/profile/member-details']}><LocaleProvider><AuthProvider api={account} operationsApi={operations as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
@@ -571,6 +572,48 @@ it('keeps the private editor mounted when focus refresh returns a new profile ob
   const previous = me.mock.calls.length
   fireEvent.focus(window)
   await waitFor(() => expect(me.mock.calls.length).toBeGreaterThan(previous))
-  expect(await screen.findByLabelText('Family name')).toBe(field); expect(field).toHaveValue('SyntheticPrivateDraft'); expect(load).toHaveBeenCalledOnce()
+  expect(await screen.findByLabelText('Family name')).toBe(field); expect(field).toHaveValue('SyntheticPrivateDraft'); expect(load).toHaveBeenCalledOnce(); expect(memberTransportFetch).toHaveBeenCalledOnce()
+ } finally { load.mockRestore() }
+})
+
+it.each([403, 503])('hides the private entry when backend collection authorization returns %s', async status => {
+ const memberTransportFetch = vi.fn().mockResolvedValue(new Response(null, { status }))
+ const account: AuthApi = { ...signedInApi, getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, memberDetailsEnabled: true }), memberTransportFetch }
+ const operations = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValue({ churchMembership: { id: 'member' }, responsibilities: [], memberDetailsEligible: true }) }
+ render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={account} operationsApi={operations as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+ await waitFor(() => expect(memberTransportFetch).toHaveBeenCalledWith('/member-details/transport-key', expect.objectContaining({ method: 'GET' })))
+ expect(screen.queryByRole('link', { name: 'Member details' })).not.toBeInTheDocument()
+})
+
+it('waits for backend collection authorization on a direct private-page visit', async () => {
+ let authorize!: (response: Response) => void
+ const response = new Promise<Response>(resolve => { authorize = resolve })
+ const memberTransportFetch = vi.fn(() => response)
+ const load = vi.spyOn(MemberDetailsClient.prototype, 'load').mockResolvedValue({ details: null, etag: null })
+ const account: AuthApi = { ...signedInApi, getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, memberDetailsEnabled: true }), memberTransportFetch }
+ const operations = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValue({ churchMembership: { id: 'member' }, responsibilities: [], memberDetailsEligible: true }) }
+ try {
+  render(<MemoryRouter initialEntries={['/profile/member-details']}><LocaleProvider><AuthProvider api={account} operationsApi={operations as never}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+  await waitFor(() => expect(memberTransportFetch).toHaveBeenCalled())
+  expect(screen.getByTestId('route-path')).toHaveTextContent('/profile/member-details')
+  authorize(new Response(null, { status: 200 }))
+  expect(await screen.findByLabelText('Family name')).toBeInTheDocument()
+ } finally { load.mockRestore() }
+})
+
+it('waits on a direct private-page visit when capabilities arrive after church access', async () => {
+ let releaseCapabilities!: (value: Awaited<ReturnType<NonNullable<AuthApi['getAuthCapabilities']>>>) => void
+ const capabilities = new Promise<Awaited<ReturnType<NonNullable<AuthApi['getAuthCapabilities']>>>>(resolve => { releaseCapabilities = resolve })
+ const memberTransportFetch = vi.fn().mockResolvedValue(new Response(null, { status: 200 }))
+ const load = vi.spyOn(MemberDetailsClient.prototype, 'load').mockResolvedValue({ details: null, etag: null })
+ const account: AuthApi = { ...signedInApi, getAuthCapabilities: () => capabilities, memberTransportFetch }
+ const getMyAccess = vi.fn().mockResolvedValue({ churchMembership: { id: 'member' }, responsibilities: [], memberDetailsEligible: true })
+ const operations = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess }
+ try {
+  render(<MemoryRouter initialEntries={['/profile/member-details']}><LocaleProvider><AuthProvider api={account} operationsApi={operations as never}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+  await waitFor(() => expect(getMyAccess).toHaveBeenCalled())
+  releaseCapabilities({ providers: [], registrationEnabled: false, memberDetailsEnabled: true })
+  expect(await screen.findByLabelText('Family name')).toBeInTheDocument()
+  expect(screen.getByTestId('route-path')).toHaveTextContent('/profile/member-details')
  } finally { load.mockRestore() }
 })
