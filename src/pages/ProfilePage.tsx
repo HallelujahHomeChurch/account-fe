@@ -109,7 +109,10 @@ export function ProfilePage({ memberDetailsAvailable = false }: { memberDetailsA
             <ThemeSelector />
           </div>
           {memberDetailsAvailable ? (
-            <div className="settings-row member-details-entry">
+            <div className="settings-row">
+              <div className="settings-row-copy">
+                <span className="settings-row-label">{memberDetailsMessages[locale].title}</span>
+              </div>
               <Button variant="secondary" onPress={() => navigate('/profile/member-details')}>
                 {memberDetailsMessages[locale].title}
               </Button>
