@@ -10,7 +10,7 @@ import { OrganizationUnitPage } from './OrganizationUnitPage'
 vi.mock('../../auth/auth-context', () => ({ useAuth: vi.fn() }))
 vi.mock('../../i18n/locale-context', () => ({ useLocale: () => ({ messages: messages.en }) }))
 
-const operationsApi = { getManagedUnit: vi.fn(), listManagedMembers: vi.fn(), searchManagedCandidates: vi.fn(), listManagedResponsibilities: vi.fn(), getMyAccess: vi.fn(), revokeManagedResponsibility: vi.fn(), applyManagedEntitlements: vi.fn() }
+const operationsApi = { updateManagedUnit: vi.fn(), getManagedUnit: vi.fn(), listManagedMembers: vi.fn(), searchManagedCandidates: vi.fn(), listManagedResponsibilities: vi.fn(), getMyAccess: vi.fn(), revokeManagedResponsibility: vi.fn(), applyManagedEntitlements: vi.fn() }
 beforeEach(() => {
   vi.resetAllMocks()
   operationsApi.getManagedUnit.mockResolvedValue({ unit: { id: 'church', kind: 'church', name: 'Church', status: 'active', version: 1 }, breadcrumb: [], children: [], actions: { editUnit: false, createChild: false, archive: false, restore: false, manageMembers: true, manageResponsibilities: false, manageEntitlements: true, sendNotifications: false } })
@@ -72,7 +72,7 @@ it('offers individual member access without selection or batch entitlement contr
   expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Grant' })).not.toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument()
-  expect(within(table).getByRole('link', { name: 'Weekly report access Alice' })).toHaveAttribute('href', '/organizations/church/members/member')
+  expect(within(table).getByRole('link', { name: 'Content access Alice' })).toHaveAttribute('href', '/organizations/church/members/member')
   expect(operationsApi.applyManagedEntitlements).not.toHaveBeenCalled()
 })
 
@@ -87,7 +87,7 @@ it('keeps names icon-free and provides a last-column action for units and member
   operationsApi.getManagedUnit.mockResolvedValue({ unit: { id: 'church', kind: 'church', name: 'Church', status: 'active' }, breadcrumb: [], children: [{ id: 'family', kind: 'family', name: 'Family', status: 'active' }], actions: {} })
   mount()
   const unit = await screen.findByRole('link', { name: 'Open unit Family' })
-  const member = screen.getByRole('link', { name: 'Weekly report access Alice' })
+  const member = screen.getByRole('link', { name: 'Content access Alice' })
   expect(unit).toHaveAttribute('href', '/organizations/family')
   expect(member).toHaveAttribute('href', '/organizations/church/members/member')
   for (const link of [unit, member]) expect(link.closest('td')).toBe(link.closest('tr')?.lastElementChild)
@@ -100,4 +100,35 @@ it('does not offer child creation when server actions deny it', async () => {
   mount()
   await screen.findByRole('table')
   expect(screen.queryByRole('button', { name: 'Create child unit' })).not.toBeInTheDocument()
+})
+
+it('lets an ancestor manager restrict a child to Traditional bulletin and video', async () => {
+ operationsApi.getManagedUnit.mockResolvedValue({unit:{id:'church',kind:'small_group',name:'Group',status:'active',version:1,grantableEntitlementCodes:['bulletin.general.zh-Hant.access','bulletin.general.zh-Hans.access','bulletin.general.en.access'],effectiveGrantableEntitlementCodes:['bulletin.general.zh-Hant.access','bulletin.general.zh-Hans.access','bulletin.general.en.access']},breadcrumb:[{id:'parent',effectiveGrantableEntitlementCodes:['bulletin.general.zh-Hant.access','bulletin.general.zh-Hans.access','bulletin.general.en.access','video.meeting-recordings.access']}],children:[],actions:{editUnit:true,manageEntitlementPolicy:true}})
+ mount()
+ await userEvent.click(await screen.findByRole('button',{name:'Unit settings'}))
+ const policy=screen.getByRole('group',{name:'Grantable access'})
+ await userEvent.click(within(policy).getByRole('checkbox',{name:'简体中文'}))
+ await userEvent.click(within(policy).getByRole('checkbox',{name:'English'}))
+ await userEvent.click(within(policy).getByRole('checkbox',{name:'Member videos'}))
+ await userEvent.click(within(screen.getByRole('dialog')).getByRole('button',{name:'Save'}))
+ expect(operationsApi.updateManagedUnit).toHaveBeenCalledWith('church',1,expect.objectContaining({grantableEntitlementCodes:['bulletin.general.zh-Hant.access','video.meeting-recordings.access']}),expect.any(String))
+})
+
+it('shows own unit policy read-only and omits it from an ordinary name update', async () => {
+ operationsApi.getManagedUnit.mockResolvedValue({unit:{id:'church',kind:'family',name:'Family',status:'active',version:1,grantableEntitlementCodes:['bulletin.general.zh-Hant.access'],effectiveGrantableEntitlementCodes:['bulletin.general.zh-Hant.access']},breadcrumb:[],children:[],actions:{editUnit:true,manageEntitlementPolicy:false}})
+ mount()
+ await userEvent.click(await screen.findByRole('button',{name:'Unit settings'}))
+ const policy=screen.getByRole('group',{name:'Grantable access'})
+ expect(within(policy).getAllByRole('checkbox').every(input=>(input as HTMLInputElement).disabled)).toBe(true)
+ await userEvent.click(within(screen.getByRole('dialog')).getByRole('button',{name:'Save'}))
+ expect(operationsApi.updateManagedUnit).toHaveBeenCalledWith('church',1,{name:'Family',email:''},expect.any(String))
+})
+
+it('preserves a child policy on name-only saves after ancestor restriction', async () => {
+ operationsApi.getManagedUnit.mockResolvedValue({unit:{id:'church',kind:'small_group',name:'Group',status:'active',version:1,grantableEntitlementCodes:['bulletin.general.zh-Hant.access','bulletin.general.en.access'],effectiveGrantableEntitlementCodes:['bulletin.general.zh-Hant.access']},breadcrumb:[{id:'parent',effectiveGrantableEntitlementCodes:['bulletin.general.zh-Hant.access']}],children:[],actions:{editUnit:true,manageEntitlementPolicy:true}})
+ mount()
+ await userEvent.click(await screen.findByRole('button',{name:'Unit settings'}))
+ await userEvent.type(within(screen.getByRole('dialog')).getByRole('textbox',{name:'Name'}),' renamed')
+ await userEvent.click(within(screen.getByRole('dialog')).getByRole('button',{name:'Save'}))
+ expect(operationsApi.updateManagedUnit).toHaveBeenCalledWith('church',1,{name:'Group renamed',email:''},expect.any(String))
 })

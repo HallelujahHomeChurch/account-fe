@@ -6,7 +6,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../auth/auth-context'
 import { useLocale } from '../../i18n/locale-context'
 import { OperationsApiError, type ManagedMemberView, type ManagedUnitFolder } from '../../lib/operations-api'
-import { useManagedMutation, weeklyReportCodes, weeklyReportLabels } from './organization-state'
+import { useManagedMutation, managedEntitlementCodes, managedEntitlementLabels } from './organization-state'
 
 type Affiliation = ManagedMemberView['affiliations'][number]
 
@@ -71,12 +71,13 @@ function MemberDetail({ unitId, memberId }: { unitId: string; memberId: string }
     </div>
     {!endAffiliation ? mutationError : null}
     <Card className="panel-card"><Card.Header><Card.Title>{t.entitlements}</Card.Title></Card.Header><Card.Content>
-      <ul className="organization-list">{weeklyReportCodes.map((code, index) => {
+      <ul className="organization-list">{managedEntitlementCodes.map((code, index) => {
         const granted = member.entitlementCodes.includes(code)
-        return <li key={code}><span>{weeklyReportLabels[index]}<small>{t.entitlements}</small></span>
-          {member.actions.manageEntitlements ? <Button size="sm" isDisabled={pending} variant={granted ? 'secondary' : 'primary'} onPress={async () => {
+        const grantable = member.grantableEntitlementCodes?.includes(code) ?? false
+        return <li key={code}><span>{index === 3 ? t.video : managedEntitlementLabels[index]}<small>{t.entitlements}</small></span>
+          {member.actions.manageEntitlements && (granted || grantable) ? <Button size="sm" isDisabled={pending} variant={granted ? 'secondary' : 'primary'} onPress={async () => {
             if (await mutate(JSON.stringify(['entitlement', code, granted]), key => operationsApi.applyManagedEntitlements(unitId, [memberId], code, granted ? 'revoke' : 'grant', key))) setRevision(value => value + 1)
-          }}>{granted ? t.remove : t.grant}</Button> : <span>{granted ? t.active : '—'}</span>}
+          }}>{granted ? t.remove : t.grant}</Button> : <span>{granted ? t.active : t.blocked}</span>}
         </li>
       })}</ul>
     </Card.Content></Card>

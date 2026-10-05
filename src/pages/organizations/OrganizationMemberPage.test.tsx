@@ -21,7 +21,7 @@ beforeEach(() => {
 
 it.each(['grant', 'revoke'] as const)('keeps individual entitlement %s scoped to the opened member', async operation => {
   const code = 'bulletin.general.zh-Hant.access'
-  api.getManagedMember.mockResolvedValue({ memberId: 'member', displayName: 'Alice', email: 'a@example.test', affiliations: [], entitlementCodes: operation === 'revoke' ? [code] : [], actions: { manageEntitlements: true } })
+  api.getManagedMember.mockResolvedValue({ memberId: 'member', displayName: 'Alice', email: 'a@example.test', affiliations: [], entitlementCodes: operation === 'revoke' ? [code] : [], grantableEntitlementCodes: [code], actions: { manageEntitlements: true } })
   render(<MemoryRouter initialEntries={['/organizations/unit/members/member']}><Routes><Route path="/organizations/:unitId/members/:memberId" element={<OrganizationMemberPage />} /></Routes></MemoryRouter>)
   const buttons = await screen.findAllByRole('button', { name: operation === 'grant' ? 'Grant' : 'Remove' })
   await userEvent.click(buttons[0])
@@ -68,4 +68,20 @@ it('rejects a direct forbidden member URL with a return link, not retry or mutat
   expect(await screen.findByRole('alert')).toHaveTextContent(messages.en.organizations.memberForbidden)
   expect(screen.getByRole('link', { name: 'Back' })).toHaveAttribute('href', '/organizations/unit')
   expect(screen.queryByRole('button')).not.toBeInTheDocument()
+})
+
+it('offers only the server-authorized Traditional bulletin and video grants', async () => {
+ api.getManagedMember.mockResolvedValue({memberId:'member',displayName:'Alice',email:'a@example.test',affiliations:[],entitlementCodes:[],grantableEntitlementCodes:['bulletin.general.zh-Hant.access','video.meeting-recordings.access'],actions:{manageEntitlements:true}})
+ render(<MemoryRouter initialEntries={['/organizations/unit/members/member']}><Routes><Route path="/organizations/:unitId/members/:memberId" element={<OrganizationMemberPage />} /></Routes></MemoryRouter>)
+ await screen.findByText('Member videos')
+ expect(screen.getAllByRole('button',{name:'Grant'})).toHaveLength(2)
+ const row = screen.getByText('Member videos').closest('li')!
+ await userEvent.click(within(row).getByRole('button',{name:'Grant'}))
+ expect(api.applyManagedEntitlements).toHaveBeenCalledWith('unit',['member'],'video.meeting-recordings.access','grant',expect.any(String))
+})
+
+it('fails new grants closed when the server policy projection is unavailable', async () => {
+ render(<MemoryRouter initialEntries={['/organizations/unit/members/member']}><Routes><Route path="/organizations/:unitId/members/:memberId" element={<OrganizationMemberPage />} /></Routes></MemoryRouter>)
+ await screen.findByRole('heading',{name:'Alice'})
+ expect(screen.queryByRole('button',{name:'Grant'})).not.toBeInTheDocument()
 })
