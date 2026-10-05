@@ -72,7 +72,7 @@ it('navigates root to unit to member and back using the shared breadcrumb title'
   await userEvent.click(await screen.findByRole('link', { name: 'Open unit Family' }))
   await screen.findByRole('table')
   expect(within(screen.getByRole('navigation')).getByRole('link', { name: 'Small group management' })).toHaveAttribute('href', '/organizations')
-  await userEvent.click(screen.getByRole('link', { name: 'Weekly report access Alice' }))
+  await userEvent.click(screen.getByRole('link', { name: 'Content access Alice' }))
   await screen.findByRole('heading', { name: 'Alice' })
   await userEvent.click(within(screen.getByRole('navigation')).getByRole('link', { name: 'Small group management' }))
   await screen.findByRole('table', { name: 'Small group management' })

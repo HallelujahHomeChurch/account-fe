@@ -12,8 +12,8 @@ importers:
         specifier: 1.0.31
         version: 1.0.31
       '@hallelujahhomechurch/operations-client':
-        specifier: 1.0.25
-        version: 1.0.25
+        specifier: 1.0.33
+        version: 1.0.33
       '@hallelujahhomechurch/preferences':
         specifier: 1.0.28
         version: 1.0.28
@@ -240,14 +240,14 @@ packages:
       '@noble/hashes':
         optional: true
 
-  '@hallelujahhomechurch/account-client@1.0.25':
-    resolution: {integrity: sha512-UCSjmWzt1xTVUrNKgUxwwTli0gKpl75CV6nfW4OsopMOTqiTYo0onqBDj3Zwgsl85jLAMt2uJULs11VYcBGlgA==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/account-client/1.0.25/9363e733b2c242a4d4d6038a4cf7f3765ba0ae5d}
-
   '@hallelujahhomechurch/account-client@1.0.31':
     resolution: {integrity: sha512-N6CydT9v0NduA/g4uPeih0ovJKWsS14F1y/9PkUg42XtJHHCLvLasAv/U0QtCqsU9wmoJY3ZMH3Bwjngqg8DQw==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/account-client/1.0.31/7a020e8e43d94621e0ce1bff2f8169a08375b96b}
 
-  '@hallelujahhomechurch/operations-client@1.0.25':
-    resolution: {integrity: sha512-rECmTfvU2pFmwVcTQ7jsrxtxvgBo9gjPWMIe71bx0BCwGVdWQT34WvGH/CVfgnSzXxhYqPrw1nenxutv0QiM6g==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/operations-client/1.0.25/7df7f7ea661c8daed3fc6f9f164a239da8a30426}
+  '@hallelujahhomechurch/account-client@1.0.33':
+    resolution: {integrity: sha512-5HTxZ4ZKeFq6rv7o2FsoUpznTdVAxLnr7uPdrsNqZa9jq3kP0dRyN6KMGIKlgGCbu7Sy3R9XtJiUjbKaYVNSAg==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/account-client/1.0.33/7de71960c6c3c6378051f8048ea3c396483a2d37}
+
+  '@hallelujahhomechurch/operations-client@1.0.33':
+    resolution: {integrity: sha512-cmGCec9dUfqvxe7FoDK2yZiF9QyxN/nphftaq4zJDdcmCY5JThwPDRjPiCDHe37kQyTTG47zony4zc+TsZYzNA==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/operations-client/1.0.33/a30c925d18c614a32b77888128b5d025e48ae0df}
 
   '@hallelujahhomechurch/preferences@1.0.28':
     resolution: {integrity: sha512-Ucv6UMYVEL0mWd/oy43Wfrvw0FKoKfVHd4lmNR9OoPE9EBjzsLs7piSn7ifS8UJaMFKpO3HY4EBbCBgQrnH2BQ==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/preferences/1.0.28/4ad149fb2af6cd03e764f453ebb8950c32b13f49}
@@ -1770,13 +1770,13 @@ snapshots:
 
   '@exodus/bytes@1.15.1': {}
 
-  '@hallelujahhomechurch/account-client@1.0.25': {}
-
   '@hallelujahhomechurch/account-client@1.0.31': {}
 
-  '@hallelujahhomechurch/operations-client@1.0.25':
+  '@hallelujahhomechurch/account-client@1.0.33': {}
+
+  '@hallelujahhomechurch/operations-client@1.0.33':
     dependencies:
-      '@hallelujahhomechurch/account-client': 1.0.25
+      '@hallelujahhomechurch/account-client': 1.0.33
       openapi-fetch: 0.15.2
 
   '@hallelujahhomechurch/preferences@1.0.28': {}
