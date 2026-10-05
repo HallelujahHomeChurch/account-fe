@@ -103,7 +103,7 @@ it('does not offer child creation when server actions deny it', async () => {
 })
 
 it('lets an ancestor manager restrict a child to Traditional bulletin and video', async () => {
- operationsApi.getManagedUnit.mockResolvedValue({unit:{id:'church',kind:'small_group',name:'Group',status:'active',version:1,grantableEntitlementCodes:['bulletin.general.zh-Hant.access','bulletin.general.zh-Hans.access','bulletin.general.en.access'],effectiveGrantableEntitlementCodes:['bulletin.general.zh-Hant.access','bulletin.general.zh-Hans.access','bulletin.general.en.access']},breadcrumb:[{id:'parent',effectiveGrantableEntitlementCodes:['bulletin.general.zh-Hant.access','bulletin.general.zh-Hans.access','bulletin.general.en.access','video.meeting-recordings.access']}],children:[],actions:{editUnit:true,manageEntitlementPolicy:true}})
+ operationsApi.getManagedUnit.mockResolvedValue({unit:{id:'church',kind:'small_group',name:'Group',status:'active',version:1,inheritsGrantableEntitlements:false,grantableEntitlementCodes:['bulletin.general.zh-Hant.access','bulletin.general.zh-Hans.access','bulletin.general.en.access'],effectiveGrantableEntitlementCodes:['bulletin.general.zh-Hant.access','bulletin.general.zh-Hans.access','bulletin.general.en.access']},breadcrumb:[{id:'parent',effectiveGrantableEntitlementCodes:['bulletin.general.zh-Hant.access','bulletin.general.zh-Hans.access','bulletin.general.en.access','video.meeting-recordings.access']}],children:[],actions:{editUnit:true,manageEntitlementPolicy:true}})
  mount()
  await userEvent.click(await screen.findByRole('button',{name:'Unit settings'}))
  const policy=screen.getByRole('group',{name:'Grantable access'})
@@ -115,7 +115,7 @@ it('lets an ancestor manager restrict a child to Traditional bulletin and video'
 })
 
 it('shows own unit policy read-only and omits it from an ordinary name update', async () => {
- operationsApi.getManagedUnit.mockResolvedValue({unit:{id:'church',kind:'family',name:'Family',status:'active',version:1,grantableEntitlementCodes:['bulletin.general.zh-Hant.access'],effectiveGrantableEntitlementCodes:['bulletin.general.zh-Hant.access']},breadcrumb:[],children:[],actions:{editUnit:true,manageEntitlementPolicy:false}})
+ operationsApi.getManagedUnit.mockResolvedValue({unit:{id:'church',kind:'family',name:'Family',status:'active',version:1,inheritsGrantableEntitlements:false,grantableEntitlementCodes:['bulletin.general.zh-Hant.access'],effectiveGrantableEntitlementCodes:['bulletin.general.zh-Hant.access']},breadcrumb:[],children:[],actions:{editUnit:true,manageEntitlementPolicy:false}})
  mount()
  await userEvent.click(await screen.findByRole('button',{name:'Unit settings'}))
  const policy=screen.getByRole('group',{name:'Grantable access'})
@@ -125,10 +125,39 @@ it('shows own unit policy read-only and omits it from an ordinary name update', 
 })
 
 it('preserves a child policy on name-only saves after ancestor restriction', async () => {
- operationsApi.getManagedUnit.mockResolvedValue({unit:{id:'church',kind:'small_group',name:'Group',status:'active',version:1,grantableEntitlementCodes:['bulletin.general.zh-Hant.access','bulletin.general.en.access'],effectiveGrantableEntitlementCodes:['bulletin.general.zh-Hant.access']},breadcrumb:[{id:'parent',effectiveGrantableEntitlementCodes:['bulletin.general.zh-Hant.access']}],children:[],actions:{editUnit:true,manageEntitlementPolicy:true}})
+ operationsApi.getManagedUnit.mockResolvedValue({unit:{id:'church',kind:'small_group',name:'Group',status:'active',version:1,inheritsGrantableEntitlements:false,grantableEntitlementCodes:['bulletin.general.zh-Hant.access','bulletin.general.en.access'],effectiveGrantableEntitlementCodes:['bulletin.general.zh-Hant.access']},breadcrumb:[{id:'parent',effectiveGrantableEntitlementCodes:['bulletin.general.zh-Hant.access']}],children:[],actions:{editUnit:true,manageEntitlementPolicy:true}})
  mount()
  await userEvent.click(await screen.findByRole('button',{name:'Unit settings'}))
  await userEvent.type(within(screen.getByRole('dialog')).getByRole('textbox',{name:'Name'}),' renamed')
  await userEvent.click(within(screen.getByRole('dialog')).getByRole('button',{name:'Save'}))
  expect(operationsApi.updateManagedUnit).toHaveBeenCalledWith('church',1,{name:'Group renamed',email:''},expect.any(String))
+})
+
+it('can override inherited access beyond the parent and reset to inheritance', async () => {
+ operationsApi.getManagedUnit.mockResolvedValue({unit:{id:'church',parentId:'parent',kind:'small_group',name:'Group',status:'active',version:1,inheritsGrantableEntitlements:true,grantableEntitlementCodes:['bulletin.general.zh-Hant.access'],effectiveGrantableEntitlementCodes:['bulletin.general.zh-Hant.access']},breadcrumb:[{id:'parent',effectiveGrantableEntitlementCodes:['bulletin.general.zh-Hant.access']}],children:[],actions:{editUnit:true,manageEntitlementPolicy:true}})
+ mount()
+ await userEvent.click(await screen.findByRole('button',{name:'Unit settings'}))
+ const policy=screen.getByRole('group',{name:'Grantable access'})
+ expect(within(policy).getByRole('checkbox',{name:'Member videos'})).toBeDisabled()
+ await userEvent.click(within(policy).getByRole('checkbox',{name:'Inherit from parent'}))
+ await userEvent.click(within(policy).getByRole('checkbox',{name:'Member videos'}))
+ await userEvent.click(within(screen.getByRole('dialog')).getByRole('button',{name:'Save'}))
+ expect(operationsApi.updateManagedUnit).toHaveBeenCalledWith('church',1,{name:'Group',email:'',inheritsGrantableEntitlements:false,grantableEntitlementCodes:['bulletin.general.zh-Hant.access','video.meeting-recordings.access']},expect.any(String))
+})
+
+it('sends only the inheritance flag when restoring parent defaults', async () => {
+ operationsApi.getManagedUnit.mockResolvedValue({unit:{id:'church',parentId:'parent',kind:'small_group',name:'Group',status:'active',version:1,inheritsGrantableEntitlements:false,grantableEntitlementCodes:[],effectiveGrantableEntitlementCodes:[]},breadcrumb:[{id:'parent',effectiveGrantableEntitlementCodes:['bulletin.general.zh-Hant.access']}],children:[],actions:{editUnit:true,manageEntitlementPolicy:true}})
+ mount()
+ await userEvent.click(await screen.findByRole('button',{name:'Unit settings'}))
+ await userEvent.click(screen.getByRole('checkbox',{name:'Inherit from parent'}))
+ expect(screen.getByRole('checkbox',{name:'繁體中文'})).toBeChecked()
+ await userEvent.click(within(screen.getByRole('dialog')).getByRole('button',{name:'Save'}))
+ expect(operationsApi.updateManagedUnit).toHaveBeenCalledWith('church',1,{name:'Group',email:'',inheritsGrantableEntitlements:true},expect.any(String))
+})
+
+it('shows effective inherited access when own-unit ancestors are hidden', async () => {
+ operationsApi.getManagedUnit.mockResolvedValue({unit:{id:'church',parentId:'hidden',kind:'family',name:'Family',status:'active',version:1,inheritsGrantableEntitlements:true,grantableEntitlementCodes:[],effectiveGrantableEntitlementCodes:['video.meeting-recordings.access']},breadcrumb:[],children:[],actions:{editUnit:true,manageEntitlementPolicy:false}})
+ mount(); await userEvent.click(await screen.findByRole('button',{name:'Unit settings'}))
+ expect(screen.getByRole('checkbox',{name:'Member videos'})).toBeChecked()
+ expect(screen.getByRole('checkbox',{name:'Member videos'})).toBeDisabled()
 })
