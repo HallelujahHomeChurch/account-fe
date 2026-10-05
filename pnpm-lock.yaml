@@ -12,8 +12,8 @@ importers:
         specifier: 1.0.31
         version: 1.0.31
       '@hallelujahhomechurch/operations-client':
-        specifier: 1.0.33
-        version: 1.0.33
+        specifier: 1.0.35
+        version: 1.0.35
       '@hallelujahhomechurch/preferences':
         specifier: 1.0.28
         version: 1.0.28
@@ -243,11 +243,11 @@ packages:
   '@hallelujahhomechurch/account-client@1.0.31':
     resolution: {integrity: sha512-N6CydT9v0NduA/g4uPeih0ovJKWsS14F1y/9PkUg42XtJHHCLvLasAv/U0QtCqsU9wmoJY3ZMH3Bwjngqg8DQw==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/account-client/1.0.31/7a020e8e43d94621e0ce1bff2f8169a08375b96b}
 
-  '@hallelujahhomechurch/account-client@1.0.33':
-    resolution: {integrity: sha512-5HTxZ4ZKeFq6rv7o2FsoUpznTdVAxLnr7uPdrsNqZa9jq3kP0dRyN6KMGIKlgGCbu7Sy3R9XtJiUjbKaYVNSAg==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/account-client/1.0.33/7de71960c6c3c6378051f8048ea3c396483a2d37}
+  '@hallelujahhomechurch/account-client@1.0.35':
+    resolution: {integrity: sha512-s6bbY8n2t/hByYSUYwI+HKrine0lxacHnHurgMWnu8v/cuEYZT90blMblllogP5zRTs1QH95a5W9j6k/CTHg9w==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/account-client/1.0.35/4761ddbd3eaa2fe48c12a3268fa386f0e048ef73}
 
-  '@hallelujahhomechurch/operations-client@1.0.33':
-    resolution: {integrity: sha512-cmGCec9dUfqvxe7FoDK2yZiF9QyxN/nphftaq4zJDdcmCY5JThwPDRjPiCDHe37kQyTTG47zony4zc+TsZYzNA==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/operations-client/1.0.33/a30c925d18c614a32b77888128b5d025e48ae0df}
+  '@hallelujahhomechurch/operations-client@1.0.35':
+    resolution: {integrity: sha512-Xb8262ecWdzcgcJKXHFYgyGR3fN0ICtS54VzeS3xUUOek5E9TwA4PDWGkclzT2INTbwQ3Hea9adOYBGM8aLRyA==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/operations-client/1.0.35/e88f93bc725c86f5856ecfbcb220ab252a2f85fb}
 
   '@hallelujahhomechurch/preferences@1.0.28':
     resolution: {integrity: sha512-Ucv6UMYVEL0mWd/oy43Wfrvw0FKoKfVHd4lmNR9OoPE9EBjzsLs7piSn7ifS8UJaMFKpO3HY4EBbCBgQrnH2BQ==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/preferences/1.0.28/4ad149fb2af6cd03e764f453ebb8950c32b13f49}
@@ -1772,11 +1772,11 @@ snapshots:
 
   '@hallelujahhomechurch/account-client@1.0.31': {}
 
-  '@hallelujahhomechurch/account-client@1.0.33': {}
+  '@hallelujahhomechurch/account-client@1.0.35': {}
 
-  '@hallelujahhomechurch/operations-client@1.0.33':
+  '@hallelujahhomechurch/operations-client@1.0.35':
     dependencies:
-      '@hallelujahhomechurch/account-client': 1.0.33
+      '@hallelujahhomechurch/account-client': 1.0.35
       openapi-fetch: 0.15.2
 
   '@hallelujahhomechurch/preferences@1.0.28': {}

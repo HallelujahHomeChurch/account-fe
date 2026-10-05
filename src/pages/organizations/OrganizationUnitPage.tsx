@@ -179,9 +179,10 @@ function UnitFolder({ unitId }: { unitId: string }) {
       <div className="organization-dialog-stack">{mutationError}
         {dialog === 'settings' ? <UnitForm key={folder.unit.version} labels={t} pending={pending} name={folder.unit.name} email={folder.unit.email}
           policy={folder.unit.grantableEntitlementCodes} effectivePolicy={folder.unit.effectiveGrantableEntitlementCodes}
-          policyEditable={folder.actions.manageEntitlementPolicy && Array.isArray(folder.unit.grantableEntitlementCodes)}
-          parentPolicy={folder.breadcrumb.at(-1)?.effectiveGrantableEntitlementCodes ?? []}
-          onSubmit={(_kind, name, email, codes) => void run(['edit', folder.unit.version, name, email, codes], key => operationsApi.updateManagedUnit(unitId, folder.unit.version, { name, email, ...(codes ? { grantableEntitlementCodes: codes } : {}) }, key))} /> : null}
+          policyEditable={folder.actions.manageEntitlementPolicy && typeof folder.unit.inheritsGrantableEntitlements === 'boolean' && Array.isArray(folder.unit.grantableEntitlementCodes)}
+          parentPolicy={folder.breadcrumb.at(-1)?.effectiveGrantableEntitlementCodes ?? (folder.unit.inheritsGrantableEntitlements ? folder.unit.effectiveGrantableEntitlementCodes : [])}
+          inheritsPolicy={folder.unit.inheritsGrantableEntitlements} hasParent={Boolean(folder.unit.parentId)}
+          onSubmit={(_kind, name, email, codes, inherits) => void run(['edit', folder.unit.version, name, email, codes, inherits], key => operationsApi.updateManagedUnit(unitId, folder.unit.version, { name, email, ...(inherits !== undefined ? { inheritsGrantableEntitlements: inherits } : {}), ...(codes ? { grantableEntitlementCodes: codes } : {}) }, key))} /> : null}
         {folder.actions.manageResponsibilities ? <section className="organization-dialog-stack"><h3>{t.responsibilities}</h3>
           <label>{t.searchMembers}<input className="organization-input" type="search" value={responsibilityQuery} disabled={pending} maxLength={200} onChange={event => setResponsibilityQuery(event.target.value)} /></label>
           <p className="muted-copy">{t.searchHint}</p>
@@ -201,24 +202,28 @@ function UnitFolder({ unitId }: { unitId: string }) {
   </section>
 }
 
-function UnitForm({ kinds, labels, pending, name: initialName = '', email: initialEmail = '', policy, effectivePolicy, parentPolicy = [], policyEditable = false, onSubmit }: {
+function UnitForm({ kinds, labels, pending, name: initialName = '', email: initialEmail = '', policy, effectivePolicy, inheritsPolicy = false, hasParent = false, parentPolicy = [], policyEditable = false, onSubmit }: {
   kinds?: readonly ('family' | 'small_group' | 'fellowship')[]; labels: Record<string, string>; pending: boolean; name?: string; email?: string
-  policy?: EntitlementCode[]; effectivePolicy?: EntitlementCode[]; parentPolicy?: EntitlementCode[]; policyEditable?: boolean
-  onSubmit: (kind: 'family' | 'small_group' | 'fellowship', name: string, email: string, codes?: EntitlementCode[]) => void
+  policy?: EntitlementCode[]; effectivePolicy?: EntitlementCode[]; inheritsPolicy?: boolean; hasParent?: boolean; parentPolicy?: EntitlementCode[]; policyEditable?: boolean
+  onSubmit: (kind: 'family' | 'small_group' | 'fellowship', name: string, email: string, codes?: EntitlementCode[], inherits?: boolean) => void
 }) {
   const [kind, setKind] = useState(kinds?.[0] ?? 'family')
   const [name, setName] = useState(initialName)
   const [email, setEmail] = useState(initialEmail)
-  const [codes, setCodes] = useState<EntitlementCode[]>(policy ?? [])
-  return <form className="organization-dialog-stack" onSubmit={event => { event.preventDefault(); if (name.trim()) onSubmit(kind, name.trim(), email.trim(), policyEditable && (codes.length !== policy?.length || codes.some(code => !policy?.includes(code))) ? codes.filter(code => parentPolicy.includes(code)) : undefined) }}>
+  const [codes, setCodes] = useState<EntitlementCode[]>(inheritsPolicy ? effectivePolicy ?? [] : policy ?? [])
+  const [inherits, setInherits] = useState(inheritsPolicy)
+  const previewPolicy = inherits ? parentPolicy : codes
+  const policyChanged = policyEditable && (inherits !== inheritsPolicy || (!inherits && (codes.length !== policy?.length || codes.some(code => !policy?.includes(code)))))
+  return <form className="organization-dialog-stack" onSubmit={event => { event.preventDefault(); if (name.trim()) onSubmit(kind, name.trim(), email.trim(), policyChanged && !inherits ? codes : undefined, policyChanged ? inherits : undefined) }}>
     <fieldset disabled={pending} className="organization-dialog-stack">
       {kinds ? <label>{labels.kind}<select className="organization-input" value={kind} onChange={event => setKind(event.target.value as typeof kind)}>{kinds.map(value => <option key={value} value={value}>{labels[value]}</option>)}</select></label> : null}
       <label>{labels.name}<input className="organization-input" required maxLength={200} value={name} onChange={event => setName(event.target.value)} /></label>
       <label>{labels.email}<input className="organization-input" type="email" maxLength={254} value={email} onChange={event => setEmail(event.target.value)} /></label>
       {Array.isArray(policy) ? <fieldset className="organization-dialog-stack"><legend>{labels.policyTitle}</legend>
         <p className="muted-copy">{labels.policyHelp}</p>
-        {managedEntitlementCodes.map((code,index) => <label className="organization-checkbox" key={code}><input type="checkbox" checked={codes.includes(code)} disabled={!policyEditable || !parentPolicy.includes(code)} onChange={event => setCodes(current => event.target.checked ? [...current,code] : current.filter(value => value !== code))} />{index === 3 ? labels.video : managedEntitlementLabels[index]}</label>)}
-        <p className="muted-copy">{labels.effectivePolicy}: {effectivePolicy?.length ? effectivePolicy.map(code => code === 'video.meeting-recordings.access' ? labels.video : managedEntitlementLabels[managedEntitlementCodes.indexOf(code)]).join(' · ') : labels.noEntitlements}</p>
+        {hasParent ? <label className="organization-checkbox"><input type="checkbox" checked={inherits} disabled={!policyEditable} onChange={event => setInherits(event.target.checked)} />{labels.inheritPolicy}</label> : null}
+        {managedEntitlementCodes.map((code,index) => <label className="organization-checkbox" key={code}><input type="checkbox" checked={previewPolicy.includes(code)} disabled={!policyEditable || inherits} onChange={event => setCodes(current => event.target.checked ? [...current,code] : current.filter(value => value !== code))} />{index === 3 ? labels.video : managedEntitlementLabels[index]}</label>)}
+        <p className="muted-copy">{labels.effectivePolicy}: {(policyChanged ? previewPolicy : effectivePolicy)?.length ? (policyChanged ? previewPolicy : effectivePolicy)!.map(code => code === 'video.meeting-recordings.access' ? labels.video : managedEntitlementLabels[managedEntitlementCodes.indexOf(code)]).join(' · ') : labels.noEntitlements}</p>
       </fieldset> : null}
       <Button type="submit" isDisabled={pending || !name.trim()}>{labels.save}</Button>
     </fieldset>
