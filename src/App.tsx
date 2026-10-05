@@ -1,5 +1,4 @@
 import { AccountMenu, BrandLoadingScreen, Button, Drawer, Skeleton, Toast, ToastProvider } from '@hallelujahhomechurch/ui'
-import { canAccessAdmin } from '@hallelujahhomechurch/account-client/admin-access'
 import { Bell, CalendarDays, FileArchive, Menu, MonitorSmartphone, ShieldCheck, UserRound, UsersRound } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
@@ -42,6 +41,7 @@ import { OrganizationUnitPage } from './pages/organizations/OrganizationUnitPage
 
 function LayoutContent() {
   const auth = useAuth()
+  const verified = auth.status === 'authenticated' && auth.profile !== null && !auth.isBootstrapping
   const navigate = useNavigate()
   const { locale, messages: t } = useLocale()
   const location = useLocation()
@@ -55,12 +55,11 @@ function LayoutContent() {
   const publicSiteUrl = readRuntimeConfig().publicSiteUrl
   const { capabilities, error: capabilitiesError } = useAuthCapabilitiesState(!isAuthRoute)
   const dsrEnabled = capabilities?.dsr?.enabled === true
-  const [hasReservableResources, setHasReservableResources] = useState(false)
   const [resourceLookupFailed, setResourceLookupFailed] = useState(false)
   const [managedAccess, setManagedAccess] = useState<'loading' | 'allowed' | 'denied' | 'failed'>('loading')
   const [accessRevision, setAccessRevision] = useState(0)
   const [memberAccess, setMemberAccess] = useState<{ owner: string; allowed: boolean }>({ owner: '', allowed: false })
-  const owner = auth.profile?.id
+  const owner = verified ? auth.profile?.id : undefined
   const [memberTransportAccess, setMemberTransportAccess] = useState<{ owner: string; allowed: boolean }>({ owner: '', allowed: false })
   const memberEligible = memberAccess.owner === owner && memberAccess.allowed
   const memberAllowed = capabilities?.memberDetailsEnabled === true && memberEligible && memberTransportAccess.owner === owner && memberTransportAccess.allowed
@@ -81,15 +80,15 @@ function LayoutContent() {
   }, [auth.api, capabilities?.memberDetailsEnabled, owner, memberEligible])
 
   useEffect(() => {
-    setHasReservableResources(false)
     setResourceLookupFailed(false)
-    if (isAuthRoute || !auth.profile) return
+    if (isAuthRoute || !verified || !auth.profile) return
     let active = true
+    const remember = auth.presentation.capture(auth.profile.id)
     auth.operationsApi.listMyResources()
-      .then((resources) => { if (active) setHasReservableResources(resources.length > 0) })
+      .then((resources) => { if (active) remember('resources', resources.length > 0 ? ['resources'] : []) })
       .catch(() => { if (active) setResourceLookupFailed(true) })
     return () => { active = false }
-  }, [auth.operationsApi, auth.profile, isAuthRoute, isResourceRoute])
+  }, [auth.operationsApi, auth.presentation, auth.profile, isAuthRoute, isResourceRoute, verified])
 
   useEffect(() => {
     setManagedAccess('loading')
@@ -97,21 +96,22 @@ function LayoutContent() {
     if (isAuthRoute || !owner || !auth.operationsApi.getMyAccess) return
     let active = true
     const controller = new AbortController()
+    const remember = auth.presentation.capture(owner)
     const check = () => auth.operationsApi.getMyAccess(controller.signal)
-      .then((access) => { if (active) { setManagedAccess(access.churchMembership && access.responsibilities.length > 0 ? 'allowed' : 'denied'); setMemberAccess({ owner, allowed: access.memberDetailsEligible === true }) } })
+      .then((access) => { if (active && remember('operations', access.churchMembership && access.responsibilities.length > 0 ? ['organizations'] : [])) { setManagedAccess(access.churchMembership && access.responsibilities.length > 0 ? 'allowed' : 'denied'); setMemberAccess({ owner, allowed: access.memberDetailsEligible === true }) } })
       .catch(() => { if (active) setManagedAccess('failed') })
     void check()
     window.addEventListener('focus', check)
     return () => { active = false; controller.abort(); window.removeEventListener('focus', check) }
-  }, [auth.operationsApi, owner, isAuthRoute, accessRevision])
+  }, [auth.operationsApi, auth.presentation, owner, isAuthRoute, accessRevision])
 
   const navigation = [
     { icon: UserRound, label: t.nav.personalInfo, path: '/profile' },
     { icon: ShieldCheck, label: t.nav.security, path: '/security' },
-    ...(managedAccess === 'allowed' ? [{ icon: UsersRound, label: t.nav.organizationManagement, path: '/organizations' }] : []),
+    ...(auth.navigation?.sources.operations?.ids.includes('organizations') ? [{ icon: UsersRound, label: t.nav.organizationManagement, path: '/organizations' }] : []),
     { icon: MonitorSmartphone, label: t.nav.devices, path: '/devices' },
     { icon: Bell, label: t.nav.notificationSettings, path: '/notifications' },
-    ...(hasReservableResources ? [{ icon: CalendarDays, label: t.nav.resourceReservations, path: '/resources' }] : []),
+    ...(auth.navigation?.sources.resources?.ids.includes('resources') ? [{ icon: CalendarDays, label: t.nav.resourceReservations, path: '/resources' }] : []),
     ...(dsrEnabled ? [{ icon: FileArchive, label: t.nav.dataRequests, path: '/data-requests' }] : []),
   ]
 
@@ -140,11 +140,12 @@ function LayoutContent() {
     )
   }
 
-  if (auth.isBootstrapping) {
+  const cachedShell = auth.navigation?.sources.account?.ids.includes('shell') === true
+  if (auth.isBootstrapping && !cachedShell) {
     return <BrandLoadingScreen label={t.profile.loading} />
   }
 
-  if (auth.status === 'unavailable' && !auth.profile) {
+  if (auth.status === 'unavailable' && !cachedShell) {
     return (
       <div className="app-shell">
         <main className="auth-main-panel">
@@ -159,11 +160,11 @@ function LayoutContent() {
     )
   }
 
-  if (!auth.profile) {
+  if (!auth.profile && !cachedShell) {
     return <Navigate replace to={loginPath(`${location.pathname}${location.search}${location.hash}`)} />
   }
 
-  if (hasLineLinkAutoContinue()) {
+  if (verified && hasLineLinkAutoContinue()) {
     return <Navigate replace to="/line/bind" />
   }
 
@@ -237,21 +238,21 @@ function LayoutContent() {
             </Link>
             <AccountMenu
               labels={{
-                greeting: `Hi ${accountGreetingName(auth.profile, t.profile.fallbackName)}`,
+                greeting: verified && auth.profile ? `Hi ${accountGreetingName(auth.profile, t.profile.fallbackName)}` : t.nav.accountMenu,
                 menu: t.nav.accountMenu,
                 signOut: t.nav.signOut,
               }}
               links={[
                 { id: 'official-site', label: t.nav.churchSite, href: `${publicSiteUrl}/${locale}` },
                 { id: 'projection', label: t.nav.projectionSystem, href: 'https://client.alive.org.tw/', newWindow: { label: t.nav.projectionWindowLabel, blockedMessage: t.nav.projectionPopupBlocked } },
-                ...(canAccessAdmin(auth.profile.permissions ?? [])
+                ...(auth.navigation?.sources.account?.ids.includes('admin')
                   ? [{ id: 'admin', label: t.nav.adminManagement, href: 'https://admin.alive.org.tw/' }]
                   : []),
               ]}
               user={{
-                avatarUrl: auth.profile.avatar_url,
-                email: auth.profile.email,
-                name: accountGreetingName(auth.profile, t.profile.fallbackName),
+                avatarUrl: verified ? auth.profile?.avatar_url : '/assets/brand/account-placeholder.svg',
+                email: verified ? auth.profile?.email ?? '' : '',
+                name: verified && auth.profile ? accountGreetingName(auth.profile, t.profile.fallbackName) : '',
               }}
               onSignOut={() => void auth.logout()}
             />
@@ -301,10 +302,12 @@ function LayoutContent() {
             {resourceLookupFailed && !isResourceRoute ? <p className="form-error" role="alert">
               {t.resources.loadFailed} <Link to="/resources">{t.nav.resourceReservations}</Link>
             </p> : null}
-            {hasPostLoginReturnTo() ? <PostLoginContinuation /> : <Routes>
+            {!verified ? <><Skeleton className="account-page-skeleton" label={t.profile.loading} />
+              {auth.status === 'unavailable' ? <div role="alert"><p className="form-error">{auth.bootstrapError}</p><Button onPress={() => void auth.retrySession()}>{t.security.retry}</Button></div> : null}
+            </> : hasPostLoginReturnTo() ? <PostLoginContinuation /> : <Routes>
               <Route element={<ProfilePage memberDetailsAvailable={memberAllowed} />} path="/profile" />
-              <Route element={memberAllowed ? <MemberDetailsPage key={auth.profile.id} /> : managedAccess === 'loading' || memberAuthorizationPending || !capabilities && !capabilitiesError ? <Skeleton className="account-page-skeleton" label={t.profile.loading} /> : <Navigate replace to="/profile" />} path="/profile/member-details" />
-              <Route element={<LegalReviewPage key={`${auth.profile.id}:${locale}`} />} path="/legal" />
+              <Route element={memberAllowed ? <MemberDetailsPage key={auth.profile?.id} /> : managedAccess === 'loading' || memberAuthorizationPending || !capabilities && !capabilitiesError ? <Skeleton className="account-page-skeleton" label={t.profile.loading} /> : <Navigate replace to="/profile" />} path="/profile/member-details" />
+              <Route element={<LegalReviewPage key={`${auth.profile?.id}:${locale}`} />} path="/legal" />
               <Route element={<SecurityPage />} path="/security" />
               <Route element={<DevicesPage />} path="/devices" />
               <Route element={<NotificationsPage />} path="/notifications" />

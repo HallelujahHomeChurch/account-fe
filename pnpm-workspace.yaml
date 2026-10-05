@@ -1,0 +1,2 @@
+patchedDependencies:
+  '@hallelujahhomechurch/account-client@1.0.31': patches/@hallelujahhomechurch__account-client@1.0.31.patch

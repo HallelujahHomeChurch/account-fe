@@ -1,0 +1,451 @@
+diff --git a/dist/browser-runtime.d.ts b/dist/browser-runtime.d.ts
+index d5ef6b275ef4f960f08769f99ed9e54a0b121b03..267c0ea655f3abaaa7364674bc85b1e4c82d032a 100644
+--- a/dist/browser-runtime.d.ts
++++ b/dist/browser-runtime.d.ts
+@@ -1,3 +1,4 @@
++import type { NavigationPresentationStore } from './navigation-presentation.js';
+ import { AccountSessionError, type AccountIdentitySession, type AccountSessionClient } from './session-client.js';
+ export type AccountAuthState = {
+     status: 'checking';
+@@ -35,6 +36,7 @@ export type BrowserAccountAuthRuntimeOptions = {
+     now?: () => number;
+     storage?: RuntimeStorage;
+     onEvent?: (event: AccountAuthEvent) => void;
++    presentation?: NavigationPresentationStore;
+ };
+ export interface BrowserAccountAuthRuntime {
+     start(): Promise<AccountAuthState>;
+@@ -47,9 +49,10 @@ export interface BrowserAccountAuthRuntime {
+     revalidate(): Promise<AccountAuthState>;
+     getAccessToken(): Promise<string | null>;
+     refreshAfterUnauthorized(rejectedToken: string): Promise<string | null>;
++    signOut(): Promise<void>;
+     clear(): void;
+     dispose(): void;
+ }
+-export declare function createBrowserAccountAuthRuntime({ client, oauth, now, storage, onEvent }: BrowserAccountAuthRuntimeOptions): BrowserAccountAuthRuntime;
++export declare function createBrowserAccountAuthRuntime({ client, oauth, now, storage, onEvent, presentation }: BrowserAccountAuthRuntimeOptions): BrowserAccountAuthRuntime;
+ export {};
+ //# sourceMappingURL=browser-runtime.d.ts.map
+\ No newline at end of file
+diff --git a/dist/browser-runtime.d.ts.map b/dist/browser-runtime.d.ts.map
+index fb77db709133b7ac5bd05b659a3b12081ed9dbd2..4da2566c9aa35fbf71b1d526b627a99e76bfafa4 100644
+--- a/dist/browser-runtime.d.ts.map
++++ b/dist/browser-runtime.d.ts.map
+@@ -1 +1 @@
+-{"version":3,"file":"browser-runtime.d.ts","sourceRoot":"","sources":["../src/browser-runtime.ts"],"names":[],"mappings":"AAQA,OAAO,EACL,mBAAmB,EAEnB,KAAK,sBAAsB,EAE3B,KAAK,oBAAoB,EAC1B,MAAM,qBAAqB,CAAC;AAE7B,MAAM,MAAM,gBAAgB,GACxB;IAAC,MAAM,EAAE,UAAU,CAAA;CAAC,GACpB;IAAC,MAAM,EAAE,WAAW,CAAA;CAAC,GACrB;IAAC,MAAM,EAAE,eAAe,CAAC;IAAC,OAAO,EAAE,sBAAsB,CAAA;CAAC,GAC1D;IAAC,MAAM,EAAE,aAAa,CAAC;IAAC,KAAK,EAAE,mBAAmB,CAAC;IAAC,OAAO,CAAC,EAAE,MAAM,CAAA;CAAC,CAAC;AAE1E,MAAM,MAAM,gBAAgB,GAAG;IAC7B,KAAK,EAAE,SAAS,GAAG,WAAW,GAAG,UAAU,GAAG,cAAc,GAAG,SAAS,GAAG,QAAQ,CAAC;IACpF,OAAO,EAAE,SAAS,GAAG,WAAW,GAAG,WAAW,GAAG,UAAU,GAAG,cAAc,GAAG,QAAQ,CAAC;IACxF,MAAM,CAAC,EAAE,MAAM,CAAC;IAChB,SAAS,CAAC,EAAE,MAAM,CAAC;IACnB,SAAS,CAAC,EAAE,MAAM,CAAC;IACnB,OAAO,CAAC,EAAE,MAAM,CAAC;CAClB,CAAC;AAEF,MAAM,MAAM,kBAAkB,GAAG;IAC/B,8EAA8E;IAC9E,gBAAgB,CAAC,EAAE,MAAM,CAAC;IAC1B,mFAAmF;IACnF,YAAY,CAAC,EAAE,MAAM,CAAC;IACtB,QAAQ,EAAE,MAAM,CAAC;IACjB,WAAW,EAAE,MAAM,CAAC;IACpB,KAAK,EAAE,MAAM,CAAC;CACf,CAAC;AAEF,KAAK,cAAc,GAAG,IAAI,CAAC,OAAO,EAAE,SAAS,GAAG,SAAS,GAAG,YAAY,CAAC,CAAC;AAE1E,MAAM,MAAM,gCAAgC,GAAG;IAC7C,MAAM,EAAE,oBAAoB,CAAC;IAC7B,KAAK,CAAC,EAAE,kBAAkB,CAAC;IAC3B,GAAG,CAAC,EAAE,MAAM,MAAM,CAAC;IACnB,OAAO,CAAC,EAAE,cAAc,CAAC;IACzB,OAAO,CAAC,EAAE,CAAC,KAAK,EAAE,gBAAgB,KAAK,IAAI,CAAC;CAC7C,CAAC;AAEF,MAAM,WAAW,yBAAyB;IACxC,KAAK,IAAI,OAAO,CAAC,gBAAgB,CAAC,CAAC;IACnC,WAAW,IAAI,gBAAgB,CAAC;IAChC,SAAS,CAAC,QAAQ,EAAE,MAAM,IAAI,GAAG,MAAM,IAAI,CAAC;IAC5C,WAAW,CAAC,QAAQ,CAAC,EAAE,MAAM,EAAE,OAAO,CAAC,EAAE;QAAC,MAAM,CAAC,EAAE,MAAM,CAAA;KAAC,GAAG,OAAO,CAAC,IAAI,CAAC,CAAC;IAC3E,cAAc,CAAC,WAAW,CAAC,EAAE,MAAM,GAAG,OAAO,CAAC,gBAAgB,CAAC,CAAC;IAChE,UAAU,IAAI,OAAO,CAAC,gBAAgB,CAAC,CAAC;IACxC,cAAc,IAAI,OAAO,CAAC,MAAM,GAAG,IAAI,CAAC,CAAC;IACzC,wBAAwB,CAAC,aAAa,EAAE,MAAM,GAAG,OAAO,CAAC,MAAM,GAAG,IAAI,CAAC,CAAC;IACxE,KAAK,IAAI,IAAI,CAAC;IACd,OAAO,IAAI,IAAI,CAAC;CACjB;AAID,wBAAgB,+BAA+B,CAAC,EAC9C,MAAM,EACN,KAAK,EACL,GAAc,EACd,OAA0B,EAC1B,OAAO,EACR,EAAE,gCAAgC,GAAG,yBAAyB,CA+N9D"}
+\ No newline at end of file
++{"version":3,"file":"browser-runtime.d.ts","sourceRoot":"","sources":["../src/browser-runtime.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAC,2BAA2B,EAAC,MAAM,8BAA8B,CAAC;AAS9E,OAAO,EACL,mBAAmB,EAEnB,KAAK,sBAAsB,EAE3B,KAAK,oBAAoB,EAC1B,MAAM,qBAAqB,CAAC;AAE7B,MAAM,MAAM,gBAAgB,GACxB;IAAC,MAAM,EAAE,UAAU,CAAA;CAAC,GACpB;IAAC,MAAM,EAAE,WAAW,CAAA;CAAC,GACrB;IAAC,MAAM,EAAE,eAAe,CAAC;IAAC,OAAO,EAAE,sBAAsB,CAAA;CAAC,GAC1D;IAAC,MAAM,EAAE,aAAa,CAAC;IAAC,KAAK,EAAE,mBAAmB,CAAC;IAAC,OAAO,CAAC,EAAE,MAAM,CAAA;CAAC,CAAC;AAE1E,MAAM,MAAM,gBAAgB,GAAG;IAC7B,KAAK,EAAE,SAAS,GAAG,WAAW,GAAG,UAAU,GAAG,cAAc,GAAG,SAAS,GAAG,QAAQ,CAAC;IACpF,OAAO,EAAE,SAAS,GAAG,WAAW,GAAG,WAAW,GAAG,UAAU,GAAG,cAAc,GAAG,QAAQ,CAAC;IACxF,MAAM,CAAC,EAAE,MAAM,CAAC;IAChB,SAAS,CAAC,EAAE,MAAM,CAAC;IACnB,SAAS,CAAC,EAAE,MAAM,CAAC;IACnB,OAAO,CAAC,EAAE,MAAM,CAAC;CAClB,CAAC;AAEF,MAAM,MAAM,kBAAkB,GAAG;IAC/B,8EAA8E;IAC9E,gBAAgB,CAAC,EAAE,MAAM,CAAC;IAC1B,mFAAmF;IACnF,YAAY,CAAC,EAAE,MAAM,CAAC;IACtB,QAAQ,EAAE,MAAM,CAAC;IACjB,WAAW,EAAE,MAAM,CAAC;IACpB,KAAK,EAAE,MAAM,CAAC;CACf,CAAC;AAEF,KAAK,cAAc,GAAG,IAAI,CAAC,OAAO,EAAE,SAAS,GAAG,SAAS,GAAG,YAAY,CAAC,CAAC;AAE1E,MAAM,MAAM,gCAAgC,GAAG;IAC7C,MAAM,EAAE,oBAAoB,CAAC;IAC7B,KAAK,CAAC,EAAE,kBAAkB,CAAC;IAC3B,GAAG,CAAC,EAAE,MAAM,MAAM,CAAC;IACnB,OAAO,CAAC,EAAE,cAAc,CAAC;IACzB,OAAO,CAAC,EAAE,CAAC,KAAK,EAAE,gBAAgB,KAAK,IAAI,CAAC;IAC5C,YAAY,CAAC,EAAE,2BAA2B,CAAC;CAC5C,CAAC;AAEF,MAAM,WAAW,yBAAyB;IACxC,KAAK,IAAI,OAAO,CAAC,gBAAgB,CAAC,CAAC;IACnC,WAAW,IAAI,gBAAgB,CAAC;IAChC,SAAS,CAAC,QAAQ,EAAE,MAAM,IAAI,GAAG,MAAM,IAAI,CAAC;IAC5C,WAAW,CAAC,QAAQ,CAAC,EAAE,MAAM,EAAE,OAAO,CAAC,EAAE;QAAC,MAAM,CAAC,EAAE,MAAM,CAAA;KAAC,GAAG,OAAO,CAAC,IAAI,CAAC,CAAC;IAC3E,cAAc,CAAC,WAAW,CAAC,EAAE,MAAM,GAAG,OAAO,CAAC,gBAAgB,CAAC,CAAC;IAChE,UAAU,IAAI,OAAO,CAAC,gBAAgB,CAAC,CAAC;IACxC,cAAc,IAAI,OAAO,CAAC,MAAM,GAAG,IAAI,CAAC,CAAC;IACzC,wBAAwB,CAAC,aAAa,EAAE,MAAM,GAAG,OAAO,CAAC,MAAM,GAAG,IAAI,CAAC,CAAC;IACxE,OAAO,IAAI,OAAO,CAAC,IAAI,CAAC,CAAC;IACzB,KAAK,IAAI,IAAI,CAAC;IACd,OAAO,IAAI,IAAI,CAAC;CACjB;AAID,wBAAgB,+BAA+B,CAAC,EAC9C,MAAM,EACN,KAAK,EACL,GAAc,EACd,OAA0B,EAC1B,OAAO,EACP,YAAY,EACb,EAAE,gCAAgC,GAAG,yBAAyB,CA2Q9D"}
+\ No newline at end of file
+diff --git a/dist/browser-runtime.js b/dist/browser-runtime.js
+index 98a92851fe2e20c97d51e3a426ab3b4190534721..80889aea35433f731c4d6f6068e4d92df0abc9db 100644
+--- a/dist/browser-runtime.js
++++ b/dist/browser-runtime.js
+@@ -1,16 +1,19 @@
+ import { buildAuthorizeUrl, clearOAuthTransaction, createOAuthTransactionOnce, exchangeAuthorizationCode, readOAuthTransaction, validateOAuthState } from './oauth.js';
+ import { AccountSessionError, resolveAccountAuth } from './session-client.js';
+ const cooldownStorageKey = 'hhc:account-access-token-retry-at';
+-export function createBrowserAccountAuthRuntime({ client, oauth, now = Date.now, storage = browserStorage(), onEvent }) {
++export function createBrowserAccountAuthRuntime({ client, oauth, now = Date.now, storage = browserStorage(), onEvent, presentation }) {
+     let state = { status: 'checking' };
+     let token;
+     let tokenExpiresAt = 0;
+     let tokenInFlight;
+     let refreshInFlight;
+     let revalidationInFlight;
++    let signOutInFlight;
+     let generation = 0;
++    let logoutGeneration = 0;
+     let started = false;
+     const listeners = new Set();
++    let unsubscribeInvalidation;
+     function emit(stage, outcome, error) {
+         const metadata = error instanceof AccountSessionError ? {
+             status: error.status,
+@@ -51,6 +54,8 @@ export function createBrowserAccountAuthRuntime({ client, oauth, now = Date.now,
+         }
+     }
+     async function issueToken() {
++        if (signOutInFlight)
++            return null;
+         const coolingDown = cooldownError();
+         if (coolingDown)
+             throw coolingDown;
+@@ -79,6 +84,8 @@ export function createBrowserAccountAuthRuntime({ client, oauth, now = Date.now,
+         return pending;
+     }
+     async function refresh(rejectedToken) {
++        if (signOutInFlight)
++            return null;
+         if (token && token !== rejectedToken)
+             return token;
+         const coolingDown = cooldownError();
+@@ -107,16 +114,33 @@ export function createBrowserAccountAuthRuntime({ client, oauth, now = Date.now,
+         return pending;
+     }
+     function revalidate() {
++        if (signOutInFlight)
++            return Promise.resolve(state);
+         if (revalidationInFlight)
+             return revalidationInFlight;
++        const requestGeneration = generation;
+         emit('session', 'started');
+         const pending = resolveAccountAuth(client)
+             .then((result) => {
++            if (requestGeneration !== generation)
++                return state;
+             if (result.status === 'authenticated') {
++                if (state.status === 'authenticated' && state.session.user.id !== result.session.user.id) {
++                    generation += 1;
++                    token = undefined;
++                    tokenExpiresAt = 0;
++                    tokenInFlight = refreshInFlight = undefined;
++                }
++                presentation?.identify(result.session.user.id);
+                 emit('session', 'succeeded');
+                 return update(result);
+             }
+             if (result.status === 'anonymous') {
++                generation += 1;
++                token = undefined;
++                tokenExpiresAt = 0;
++                tokenInFlight = refreshInFlight = undefined;
++                presentation?.clear();
+                 emit('session', 'anonymous');
+                 return update(result);
+             }
+@@ -142,6 +166,7 @@ export function createBrowserAccountAuthRuntime({ client, oauth, now = Date.now,
+         if (started || typeof window === 'undefined')
+             return;
+         started = true;
++        unsubscribeInvalidation = presentation?.onInvalidate(() => clear(false));
+         window.addEventListener('focus', onActivity);
+         window.addEventListener('pageshow', onActivity);
+         document.addEventListener('visibilitychange', onVisibility);
+@@ -150,10 +175,24 @@ export function createBrowserAccountAuthRuntime({ client, oauth, now = Date.now,
+         if (!started || typeof window === 'undefined')
+             return;
+         started = false;
++        unsubscribeInvalidation?.();
++        unsubscribeInvalidation = undefined;
+         window.removeEventListener('focus', onActivity);
+         window.removeEventListener('pageshow', onActivity);
+         document.removeEventListener('visibilitychange', onVisibility);
+     }
++    function clear(clearPresentation = true) {
++        generation += 1;
++        logoutGeneration += 1;
++        token = undefined;
++        tokenExpiresAt = 0;
++        tokenInFlight = refreshInFlight = undefined;
++        revalidationInFlight = undefined;
++        storage?.removeItem(cooldownStorageKey);
++        if (clearPresentation)
++            presentation?.clear();
++        update({ status: 'anonymous' });
++    }
+     return {
+         async start() {
+             attachLifecycle();
+@@ -182,6 +221,7 @@ export function createBrowserAccountAuthRuntime({ client, oauth, now = Date.now,
+             if (!oauth || !storage || typeof location === 'undefined') {
+                 throw new Error('Browser OAuth is not configured');
+             }
++            const requestLogoutGeneration = logoutGeneration;
+             emit('callback', 'started');
+             const url = new URL(callbackUrl ?? location.href, location.href);
+             const redirect = new URL(oauth.redirectUri);
+@@ -198,12 +238,16 @@ export function createBrowserAccountAuthRuntime({ client, oauth, now = Date.now,
+                 }
+                 const tokenBaseUrl = oauthTokenBaseUrl(oauth, redirect.href);
+                 const response = await exchangeAuthorizationCode({ ...oauth, authorizeBaseUrl: tokenBaseUrl }, transaction, code);
++                if (requestLogoutGeneration !== logoutGeneration)
++                    return state;
++                if (revalidationInFlight)
++                    await revalidationInFlight;
++                if (requestLogoutGeneration !== logoutGeneration)
++                    return state;
+                 if (typeof response.expires_in === 'number') {
+                     install({ accessToken: response.access_token, expiresIn: response.expires_in }, generation);
+                 }
+                 emit('callback', 'succeeded');
+-                if (revalidationInFlight)
+-                    await revalidationInFlight;
+                 return revalidate();
+             }
+             catch (error) {
+@@ -217,13 +261,21 @@ export function createBrowserAccountAuthRuntime({ client, oauth, now = Date.now,
+         revalidate,
+         getAccessToken: issueToken,
+         refreshAfterUnauthorized: refresh,
+-        clear() {
++        signOut() {
++            if (signOutInFlight)
++                return signOutInFlight;
+             generation += 1;
+-            token = undefined;
+-            tokenExpiresAt = 0;
+-            storage?.removeItem(cooldownStorageKey);
+-            update({ status: 'anonymous' });
++            logoutGeneration += 1;
++            revalidationInFlight = undefined;
++            tokenInFlight = refreshInFlight = undefined;
++            presentation?.clear();
++            const pending = Promise.resolve().then(() => client.logoutAll()).then(() => { clear(); })
++                .finally(() => { if (signOutInFlight === pending)
++                signOutInFlight = undefined; });
++            signOutInFlight = pending;
++            return pending;
+         },
++        clear,
+         dispose() {
+             detachLifecycle();
+             listeners.clear();
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index 544a58a65f36564f8ab82a197af925eaec5a87ec..ad9b930d302ff05437aa29eaaee54565ae3d89d3 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -15,3 +15,4 @@ export declare function createRefreshCoordinator({ locks }?: {
+ export declare function retrySupersededRefresh<T>(request: () => Promise<T>): Promise<T>;
+ export * from './legal.js';
+ //# sourceMappingURL=index.d.ts.map
++export * from './navigation-presentation.js';
+diff --git a/dist/index.js b/dist/index.js
+index 726a87a51e30d6f73111f00e8b7b028cfb7231dd..b9d1bff381188c5dfdf91b7863c77a963c782ba3 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -47,3 +47,5 @@ function browserLockManager() {
+     return navigator.locks;
+ }
+ export * from './legal.js';
++
++export * from './navigation-presentation.js';
+diff --git a/dist/navigation-presentation.d.ts b/dist/navigation-presentation.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..df01edcf12619ac75ef86c5ca479f8ef1a42b3ea
+--- /dev/null
++++ b/dist/navigation-presentation.d.ts
+@@ -0,0 +1,31 @@
++/** Display hints only. Never use these IDs to authorize a route, request, or action. */
++export type NavigationSource = 'account' | 'operations' | 'resources';
++type Projection = {
++    ids: readonly string[];
++    verifiedAt: number;
++};
++export type NavigationPresentation = {
++    ready: boolean;
++    subjectId: string | null;
++    sources: Partial<Record<NavigationSource, Projection>>;
++};
++export declare const emptyNavigationPresentation: NavigationPresentation;
++export declare const navigationPresentationTTL: number;
++type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
++export declare function createNavigationPresentation({ key, allowedIds, storage, now }: {
++    key: string;
++    allowedIds: readonly string[];
++    storage?: StorageLike;
++    now?: () => number;
++}): {
++    getSnapshot: () => NavigationPresentation;
++    subscribe(listener: () => void): () => void;
++    onInvalidate(listener: () => void): () => void;
++    identify(subjectId: string): void;
++    /** Capture after verified identity, before starting the source's asynchronous request. */
++    capture(subjectId: string): (source: NavigationSource, ids: readonly string[]) => boolean;
++    clear(): void;
++};
++export type NavigationPresentationStore = ReturnType<typeof createNavigationPresentation>;
++export {};
++//# sourceMappingURL=navigation-presentation.d.ts.map
+\ No newline at end of file
+diff --git a/dist/navigation-presentation.d.ts.map b/dist/navigation-presentation.d.ts.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..8535114369a47939fd368f176dd41d71bb635234
+--- /dev/null
++++ b/dist/navigation-presentation.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"navigation-presentation.d.ts","sourceRoot":"","sources":["../src/navigation-presentation.ts"],"names":[],"mappings":"AAAA,wFAAwF;AACxF,MAAM,MAAM,gBAAgB,GAAG,SAAS,GAAG,YAAY,GAAG,WAAW,CAAC;AACtE,KAAK,UAAU,GAAG;IAAC,GAAG,EAAE,SAAS,MAAM,EAAE,CAAC;IAAC,UAAU,EAAE,MAAM,CAAA;CAAC,CAAC;AAC/D,MAAM,MAAM,sBAAsB,GAAG;IACnC,KAAK,EAAE,OAAO,CAAC;IACf,SAAS,EAAE,MAAM,GAAG,IAAI,CAAC;IACzB,OAAO,EAAE,OAAO,CAAC,MAAM,CAAC,gBAAgB,EAAE,UAAU,CAAC,CAAC,CAAC;CACxD,CAAC;AACF,eAAO,MAAM,2BAA2B,EAAE,sBAAqE,CAAC;AAChH,eAAO,MAAM,yBAAyB,QAA2B,CAAC;AAClE,KAAK,WAAW,GAAG,IAAI,CAAC,OAAO,EAAE,SAAS,GAAG,SAAS,GAAG,YAAY,CAAC,CAAC;AAEvE,wBAAgB,4BAA4B,CAAC,EAAC,GAAG,EAAE,UAAU,EAAE,OAA0B,EAAE,GAAc,EAAC,EAAE;IAC1G,GAAG,EAAE,MAAM,CAAC;IACZ,UAAU,EAAE,SAAS,MAAM,EAAE,CAAC;IAC9B,OAAO,CAAC,EAAE,WAAW,CAAC;IACtB,GAAG,CAAC,EAAE,MAAM,MAAM,CAAC;CACpB;;wBA2EuB,MAAM,IAAI;2BAoBP,MAAM,IAAI;wBAIb,MAAM;IAK1B,0FAA0F;uBACvE,MAAM,IAGf,QAAQ,gBAAgB,EAAE,KAAK,SAAS,MAAM,EAAE;;EAkB7D;AACD,MAAM,MAAM,2BAA2B,GAAG,UAAU,CAAC,OAAO,4BAA4B,CAAC,CAAC"}
+\ No newline at end of file
+diff --git a/dist/navigation-presentation.js b/dist/navigation-presentation.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..78ea63955ff69569831319c119ffc13958ffc0d8
+--- /dev/null
++++ b/dist/navigation-presentation.js
+@@ -0,0 +1,177 @@
++export const emptyNavigationPresentation = { ready: false, subjectId: null, sources: {} };
++export const navigationPresentationTTL = 7 * 24 * 60 * 60 * 1_000;
++export function createNavigationPresentation({ key, allowedIds, storage = browserStorage(), now = Date.now }) {
++    const epochKey = `${key}:epoch`;
++    const allowed = new Set(allowedIds);
++    const listeners = new Set();
++    const invalidations = new Set();
++    let timer;
++    let generation = 0;
++    let epoch = null;
++    epoch = read(epochKey);
++    let state = parse(read(key));
++    if (hasSignedOutHint())
++        invalidate(false);
++    function read(name) {
++        try {
++            return storage ? storage.getItem(name) : name === epochKey ? epoch : null;
++        }
++        catch {
++            return name === epochKey ? epoch : null;
++        }
++    }
++    function parse(raw) {
++        const empty = { ready: true, subjectId: null, sources: {} };
++        try {
++            const data = JSON.parse(raw ?? 'null');
++            if (data?.version !== 1 || typeof data.subjectId !== 'string' || !data.subjectId || !data.sources)
++                return empty;
++            const sources = {};
++            for (const source of ['account', 'operations', 'resources']) {
++                const value = data.sources[source];
++                if (!value)
++                    continue;
++                if (!Number.isFinite(value.verifiedAt) || value.verifiedAt > now() || value.verifiedAt <= now() - navigationPresentationTTL
++                    || !Array.isArray(value.ids) || !value.ids.every((id) => typeof id === 'string' && allowed.has(id)))
++                    continue;
++                sources[source] = { ids: [...new Set(value.ids)], verifiedAt: value.verifiedAt };
++            }
++            return { ready: true, subjectId: Object.keys(sources).length ? data.subjectId : null, sources };
++        }
++        catch {
++            return empty;
++        }
++    }
++    function publish(next) {
++        state = next;
++        scheduleExpiry();
++        for (const listener of listeners)
++            listener();
++    }
++    function scheduleExpiry() {
++        clearTimeout(timer);
++        if (!listeners.size)
++            return;
++        const times = Object.values(state.sources).map(value => value.verifiedAt + navigationPresentationTTL);
++        if (times.length)
++            timer = setTimeout(() => publish(parse(JSON.stringify({ version: 1, ...state }))), Math.max(0, Math.min(...times) - now()));
++    }
++    function invalidate(notify = true) {
++        generation += 1;
++        // A separate epoch fences writes even before another tab processes its storage event.
++        epoch = `${now()}:${Math.random()}`;
++        try {
++            storage?.setItem(epochKey, epoch);
++            storage?.removeItem(key);
++        }
++        catch { /* Memory-only operation still works. */ }
++        publish({ ready: true, subjectId: null, sources: {} });
++        if (notify)
++            for (const listener of invalidations)
++                listener();
++    }
++    function sync() {
++        const nextEpoch = read(epochKey);
++        if (nextEpoch !== epoch) {
++            epoch = nextEpoch;
++            generation += 1;
++            publish({ ready: true, subjectId: null, sources: {} });
++            for (const listener of invalidations)
++                listener();
++        }
++    }
++    function onStorage(event) {
++        if (event.key !== key && event.key !== epochKey && event.key !== null)
++            return;
++        sync();
++        // Other tabs may update display hints, but never establish verified identity here.
++        publish(parse(read(key)));
++    }
++    function onActivity() {
++        if (hasSignedOutHint()) {
++            if (state.subjectId)
++                invalidate();
++        }
++        else {
++            sync();
++            publish(parse(JSON.stringify({ version: 1, ...state })));
++        }
++    }
++    return {
++        getSnapshot: () => state,
++        subscribe(listener) {
++            listeners.add(listener);
++            if (listeners.size === 1 && typeof window !== 'undefined') {
++                window.addEventListener('storage', onStorage);
++                window.addEventListener('focus', onActivity);
++                window.addEventListener('pageshow', onActivity);
++                document.addEventListener('visibilitychange', onActivity);
++            }
++            scheduleExpiry();
++            return () => {
++                listeners.delete(listener);
++                if (!listeners.size)
++                    clearTimeout(timer);
++                if (!listeners.size && typeof window !== 'undefined') {
++                    window.removeEventListener('storage', onStorage);
++                    window.removeEventListener('focus', onActivity);
++                    window.removeEventListener('pageshow', onActivity);
++                    document.removeEventListener('visibilitychange', onActivity);
++                }
++            };
++        },
++        onInvalidate(listener) {
++            invalidations.add(listener);
++            return () => { invalidations.delete(listener); };
++        },
++        identify(subjectId) {
++            sync();
++            if (state.subjectId && state.subjectId !== subjectId)
++                invalidate(false);
++            if (state.subjectId !== subjectId)
++                publish({ ready: true, subjectId, sources: {} });
++        },
++        /** Capture after verified identity, before starting the source's asynchronous request. */
++        capture(subjectId) {
++            const requestGeneration = generation;
++            const requestEpoch = epoch;
++            return (source, ids) => {
++                sync();
++                if (requestGeneration !== generation || requestEpoch !== epoch || state.subjectId !== subjectId || hasSignedOutHint())
++                    return false;
++                if (!ids.every(id => allowed.has(id)))
++                    return false;
++                const stored = parse(read(key));
++                const sources = stored.subjectId === subjectId ? { ...state.sources, ...stored.sources } : state.sources;
++                const next = { ready: true, subjectId, sources: { ...sources, [source]: { ids: [...new Set(ids)], verifiedAt: now() } } };
++                try {
++                    storage?.setItem(key, JSON.stringify({ version: 1, subjectId, sources: next.sources }));
++                }
++                catch { /* Keep live display without persistence. */ }
++                publish(next);
++                return true;
++            };
++        },
++        clear() {
++            // Do not echo invalidation events between tabs.
++            if (state.subjectId || read(key))
++                invalidate(false);
++            else {
++                generation += 1;
++                publish({ ready: true, subjectId: null, sources: {} });
++            }
++        }
++    };
++}
++function browserStorage() {
++    try {
++        return typeof localStorage === 'undefined' ? undefined : localStorage;
++    }
++    catch {
++        return undefined;
++    }
++}
++function hasSignedOutHint() {
++    return typeof document !== 'undefined' && (document.cookie.split(';').some(value => value.trim() === 'hhc_sso_hint=0')
++        || (typeof location !== 'undefined' && new URLSearchParams(location.search).get('signed_out') === '1'));
++}

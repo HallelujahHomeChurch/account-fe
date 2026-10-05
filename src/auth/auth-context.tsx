@@ -4,6 +4,9 @@ import {
   createOAuthTransaction,
   createAccountSessionClient,
   createBrowserAccountAuthRuntime,
+  createNavigationPresentation,
+  type NavigationPresentation,
+  type NavigationPresentationStore,
   currentReturnTo,
   resolveAccountAuth,
   validateOAuthState,
@@ -11,6 +14,7 @@ import {
   type OAuthTokenResponse,
   type OAuthTransaction,
 } from '@hallelujahhomechurch/account-client'
+import { canAccessAdmin } from '@hallelujahhomechurch/account-client/admin-access'
 import { createOperationsClient } from '@hallelujahhomechurch/operations-client'
 import {
   createContext,
@@ -20,6 +24,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from 'react'
 import { useLocation } from 'react-router-dom'
@@ -62,6 +67,8 @@ export type AuthApi = {
 } & Partial<AccountApi>
 
 type AuthContextValue = {
+  navigation: NavigationPresentation
+  presentation: NavigationPresentationStore
   status: AuthStatus
   accessToken: string | null
   profile: Profile | null
@@ -158,6 +165,8 @@ export function AuthProvider({
   errorLabels = defaultAuthErrorLabels,
 }: AuthProviderProps) {
   const [config] = useState(() => suppliedConfig ?? readRuntimeConfig())
+  const presentation = useMemo(() => createNavigationPresentation({ key: 'hhc:navigation:account-web', allowedIds: ['shell', 'admin', 'organizations', 'resources'] }), [])
+  const navigation = useSyncExternalStore(presentation.subscribe, presentation.getSnapshot)
   const tokenRef = useRef<string | null>(null)
   const [state, setState] = useState<AuthState>(emptyAuthState)
   const stateRef = useRef<AuthState>(emptyAuthState)
@@ -182,10 +191,15 @@ export function AuthProvider({
   }, [])
 
   const commitState = useCallback((next: AuthState) => {
+    if (next.status === 'anonymous' || next.status === 'mfa') presentation.clear()
+    if (next.status === 'authenticated' && next.profile && next.profile !== stateRef.current.profile) {
+      presentation.identify(next.profile.id)
+      presentation.capture(next.profile.id)('account', ['shell', ...(canAccessAdmin(next.profile.permissions ?? []) ? ['admin'] : [])])
+    }
     tokenRef.current = next.accessToken
     stateRef.current = next
     setState(next)
-  }, [])
+  }, [presentation])
 
   const patchState = useCallback((patch: Partial<AuthState>) => {
     commitState({ ...stateRef.current, ...patch })
@@ -196,8 +210,8 @@ export function AuthProvider({
     return createAccountSessionClient({ baseUrl: config.accountApiBaseUrl, fetcher: observeApiFetch(globalThis.fetch.bind(globalThis), 'account.session') })
   }, [config.accountApiBaseUrl, config.mockApi, injectedApi])
   const authRuntime = useMemo(
-    () => sessionClient ? createBrowserAccountAuthRuntime({ client: sessionClient, onEvent: recordAccountAuthEvent }) : null,
-    [sessionClient],
+    () => sessionClient ? createBrowserAccountAuthRuntime({ client: sessionClient, onEvent: recordAccountAuthEvent, presentation }) : null,
+    [sessionClient, presentation],
   )
 
   const api = useMemo<AuthApi>(() => {
@@ -386,7 +400,8 @@ export function AuthProvider({
     authRevisionRef.current += 1
     patchState({ logoutError: null })
     try {
-      await (api.logoutAll ? api.logoutAll() : api.logout())
+      if (authRuntime) await authRuntime.signOut()
+      else await (api.logoutAll ? api.logoutAll() : api.logout())
       authRuntime?.clear()
       commitState({ ...emptyAuthState, status: 'anonymous' })
       navigateAfterLogout('/login?signed_out=1')
@@ -412,6 +427,7 @@ export function AuthProvider({
 
   const resolveSharedSignOut = useCallback(async (): Promise<AuthState | null> => {
     if (config.mockApi || !hasSharedSignOut()) return null
+    if (stateRef.current.status === 'anonymous') return { ...emptyAuthState, status: 'anonymous' }
     try {
       await (api.logoutAll ? api.logoutAll() : api.logout())
       return { ...emptyAuthState, status: 'anonymous' }
@@ -548,11 +564,33 @@ export function AuthProvider({
     return request
   }, [api, authRuntime, authorizeMissingSession, beginAuthorization, commitState, config.mockApi, resolveSharedSignOut, resolveState, setTokenRef])
 
+  useEffect(() => presentation.onInvalidate(() => {
+    const revision = ++authRevisionRef.current
+    const signedOut = hasSharedSignOut() ? resolveSharedSignOut() : null
+    authRuntime?.clear()
+    commitState({ ...emptyAuthState, status: 'anonymous' })
+    if (signedOut) void signedOut.then(next => { if (next && revision === authRevisionRef.current) commitState(next) })
+  }), [authRuntime, commitState, presentation, resolveSharedSignOut])
+
   useEffect(() => {
     if (!authRuntime) return
     const unsubscribe = authRuntime.subscribe(() => {
-      if (authRuntime.getSnapshot().status === 'anonymous') {
+      const snapshot = authRuntime.getSnapshot()
+      if (snapshot.status === 'authenticated') {
+        if (stateRef.current.profile && stateRef.current.profile.id !== snapshot.session.user.id) {
+          authRevisionRef.current += 1
+          bootstrapRef.current = null
+          revalidationRef.current = null
+          commitState({ ...emptyAuthState })
+          void revalidateSession()
+        }
+        if (snapshot.session.permissionAvailability.status === 'available') {
+          presentation.capture(snapshot.session.user.id)('account', ['shell', ...(canAccessAdmin(snapshot.session.permissions) ? ['admin'] : [])])
+        }
+      }
+      if (snapshot.status === 'anonymous') {
         if (stateRef.current.status === 'loading' && bootstrapRef.current) return
+        authRevisionRef.current += 1
         commitState({ ...emptyAuthState, status: 'anonymous' })
       }
     })
@@ -560,7 +598,7 @@ export function AuthProvider({
       unsubscribe()
       authRuntime.dispose()
     }
-  }, [authRuntime, commitState])
+  }, [authRuntime, commitState, presentation, revalidateSession])
 
   useEffect(() => {
     let alive = true
@@ -631,6 +669,8 @@ export function AuthProvider({
   const value = useMemo(
     () => ({
       ...state,
+      navigation,
+      presentation,
       isBootstrapping: state.status === 'loading',
       api,
       operationsApi,
@@ -646,7 +686,7 @@ export function AuthProvider({
       clearLocalSession,
       navigateExternal,
     }),
-    [api, beginAuthorization, clearLocalSession, completeLogin, completeOAuthCallback, login, logout, navigateExternal, operationsApi, refreshProfile, revalidateSession, state, unitNotificationsApi, verifyMfa],
+    [navigation, presentation, api, beginAuthorization, clearLocalSession, completeLogin, completeOAuthCallback, login, logout, navigateExternal, operationsApi, refreshProfile, revalidateSession, state, unitNotificationsApi, verifyMfa],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

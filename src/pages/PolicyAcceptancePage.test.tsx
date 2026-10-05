@@ -34,7 +34,8 @@ it('keeps the resume token in memory and rotates stale versions', async () => {
 
   expect(confirm).toHaveBeenNthCalledWith(1, 'old-token', expect.objectContaining({ terms_version: 'terms-v1' }))
   expect(confirm).toHaveBeenNthCalledWith(2, 'new-token', expect.objectContaining({ terms_version: 'terms-v2' }))
-  expect(localStorage.length).toBe(0)
+  expect(Object.values(localStorage).join('')).not.toMatch(/old-token|new-token|access-token|user@example\.com/)
+  expect(JSON.parse(localStorage.getItem('hhc:navigation:account-web')!).sources.account.ids).toEqual(['shell'])
   expect(sessionStorage.length).toBe(0)
 })
 
