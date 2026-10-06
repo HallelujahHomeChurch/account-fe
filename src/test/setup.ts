@@ -31,3 +31,8 @@ afterEach(async () => {
   document.documentElement.classList.remove('dark')
   document.documentElement.style.colorScheme = ''
 })
+
+// Navigation snapshots persist across mounts, but must not leak between test cases.
+afterEach(() => {
+  for (const key of Object.keys(localStorage)) if (key.startsWith('hhc:navigation:')) localStorage.removeItem(key)
+})

@@ -1,3 +1,4 @@
+import { createNavigationPresentation } from '@hallelujahhomechurch/account-client'
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -38,6 +39,23 @@ afterEach(() => {
 })
 
 describe('App layout', () => {
+  it('restores the account shell without mounting profile or Operations requests before authentication', () => {
+    const cached = createNavigationPresentation({key: 'hhc:navigation:account-web', allowedIds: ['shell', 'admin', 'organizations', 'resources']})
+    cached.identify('previous-user')
+    cached.capture('previous-user')('account', ['shell', 'admin'])
+    cached.capture('previous-user')('operations', ['organizations'])
+    const me = vi.fn()
+    const operationsApi = {listMyResources: vi.fn(), getMyAccess: vi.fn()}
+    const pendingApi = {...signedInApi, getSession: () => new Promise<never>(() => {}), me}
+    render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={pendingApi} operationsApi={operationsApi as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+    expect(screen.getByRole('link', {name: 'Small group management'})).toBeInTheDocument()
+    expect(screen.queryByDisplayValue('Ray')).not.toBeInTheDocument()
+    expect(screen.queryByText('previous-user')).not.toBeInTheDocument()
+    expect(me).not.toHaveBeenCalled()
+    expect(operationsApi.listMyResources).not.toHaveBeenCalled()
+    expect(operationsApi.getMyAccess).not.toHaveBeenCalled()
+  })
+
   it('keeps the statement below the shared header when navigating account pages', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ data: {
       serverNow: '2026-09-29T02:00:00Z', nextChangeAt: null,
