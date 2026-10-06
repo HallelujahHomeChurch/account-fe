@@ -4,18 +4,13 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-patchedDependencies:
-  '@hallelujahhomechurch/account-client@1.0.31':
-    hash: eaa5b0fa2221c829a79c94bc859e2d8292184432d3ef4d95c9e72d3c91923548
-    path: patches/@hallelujahhomechurch__account-client@1.0.31.patch
-
 importers:
 
   .:
     dependencies:
       '@hallelujahhomechurch/account-client':
-        specifier: 1.0.31
-        version: 1.0.31(patch_hash=eaa5b0fa2221c829a79c94bc859e2d8292184432d3ef4d95c9e72d3c91923548)
+        specifier: 1.0.38
+        version: 1.0.38
       '@hallelujahhomechurch/operations-client':
         specifier: 1.0.35
         version: 1.0.35
@@ -245,11 +240,11 @@ packages:
       '@noble/hashes':
         optional: true
 
-  '@hallelujahhomechurch/account-client@1.0.31':
-    resolution: {integrity: sha512-N6CydT9v0NduA/g4uPeih0ovJKWsS14F1y/9PkUg42XtJHHCLvLasAv/U0QtCqsU9wmoJY3ZMH3Bwjngqg8DQw==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/account-client/1.0.31/7a020e8e43d94621e0ce1bff2f8169a08375b96b}
-
   '@hallelujahhomechurch/account-client@1.0.35':
     resolution: {integrity: sha512-s6bbY8n2t/hByYSUYwI+HKrine0lxacHnHurgMWnu8v/cuEYZT90blMblllogP5zRTs1QH95a5W9j6k/CTHg9w==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/account-client/1.0.35/4761ddbd3eaa2fe48c12a3268fa386f0e048ef73}
+
+  '@hallelujahhomechurch/account-client@1.0.38':
+    resolution: {integrity: sha512-jpzHovC8TPE2V6E+D1LPRxxp9kAK1F1PzyXymy/GeUeLXE6MGPMbmS2iyXmbQdnGS+oKRnzGAz986rJiOBf2Ig==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/account-client/1.0.38/d44d4bd20475e5a4a0b5b58b764834bbd1617165}
 
   '@hallelujahhomechurch/operations-client@1.0.35':
     resolution: {integrity: sha512-Xb8262ecWdzcgcJKXHFYgyGR3fN0ICtS54VzeS3xUUOek5E9TwA4PDWGkclzT2INTbwQ3Hea9adOYBGM8aLRyA==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/operations-client/1.0.35/e88f93bc725c86f5856ecfbcb220ab252a2f85fb}
@@ -1775,9 +1770,9 @@ snapshots:
 
   '@exodus/bytes@1.15.1': {}
 
-  '@hallelujahhomechurch/account-client@1.0.31(patch_hash=eaa5b0fa2221c829a79c94bc859e2d8292184432d3ef4d95c9e72d3c91923548)': {}
-
   '@hallelujahhomechurch/account-client@1.0.35': {}
+
+  '@hallelujahhomechurch/account-client@1.0.38': {}
 
   '@hallelujahhomechurch/operations-client@1.0.35':
     dependencies:
