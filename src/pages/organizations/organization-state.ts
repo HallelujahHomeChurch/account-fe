@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { EntitlementCode } from '../../lib/operations-api'
 
 export const managedEntitlementCodes: EntitlementCode[] = ['bulletin.general.zh-Hant.access', 'bulletin.general.zh-Hans.access', 'bulletin.general.en.access', 'video.meeting-recordings.access']
-export const managedEntitlementLabels = ['繁體中文', '简体中文', 'English']
+export const managedEntitlementLabels = ['繁體週報下載', '簡體週報下載', '英文週報下載']
 
 export function useManagedMutation() {
   const [pending, setPending] = useState(false)
