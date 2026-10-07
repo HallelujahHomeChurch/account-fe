@@ -10,7 +10,7 @@ import { OrganizationUnitPage } from './OrganizationUnitPage'
 vi.mock('../../auth/auth-context', () => ({ useAuth: vi.fn() }))
 vi.mock('../../i18n/locale-context', () => ({ useLocale: () => ({ messages: messages.en }) }))
 
-const operationsApi = { updateManagedUnit: vi.fn(), getManagedUnit: vi.fn(), listManagedMembers: vi.fn(), searchManagedCandidates: vi.fn(), listManagedResponsibilities: vi.fn(), getMyAccess: vi.fn(), revokeManagedResponsibility: vi.fn(), applyManagedEntitlements: vi.fn() }
+const operationsApi = { admitManagedMember: vi.fn(), updateManagedUnit: vi.fn(), getManagedUnit: vi.fn(), listManagedMembers: vi.fn(), searchManagedCandidates: vi.fn(), listManagedResponsibilities: vi.fn(), getMyAccess: vi.fn(), revokeManagedResponsibility: vi.fn(), applyManagedEntitlements: vi.fn() }
 beforeEach(() => {
   vi.resetAllMocks()
   operationsApi.getManagedUnit.mockResolvedValue({ unit: { id: 'church', kind: 'church', name: 'Church', status: 'active', version: 1 }, breadcrumb: [], children: [], actions: { editUnit: false, createChild: false, archive: false, restore: false, manageMembers: true, manageResponsibilities: false, manageEntitlements: true, sendNotifications: false } })
@@ -160,4 +160,21 @@ it('shows effective inherited access when own-unit ancestors are hidden', async 
  mount(); await userEvent.click(await screen.findByRole('button',{name:'Unit settings'}))
  expect(screen.getByRole('checkbox',{name:'Member videos'})).toBeChecked()
  expect(screen.getByRole('checkbox',{name:'Member videos'})).toBeDisabled()
+})
+
+it('submits default-off admission switches atomically and resets them on reopening', async () => {
+ operationsApi.getManagedUnit.mockResolvedValue({unit:{id:'church',kind:'church',name:'Church',status:'active',effectiveGrantableEntitlementCodes:['bulletin.general.zh-Hant.access']},breadcrumb:[],children:[],actions:{manageMembers:true,manageEntitlements:true}})
+ operationsApi.searchManagedCandidates.mockResolvedValue([{account:{accountUserId:'new',displayName:'Bob',email:'bob@example.test'},state:'available'}])
+ mount()
+ await userEvent.click(await screen.findByRole('button',{name:'Add member'}))
+ const toggle=await screen.findByRole('switch',{name:'繁體中文'})
+ expect(toggle).not.toBeChecked()
+ await userEvent.click(toggle)
+ await userEvent.type(screen.getByRole('textbox',{name:'Search email'}),'bob@example.test')
+ await userEvent.click(screen.getByRole('button',{name:'Search'}))
+ const row = (await screen.findByText('Bob')).closest('li')!
+ await userEvent.click(within(row).getByRole('button',{name:'Add member'}))
+ expect(operationsApi.admitManagedMember).toHaveBeenCalledWith('church','new',expect.any(String),['bulletin.general.zh-Hant.access'])
+ await userEvent.click(await screen.findByRole('button',{name:'Add member'}))
+ expect(await screen.findByRole('switch',{name:'繁體中文'})).not.toBeChecked()
 })

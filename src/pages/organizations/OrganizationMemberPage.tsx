@@ -1,4 +1,4 @@
-import { Button, Card, Dialog, Skeleton } from '@hallelujahhomechurch/ui'
+import { Button, Card, Dialog, Skeleton, Switch } from '@hallelujahhomechurch/ui'
 import { ChevronRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -23,6 +23,7 @@ function MemberDetail({ unitId, memberId }: { unitId: string; memberId: string }
   const [folder, setFolder] = useState<ManagedUnitFolder | null>(null)
   const [loadError, setLoadError] = useState<'forbidden' | 'failed' | null>(null)
   const [revision, setRevision] = useState(0)
+  const [refreshRequired, setRefreshRequired] = useState(false)
   const [endAffiliation, setEndAffiliation] = useState<Affiliation | null>(null)
   const { mutate, pending, error } = useManagedMutation()
 
@@ -33,7 +34,7 @@ function MemberDetail({ unitId, memberId }: { unitId: string; memberId: string }
       operationsApi.getManagedMember(unitId, memberId, controller.signal),
       operationsApi.getManagedUnit(unitId, false, controller.signal),
     ]).then(([nextMember, nextFolder]) => {
-      if (!controller.signal.aborted) { setMember(nextMember); setFolder(nextFolder) }
+      if (!controller.signal.aborted) { setMember(nextMember); setFolder(nextFolder); setRefreshRequired(false) }
     }).catch(reason => {
       if (!controller.signal.aborted) {
         setMember(null)
@@ -67,18 +68,24 @@ function MemberDetail({ unitId, memberId }: { unitId: string; memberId: string }
   return <section className="account-document organization-page">
     <nav className="organization-breadcrumb" aria-label={t.title}><Link to="/organizations">{t.title}</Link><ChevronRight size={14} aria-hidden="true" /><Link to={'/organizations/' + unitId}>{folder.unit.name}</Link><ChevronRight size={14} aria-hidden="true" /><span aria-current="page">{member.displayName || member.email}</span></nav>
     <div className="organization-heading"><div className="page-heading"><h1>{member.displayName || member.email}</h1><p>{member.email}</p></div>
-      {member.actions.manageMembers && currentAffiliation ? <div className="organization-actions"><Button variant="secondary" isDisabled={pending} onPress={() => void remove(currentAffiliation)}>{t.removeAffiliation}</Button></div> : null}
+      {member.actions.manageMembers && currentAffiliation ? <div className="organization-actions"><Button variant="secondary" isDisabled={pending || refreshRequired} onPress={() => void remove(currentAffiliation)}>{t.removeAffiliation}</Button></div> : null}
     </div>
     {!endAffiliation ? mutationError : null}
-    <Card className="panel-card"><Card.Header><Card.Title>{t.entitlements}</Card.Title></Card.Header><Card.Content>
+    {refreshRequired && !pending ? <><p className="form-error" role="alert">{t.loadFailed}</p><Button onPress={() => setRevision(value => value + 1)}>{t.retry}</Button></> : null}
+    <Card className="panel-card organization-entitlement-card"><Card.Header><Card.Title>{t.entitlements}</Card.Title></Card.Header><Card.Content>
       <ul className="organization-list">{managedEntitlementCodes.map((code, index) => {
         const granted = member.entitlementCodes.includes(code)
         const grantable = member.grantableEntitlementCodes?.includes(code) ?? false
-        return <li key={code}><span>{index === 3 ? t.video : managedEntitlementLabels[index]}<small>{t.entitlements}</small></span>
-          {member.actions.manageEntitlements && (granted || grantable) ? <Button size="sm" isDisabled={pending} variant={granted ? 'secondary' : 'primary'} onPress={async () => {
-            if (await mutate(JSON.stringify(['entitlement', code, granted]), key => operationsApi.applyManagedEntitlements(unitId, [memberId], code, granted ? 'revoke' : 'grant', key))) setRevision(value => value + 1)
-          }}>{granted ? t.remove : t.grant}</Button> : <span>{granted ? t.active : t.blocked}</span>}
-        </li>
+        return <li key={code}><Switch label={index === 3 ? t.video : managedEntitlementLabels[index]} isSelected={granted}
+          isDisabled={pending || refreshRequired || !member.actions.manageEntitlements || (!granted && !grantable)}
+          onChange={selected => void mutate(JSON.stringify(['entitlement', code, granted]), async key => {
+            await operationsApi.applyManagedEntitlements(unitId, [memberId], code, selected ? 'grant' : 'revoke', key)
+            setRefreshRequired(true)
+            try {
+              setMember(await operationsApi.getManagedMember(unitId, memberId))
+              setRefreshRequired(false)
+            } catch { setLoadError('failed') }
+          })} /></li>
       })}</ul>
     </Card.Content></Card>
     <Dialog isOpen={Boolean(endAffiliation)} onOpenChange={open => { if (!open && !pending) setEndAffiliation(null) }} title={t.removeAffiliation} closeLabel={t.cancel}>

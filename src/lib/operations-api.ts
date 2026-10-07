@@ -37,7 +37,7 @@ export type OperationsApiClient = {
   listManagedMembers: (unitId: string, query?: string, page?: number, signal?: AbortSignal) => Promise<ManagedMemberPage>
   getManagedMember: (unitId: string, memberId: string, signal?: AbortSignal) => Promise<ManagedMemberView>
   searchManagedCandidates: (unitId: string, query: string, signal?: AbortSignal) => Promise<ManagedJoinCandidate[]>
-  admitManagedMember: (unitId: string, accountUserId: string, key: string) => Promise<ManagedMemberView>
+  admitManagedMember: (unitId: string, accountUserId: string, key: string, entitlementCodes?: EntitlementCode[]) => Promise<ManagedMemberView>
   createManagedChild: (unitId: string, input: Schemas['ManagedChildInput'], key: string) => Promise<ManagedUnit>
   updateManagedUnit: (unitId: string, version: number, input: Schemas['ManagedUnitUpdate'], key: string) => Promise<ManagedUnit>
   setManagedUnitStatus: (unitId: string, version: number, action: 'archive' | 'restore', key: string) => Promise<ManagedUnit>
@@ -135,9 +135,10 @@ export class OperationsApi implements OperationsApiClient {
     }))).items
   }
 
-  admitManagedMember(unitId: string, accountUserId: string, key: string) {
+  admitManagedMember(unitId: string, accountUserId: string, key: string, entitlementCodes?: EntitlementCode[]) {
+    const body = { accountUserId, ...(entitlementCodes?.length ? { entitlementCodes } : {}) }
     return unwrap<ManagedMemberView>(this.client.raw.POST('/api/operations/manage/org-units/{unitId}/members', {
-      params: { path: { unitId }, header: idempotency(key) }, body: { accountUserId },
+      params: { path: { unitId }, header: idempotency(key) }, body,
     }))
   }
 
