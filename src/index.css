@@ -1792,3 +1792,8 @@ textarea::selection {
 .member-mobile-country .hhc-select__trigger > span, .member-mobile-country .hhc-searchable-select__trigger > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 body:has(.member-mobile-country) .hhc-searchable-select__popover { min-width: min(280px, calc(100vw - 24px)); }
+
+.organization-entitlement-card { width: 100%; max-width: 560px; min-width: 0; }
+.organization-entitlement-options { display: grid; gap: .75rem; margin: 0; padding: 0; border: 0; }
+.organization-entitlement-options legend { margin-bottom: .5rem; font-weight: 650; }
+.organization-entitlement-options p { margin: 0; }

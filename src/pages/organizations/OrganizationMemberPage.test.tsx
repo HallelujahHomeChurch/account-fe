@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, expect, it, vi } from 'vitest'
@@ -23,8 +23,8 @@ it.each(['grant', 'revoke'] as const)('keeps individual entitlement %s scoped to
   const code = 'bulletin.general.zh-Hant.access'
   api.getManagedMember.mockResolvedValue({ memberId: 'member', displayName: 'Alice', email: 'a@example.test', affiliations: [], entitlementCodes: operation === 'revoke' ? [code] : [], grantableEntitlementCodes: [code], actions: { manageEntitlements: true } })
   render(<MemoryRouter initialEntries={['/organizations/unit/members/member']}><Routes><Route path="/organizations/:unitId/members/:memberId" element={<OrganizationMemberPage />} /></Routes></MemoryRouter>)
-  const buttons = await screen.findAllByRole('button', { name: operation === 'grant' ? 'Grant' : 'Remove' })
-  await userEvent.click(buttons[0])
+  const control = await screen.findByRole('switch', { name: '繁體中文' })
+  await userEvent.click(control)
   expect(api.applyManagedEntitlements).toHaveBeenCalledExactlyOnceWith('unit', ['member'], code, operation, expect.any(String))
 })
 
@@ -74,14 +74,64 @@ it('offers only the server-authorized Traditional bulletin and video grants', as
  api.getManagedMember.mockResolvedValue({memberId:'member',displayName:'Alice',email:'a@example.test',affiliations:[],entitlementCodes:[],grantableEntitlementCodes:['bulletin.general.zh-Hant.access','video.meeting-recordings.access'],actions:{manageEntitlements:true}})
  render(<MemoryRouter initialEntries={['/organizations/unit/members/member']}><Routes><Route path="/organizations/:unitId/members/:memberId" element={<OrganizationMemberPage />} /></Routes></MemoryRouter>)
  await screen.findByText('Member videos')
- expect(screen.getAllByRole('button',{name:'Grant'})).toHaveLength(2)
+ expect(screen.getAllByRole('switch').filter(control => !(control as HTMLInputElement).disabled)).toHaveLength(2)
  const row = screen.getByText('Member videos').closest('li')!
- await userEvent.click(within(row).getByRole('button',{name:'Grant'}))
+ await userEvent.click(within(row).getByRole('switch',{name:'Member videos'}))
  expect(api.applyManagedEntitlements).toHaveBeenCalledWith('unit',['member'],'video.meeting-recordings.access','grant',expect.any(String))
 })
 
 it('fails new grants closed when the server policy projection is unavailable', async () => {
  render(<MemoryRouter initialEntries={['/organizations/unit/members/member']}><Routes><Route path="/organizations/:unitId/members/:memberId" element={<OrganizationMemberPage />} /></Routes></MemoryRouter>)
  await screen.findByRole('heading',{name:'Alice'})
- expect(screen.queryByRole('button',{name:'Grant'})).not.toBeInTheDocument()
+ expect(screen.getAllByRole('switch')).toHaveLength(4)
+ for (const control of screen.getAllByRole('switch')) expect(control).toBeDisabled()
+ expect(screen.queryByText(messages.en.organizations.blocked)).not.toBeInTheDocument()
+})
+
+it('preserves revocation for existing access outside the grantable policy', async () => {
+ api.getManagedMember.mockResolvedValue({memberId:'member',displayName:'Alice',email:'a@example.test',affiliations:[],entitlementCodes:['bulletin.general.zh-Hant.access'],grantableEntitlementCodes:[],actions:{manageEntitlements:true}})
+ render(<MemoryRouter initialEntries={['/organizations/unit/members/member']}><Routes><Route path="/organizations/:unitId/members/:memberId" element={<OrganizationMemberPage />} /></Routes></MemoryRouter>)
+ const control=await screen.findByRole('switch',{name:'繁體中文'})
+ expect(control).toBeChecked(); expect(control).not.toBeDisabled()
+ await userEvent.click(control)
+ expect(api.applyManagedEntitlements).toHaveBeenCalledWith('unit',['member'],'bulletin.general.zh-Hant.access','revoke',expect.any(String))
+})
+
+it('keeps the confirmed switch value on failure', async () => {
+ api.getManagedMember.mockResolvedValue({memberId:'member',displayName:'Alice',email:'a@example.test',affiliations:[],entitlementCodes:[],grantableEntitlementCodes:['bulletin.general.zh-Hant.access'],actions:{manageEntitlements:true}})
+ api.applyManagedEntitlements.mockRejectedValue(new OperationsApiError(403,'forbidden'))
+ render(<MemoryRouter initialEntries={['/organizations/unit/members/member']}><Routes><Route path="/organizations/:unitId/members/:memberId" element={<OrganizationMemberPage />} /></Routes></MemoryRouter>)
+ const control=await screen.findByRole('switch',{name:'繁體中文'})
+ await userEvent.click(control)
+ expect(await screen.findByRole('alert')).toHaveTextContent(messages.en.organizations.forbidden)
+ expect(control).not.toBeChecked()
+})
+
+it('keeps switches disabled until the confirmed member reload finishes', async () => {
+ const initial={memberId:'member',displayName:'Alice',email:'a@example.test',affiliations:[],entitlementCodes:[],grantableEntitlementCodes:['bulletin.general.zh-Hant.access'],actions:{manageEntitlements:true}}
+ let finish!: (value: unknown) => void
+ api.getManagedMember.mockResolvedValueOnce(initial).mockReturnValueOnce(new Promise(resolve=>{finish=resolve}))
+ api.applyManagedEntitlements.mockResolvedValue({matched:1,changed:1})
+ render(<MemoryRouter initialEntries={['/organizations/unit/members/member']}><Routes><Route path="/organizations/:unitId/members/:memberId" element={<OrganizationMemberPage />} /></Routes></MemoryRouter>)
+ const control=await screen.findByRole('switch',{name:'繁體中文'})
+ control.focus(); await userEvent.keyboard(' ')
+ await waitFor(()=>expect(api.getManagedMember).toHaveBeenCalledTimes(2))
+ expect(control).toBeDisabled()
+ finish({...initial,entitlementCodes:['bulletin.general.zh-Hant.access']})
+ await waitFor(()=>expect(control).toBeChecked())
+ expect(control).not.toBeDisabled()
+})
+
+it('locks mutations after a successful write with failed reload and retries only the read', async () => {
+ const initial={memberId:'member',displayName:'Alice',email:'a@example.test',affiliations:[],entitlementCodes:[],grantableEntitlementCodes:['bulletin.general.zh-Hant.access'],actions:{manageEntitlements:true}}
+ api.getManagedMember.mockResolvedValueOnce(initial).mockRejectedValueOnce(new Error('Read failed')).mockResolvedValue({...initial,entitlementCodes:['bulletin.general.zh-Hant.access']})
+ api.applyManagedEntitlements.mockResolvedValue({matched:1,changed:1})
+ render(<MemoryRouter initialEntries={['/organizations/unit/members/member']}><Routes><Route path="/organizations/:unitId/members/:memberId" element={<OrganizationMemberPage />} /></Routes></MemoryRouter>)
+ await userEvent.click(await screen.findByRole('switch',{name:'繁體中文'}))
+ await screen.findByRole('alert')
+ expect(screen.getByRole('switch',{name:'繁體中文'})).toBeDisabled()
+ await userEvent.click(screen.getByRole('button',{name:messages.en.organizations.retry}))
+ await waitFor(()=>expect(screen.getByRole('switch',{name:'繁體中文'})).toBeChecked())
+ expect(screen.getByRole('switch',{name:'繁體中文'})).not.toBeDisabled()
+ expect(api.applyManagedEntitlements).toHaveBeenCalledTimes(1)
 })

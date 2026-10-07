@@ -10,7 +10,7 @@ const organizationBaseMessages = {
 
 const organizationDetails = {
   'zh-Hant': {
-    policyTitle: '可授予項目', policyHelp: '未自訂的下級沿用上級；既有成員授權不會自動撤銷。', inheritPolicy: '沿用上級設定', video: '影音專區觀看', blocked: '此單位不可授予', effectivePolicy: '有效授予項目', noEntitlements: '目前沒有可授予項目。',
+    policyTitle: '可授予項目', admissionEntitlements: '加入時一併授權', admissionEntitlementsHint: '按下加入後，才會套用所選授權。', policyHelp: '未自訂的下級沿用上級；既有成員授權不會自動撤銷。', inheritPolicy: '沿用上級設定', video: '影音專區觀看', blocked: '此單位不可授予', effectivePolicy: '有效授予項目', noEntitlements: '目前沒有可授予項目。',
     memberButton: '會員', unitButton: '單位', archiveFilter: '封存單位',
     you: '你', memberForbidden: '你無法在此管理這位會員；單位管理不允許操作自己的帳號。',
     refresh: '重新整理', recipient_unavailable: '部分收件帳號或裝置已無法使用。', content_unavailable: '通知內容無法使用。', delivery_failed: '部分投遞失敗，請洽管理員。',
@@ -29,7 +29,7 @@ const organizationDetails = {
     sending: '正在送出…', view: '開啟單位', moveTarget: '移動至', chooseTarget: '選擇目標單位',
   },
   'zh-Hans': {
-    policyTitle: '可授予项目', policyHelp: '未自定义的下级沿用上级；现有成员授权不会自动撤销。', inheritPolicy: '沿用上级设置', video: '影音专区观看', blocked: '此单位不可授予', effectivePolicy: '有效授予项目', noEntitlements: '目前没有可授予项目。',
+    policyTitle: '可授予项目', admissionEntitlements: '加入时一并授权', admissionEntitlementsHint: '点击加入后，才会应用所选授权。', policyHelp: '未自定义的下级沿用上级；现有成员授权不会自动撤销。', inheritPolicy: '沿用上级设置', video: '影音专区观看', blocked: '此单位不可授予', effectivePolicy: '有效授予项目', noEntitlements: '目前没有可授予项目。',
     memberButton: '会员', unitButton: '单位', archiveFilter: '封存单位',
     you: '你', memberForbidden: '你无法在此管理这位会员；单位管理不允许操作自己的账号。',
     refresh: '刷新', recipient_unavailable: '部分收件账号或设备已无法使用。', content_unavailable: '通知内容无法使用。', delivery_failed: '部分投递失败，请联系管理员。',
@@ -48,7 +48,7 @@ const organizationDetails = {
     sending: '正在提交…', view: '打开单位', moveTarget: '移动至', chooseTarget: '选择目标单位',
   },
   en: {
-    policyTitle: 'Grantable access', policyHelp: 'Unconfigured children inherit their parent; existing member access is not automatically revoked.', inheritPolicy: 'Inherit from parent', video: 'Member videos', blocked: 'Not grantable by this unit', effectivePolicy: 'Effective grantable access', noEntitlements: 'No access can currently be granted.',
+    policyTitle: 'Grantable access', admissionEntitlements: 'Grant access when adding', admissionEntitlementsHint: 'Selected access is applied only after adding the member.', policyHelp: 'Unconfigured children inherit their parent; existing member access is not automatically revoked.', inheritPolicy: 'Inherit from parent', video: 'Member videos', blocked: 'Not grantable by this unit', effectivePolicy: 'Effective grantable access', noEntitlements: 'No access can currently be granted.',
     memberButton: 'Member', unitButton: 'Unit', archiveFilter: 'Archived units',
     you: 'You', memberForbidden: 'You cannot manage this member here. Unit management does not allow managing your own account.',
     refresh: 'Refresh', recipient_unavailable: 'Some recipient accounts or devices are unavailable.', content_unavailable: 'Notification content is unavailable.', delivery_failed: 'Some deliveries failed. Contact an administrator.',
@@ -67,7 +67,7 @@ const organizationDetails = {
     sending: 'Submitting…', view: 'Open unit', moveTarget: 'Move to', chooseTarget: 'Choose a target unit',
   },
   ja: {
-    policyTitle: '付与できるアクセス', policyHelp: '未設定の下位組織は上位から継承します。既存のアクセスは自動解除されません。', inheritPolicy: '上位組織から継承', video: '会員向け動画', blocked: 'この組織から付与できません', effectivePolicy: '有効な付与範囲', noEntitlements: '現在付与できるアクセスはありません。',
+    policyTitle: '付与できるアクセス', admissionEntitlements: '追加時に権限を付与', admissionEntitlementsHint: '会員を追加した後に、選択した権限が適用されます。', policyHelp: '未設定の下位組織は上位から継承します。既存のアクセスは自動解除されません。', inheritPolicy: '上位組織から継承', video: '会員向け動画', blocked: 'この組織から付与できません', effectivePolicy: '有効な付与範囲', noEntitlements: '現在付与できるアクセスはありません。',
     memberButton: '会員', unitButton: '組織', archiveFilter: 'アーカイブ済み組織',
     you: 'あなた', memberForbidden: 'この会員はここでは管理できません。組織管理では自分のアカウントを操作できません。',
     refresh: '更新', recipient_unavailable: '一部の受信アカウントまたは端末が利用できません。', content_unavailable: '通知内容を利用できません。', delivery_failed: '一部の配信に失敗しました。管理者にお問い合わせください。',
@@ -86,7 +86,7 @@ const organizationDetails = {
     sending: '送信中…', view: '組織を開く', moveTarget: '移動先', chooseTarget: '移動先の組織を選択',
   },
   ko: {
-    policyTitle: '부여 가능한 접근 권한', policyHelp: '설정하지 않은 하위 조직은 상위를 상속합니다. 기존 접근 권한은 자동 해제되지 않습니다.', inheritPolicy: '상위 설정 상속', video: '회원 영상', blocked: '이 조직에서는 부여할 수 없습니다', effectivePolicy: '유효한 부여 범위', noEntitlements: '현재 부여 가능한 권한이 없습니다.',
+    policyTitle: '부여 가능한 접근 권한', admissionEntitlements: '회원 추가 시 권한 부여', admissionEntitlementsHint: '회원 추가 후 선택한 권한이 적용됩니다.', policyHelp: '설정하지 않은 하위 조직은 상위를 상속합니다. 기존 접근 권한은 자동 해제되지 않습니다.', inheritPolicy: '상위 설정 상속', video: '회원 영상', blocked: '이 조직에서는 부여할 수 없습니다', effectivePolicy: '유효한 부여 범위', noEntitlements: '현재 부여 가능한 권한이 없습니다.',
     memberButton: '회원', unitButton: '조직', archiveFilter: '보관된 조직',
     you: '나', memberForbidden: '여기에서는 이 회원을 관리할 수 없어요. 조직 관리에서는 본인 계정을 관리할 수 없어요.',
     refresh: '새로고침', recipient_unavailable: '일부 수신 계정이나 기기를 사용할 수 없어요.', content_unavailable: '알림 내용을 사용할 수 없어요.', delivery_failed: '일부 전송에 실패했어요. 관리자에게 문의하세요.',

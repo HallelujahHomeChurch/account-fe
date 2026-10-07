@@ -1,4 +1,4 @@
-import { Button, DataTableFrame, Dialog, Skeleton } from '@hallelujahhomechurch/ui'
+import { Button, DataTableFrame, Dialog, Skeleton, Switch } from '@hallelujahhomechurch/ui'
 import { ChevronRight, Pencil, Plus, Search, Send } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -28,6 +28,7 @@ function UnitFolder({ unitId }: { unitId: string }) {
   const [loadError, setLoadError] = useState<'forbidden' | 'failed' | null>(null)
   const [dialog, setDialog] = useState<'add' | 'child' | 'settings' | 'archive' | 'notification' | null>(null)
   const [candidateQuery, setCandidateQuery] = useState('')
+  const [admissionCodes, setAdmissionCodes] = useState<EntitlementCode[]>([])
   const [candidateLookup, setCandidateLookup] = useState<{ email: string } | null>(null)
   const [candidates, setCandidates] = useState<ManagedJoinCandidate[]>([])
   const [candidateLoading, setCandidateLoading] = useState(false)
@@ -114,7 +115,7 @@ function UnitFolder({ unitId }: { unitId: string }) {
   if (!folder) return <section className="account-document"><p className="form-error" role="alert">{loadError === 'forbidden' ? t.forbidden : t.loadFailed}</p><Button onPress={refresh}>{t.retry}</Button></section>
   const archived = folder.unit.status === 'archived'
   const childKinds = folder.unit.kind === 'church' ? ['family', 'fellowship'] as const : folder.unit.kind === 'family' ? ['small_group'] as const : []
-  const close = (open: boolean) => { if (!open && !pending) setDialog(null) }
+  const close = (open: boolean) => { if (!open && !pending) { setDialog(null); setAdmissionCodes([]) } }
 
   return <section className="account-document organization-page organization-folder-page">
     <header className="organization-folder-header">
@@ -131,7 +132,7 @@ function UnitFolder({ unitId }: { unitId: string }) {
       <div className="organization-search"><Search size={18} aria-hidden="true" /><input className="organization-input" type="search" aria-label={t.searchMembers} placeholder={t.searchMembers} value={query} disabled={archived} onChange={event => setQuery(event.target.value)} /></div>
       <div className="organization-actions">
         {folder.actions.editUnit ? <Button className="organization-settings" aria-label={t.settings} variant="outline" isDisabled={loading} onPress={() => setDialog('settings')}><Pencil size={18} aria-hidden="true" /></Button> : null}
-        {folder.actions.manageMembers ? <Button variant="outline" aria-label={t.addMember} isDisabled={loading || pending} onPress={() => { setCandidateQuery(''); setCandidateLookup(null); setDialog('add') }}><Plus size={18} aria-hidden="true" />{t.memberButton}</Button> : null}
+        {folder.actions.manageMembers ? <Button variant="outline" aria-label={t.addMember} isDisabled={loading || pending} onPress={() => { setCandidateQuery(''); setCandidateLookup(null); setAdmissionCodes([]); setDialog('add') }}><Plus size={18} aria-hidden="true" />{t.memberButton}</Button> : null}
         {folder.actions.createChild && childKinds.length ? <Button variant="outline" aria-label={t.createChild} isDisabled={loading || pending} onPress={() => setDialog('child')}><Plus size={18} aria-hidden="true" />{t.unitButton}</Button> : null}
         {folder.actions.restore ? <Button isDisabled={pending || loading} onPress={() => void run(['restore', folder.unit.version], key => operationsApi.setManagedUnitStatus(unitId, folder.unit.version, 'restore', key))}>{t.restore}</Button> : null}
         {folder.actions.sendNotifications ? <Button isDisabled={loading} onPress={() => setDialog('notification')}><Send size={17} aria-hidden="true" />{site.notifications}</Button> : null}
@@ -169,7 +170,14 @@ function UnitFolder({ unitId }: { unitId: string }) {
         </form>
         <p className="muted-copy" role="status">{candidateLoading ? t.refreshing : candidateLookup && !candidates.length && !candidateError ? t.noResults : ''}</p>
         {candidateError ? <p className="form-error" role="alert">{t.loadFailed}</p> : null}
-        <ul className="organization-list">{candidates.map(candidate => <li key={candidate.account.accountUserId}><span>{candidate.account.displayName || candidate.account.email}<small>{candidate.account.email}</small></span><Button isDisabled={pending || candidate.state !== 'available'} size="sm" onPress={() => void run(['admit', candidate.account.accountUserId], key => operationsApi.admitManagedMember(unitId, candidate.account.accountUserId, key), () => { setCandidateQuery(''); setDialog(null) })}>{candidate.state === 'available' ? t.addMember : t.alreadyJoined}</Button></li>)}</ul>
+        {folder.actions.manageEntitlements && folder.unit.effectiveGrantableEntitlementCodes?.length ? <fieldset className="organization-entitlement-options" disabled={pending}>
+          <legend>{t.admissionEntitlements}</legend><p className="muted-copy">{t.admissionEntitlementsHint}</p>
+          {managedEntitlementCodes.filter(code => folder.unit.effectiveGrantableEntitlementCodes?.includes(code)).map(code => <Switch key={code}
+            label={code === 'video.meeting-recordings.access' ? t.video : managedEntitlementLabels[managedEntitlementCodes.indexOf(code)]}
+            isSelected={admissionCodes.includes(code)} isDisabled={pending}
+            onChange={selected => setAdmissionCodes(current => selected ? [...current, code] : current.filter(value => value !== code))} />)}
+        </fieldset> : null}
+        <ul className="organization-list">{candidates.map(candidate => <li key={candidate.account.accountUserId}><span>{candidate.account.displayName || candidate.account.email}<small>{candidate.account.email}</small></span><Button isDisabled={pending || candidate.state !== 'available'} size="sm" onPress={() => void run(['admit', unitId, candidate.account.accountUserId, [...admissionCodes].sort()], key => operationsApi.admitManagedMember(unitId, candidate.account.accountUserId, key, [...admissionCodes].sort()), () => { setCandidateQuery(''); setDialog(null) })}>{candidate.state === 'available' ? t.addMember : t.alreadyJoined}</Button></li>)}</ul>
       </div>
     </Dialog>
     <Dialog isOpen={dialog === 'child'} onOpenChange={close} title={t.createChild} closeLabel={t.cancel}>

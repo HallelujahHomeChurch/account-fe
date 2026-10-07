@@ -33,3 +33,12 @@ describe('OperationsApi organization workspace', () => {
     expect(raw.POST).not.toHaveBeenCalled()
   })
 })
+
+it('sends optional access in the admission request while keeping old calls unchanged', async () => {
+ const raw={POST:vi.fn().mockReturnValue(ok({})),use:vi.fn()}
+ const api=new OperationsApi({raw} as never)
+ await api.admitManagedMember('unit','account','key',['bulletin.general.zh-Hant.access'])
+ expect(raw.POST).toHaveBeenLastCalledWith('/api/operations/manage/org-units/{unitId}/members',{params:{path:{unitId:'unit'},header:{'Idempotency-Key':'key'}},body:{accountUserId:'account',entitlementCodes:['bulletin.general.zh-Hant.access']}})
+ await api.admitManagedMember('unit','account','legacy')
+ expect(raw.POST).toHaveBeenLastCalledWith('/api/operations/manage/org-units/{unitId}/members',expect.objectContaining({body:{accountUserId:'account'}}))
+})
