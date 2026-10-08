@@ -75,6 +75,5 @@ one browser. A newly published version prompts again, while the publication
 window still controls availability. Auth bootstrap, stale account/version
 responses and failed preference requests are handled before showing a popup.
 
-Delivery requires frontend-platform v1.0.47 publication before adding the exact
-Website client/preference dependencies and regenerating the registry lockfile.
-Local verification uses packed v1.0.47 artifacts.
+Website client and browser preferences use the exact published
+frontend-platform v1.0.47 packages and registry lockfile.
