@@ -43,3 +43,20 @@ tablet and narrow light/dark interaction checks. Record synthetic vs real API
 checks separately. Publish reviewed client package before replacing preview pins;
 coordinate backend/gateway feature activation only through reviewed release flows.
 No main writes, merges or production changes in this implementation phase.
+
+## Implementation checkpoint
+
+- Added shared authenticated member transport and published-only pagination; no
+  scheduling methods in the member adapter. Baseline 558 tests passed.
+- Added monthly personal/fellowship roster, responsive date-grouped list, focused
+  assignment drawer, substitution selection/confirmation, reminder settings and
+  paged service inbox. Account routes remain behind default-off build flag.
+- Command retry keeps its key after uncertain failure; stale versions disable
+  further commands until an explicit detail reload. Account identity keys isolate
+  page state; reads are abortable and late month responses are ignored.
+- Focused UI checks cover filtering, load recovery, late response, acceptance,
+  uncertain retry, stale version and preference conflict.
+- Still pending before readiness: full shell/browser acceptance, inbox unmount and
+  error-path tests, protected/deep-link route tests, reminder dirty-navigation
+  protection, Japanese/Korean copy (currently English fallback), independent code
+  review, real API integration, registry package and release coordination.

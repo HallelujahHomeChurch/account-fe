@@ -1,3 +1,7 @@
+import { ServicePage } from './pages/service/ServicePage'
+import { ServicePreferences } from './pages/service/ServicePreferences'
+import { ServiceNotices } from './pages/service/ServiceNotices'
+import { serviceMessages } from './i18n/service'
 import { AccountMenu, BrandLoadingScreen, Button, Drawer, Skeleton, Toast, ToastProvider } from '@hallelujahhomechurch/ui'
 import { Bell, CalendarDays, FileArchive, Menu, MonitorSmartphone, ShieldCheck, UserRound, UsersRound } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
@@ -54,6 +58,7 @@ function LayoutContent() {
   const isResourceRoute = location.pathname === '/resources' || location.pathname.startsWith('/resources/')
   const publicSiteUrl = readRuntimeConfig().publicSiteUrl
   const { capabilities, error: capabilitiesError } = useAuthCapabilitiesState(!isAuthRoute)
+  const serviceEnabled = import.meta.env.VITE_SERVICE_DUTIES_ENABLED === 'true'
   const dsrEnabled = capabilities?.dsr?.enabled === true
   const [resourceLookupFailed, setResourceLookupFailed] = useState(false)
   const [managedAccess, setManagedAccess] = useState<'loading' | 'allowed' | 'denied' | 'failed'>('loading')
@@ -107,6 +112,7 @@ function LayoutContent() {
 
   const navigation = [
     { icon: UserRound, label: t.nav.personalInfo, path: '/profile' },
+    ...(serviceEnabled ? [{ icon: CalendarDays, label: serviceMessages[locale].title, path: '/service' }] : []),
     { icon: ShieldCheck, label: t.nav.security, path: '/security' },
     ...(auth.navigation?.sources.operations?.ids.includes('organizations') ? [{ icon: UsersRound, label: t.nav.organizationManagement, path: '/organizations' }] : []),
     { icon: MonitorSmartphone, label: t.nav.devices, path: '/devices' },
@@ -319,6 +325,12 @@ function LayoutContent() {
                     : <Navigate replace to="/profile" />}
                 path="/data-requests"
               />
+              {serviceEnabled ? <>
+                <Route element={<ServicePage key={auth.profile?.id}/>} path="/service" />
+                <Route element={<ServicePage key={auth.profile?.id}/>} path="/service/assignments/:id" />
+                <Route element={<ServicePreferences key={auth.profile?.id}/>} path="/service/preferences" />
+                <Route element={<ServiceNotices key={auth.profile?.id}/>} path="/service/notifications" />
+              </> : null}
               <Route element={<ResourceListPage />} path="/resources" />
               <Route element={<MyResourceReservationsPage />} path="/resources/reservations" />
               <Route element={<ResourceReservationPage />} path="/resources/:resourceKey" />
