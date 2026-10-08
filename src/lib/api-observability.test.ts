@@ -137,3 +137,31 @@ it('reports invalid session bootstrap through the runtime event hook', async () 
   expect(sentry.captureException.mock.calls[0][1].tags.operation).toBe('account.session.session')
   runtime.dispose()
 })
+
+it('uses safe SDK decode metadata instead of inferring a refresh method', async () => {
+  recordAccountAuthEvent({ stage: 'refresh', outcome: 'failed', status: 200, errorCode: 'INVALID_RESPONSE', requestId: 'req-decode', endpoint: 'csrf', method: 'GET', decodeStage: 'json' } as Parameters<typeof recordAccountAuthEvent>[0])
+  await flushSentry()
+  expect(sentry.captureException.mock.calls[0][1].contexts.api).toMatchObject({ method: 'GET', endpoint: 'csrf', decode_stage: 'json', request_id: 'req-decode' })
+})
+
+it('includes only safe network name and browser state, and deduplicates an original rejection', async () => {
+  const error = new TypeError('secret body token=private@example.test')
+  const fetcher = observeApiFetch(async () => { throw error }, 'account.session')
+  await fetcher('/api/account/v1/session?token=private').catch(() => {})
+  await fetcher('/api/account/v1/session?token=private').catch(() => {})
+  await flushSentry()
+  expect(sentry.captureException).toHaveBeenCalledOnce()
+  expect(sentry.captureException.mock.calls[0][1].contexts.api).toMatchObject({ error_name: 'TypeError', online: navigator.onLine, visibility: document.visibilityState })
+  expect(JSON.stringify(sentry.captureException.mock.calls)).not.toContain('private')
+})
+
+it.each([
+  ['/api/account/v1/csrf-token?token=private', 'GET', 'csrf'],
+  ['/api/account/v1/refresh?email=private@example.test', 'POST', 'refresh'],
+  ['/api/account/v1/other/private', 'GET', 'unknown'],
+])('classifies Account network endpoint %s without query data', async (path, method, endpoint) => {
+  await observeApiFetch(async () => {throw new TypeError('offline')}, 'account.session')(path, {method}).catch(() => {})
+  await flushSentry()
+  expect(sentry.captureException.mock.calls[0][1].contexts.api).toMatchObject({endpoint, method})
+  expect(JSON.stringify(sentry.captureException.mock.calls)).not.toContain('private')
+})

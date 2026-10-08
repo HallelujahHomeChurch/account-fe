@@ -8,7 +8,7 @@ const absoluteUrl = /https?:\/\/[^\s"'<>]+/gi
 const requestId = /^[A-Za-z0-9._:-]{1,128}$/
 let addSentryBreadcrumb = (_breadcrumb: Breadcrumb) => {}
 let sentryReady: Promise<typeof import('@sentry/react') | undefined> | undefined
-type ApiContext = { operation: string; method: string; status?: number; request_id?: string }
+type ApiContext = { operation: string; method: string; status?: number; request_id?: string; endpoint?: string; decode_stage?: string; error_name?: string; online?: boolean; visibility?: string }
 type FailureKind = 'network' | 'http' | 'invalid_response'
 const responseContexts = new WeakMap<Response, ApiContext>()
 const reportedErrors = new WeakSet<object>()
@@ -20,8 +20,11 @@ export function isAbortError(error: unknown) {
 export function recordAccountAuthEvent(event: AccountAuthEvent) {
   // Transport errors are already reported by the session client's observed fetch.
   if (event.outcome === 'failed' && event.status !== undefined && event.status >= 200 && event.status < 300 && ['INVALID_RESPONSE', 'CSRF_TOKEN_REQUIRED'].includes(event.errorCode ?? '')) {
-    // The runtime hook cannot distinguish CSRF GET decoding from token POST decoding.
-    reportApiFailure({ operation: `account.session.${event.stage}`, method: event.stage === 'session' || event.errorCode === 'CSRF_TOKEN_REQUIRED' ? 'GET' : 'UNKNOWN', status: event.status, request_id: event.requestId }, 'invalid_response')
+    const diagnostics = event as AccountAuthEvent & { endpoint?: unknown; method?: unknown; decodeStage?: unknown }
+    const endpoint = typeof diagnostics.endpoint === 'string' && ['csrf', 'access_token', 'refresh', 'session', 'logout', 'logout_all', 'oauth_token', 'unknown'].includes(diagnostics.endpoint) ? diagnostics.endpoint : undefined
+    const method = diagnostics.method === 'GET' || diagnostics.method === 'POST' ? diagnostics.method : event.stage === 'session' || event.errorCode === 'CSRF_TOKEN_REQUIRED' ? 'GET' : 'UNKNOWN'
+    const decodeStage = typeof diagnostics.decodeStage === 'string' && ['content_type', 'json', 'schema'].includes(diagnostics.decodeStage) ? diagnostics.decodeStage : undefined
+    reportApiFailure({ operation: `account.session.${event.stage}`, method, status: event.status, request_id: event.requestId, ...(endpoint ? {endpoint} : {}), ...(decodeStage ? {decode_stage: decodeStage} : {}) }, 'invalid_response')
   }
 }
 
@@ -38,7 +41,7 @@ export function reportApiFailure(context: ApiContext, kind: FailureKind, respons
   void initObservability()?.then(sentry => {
     sentry?.captureException(error, {
       tags: { api_failure: kind, operation: context.operation, method: context.method },
-      contexts: { api: { operation: context.operation, method: context.method, ...(status !== undefined ? { status } : {}), ...(id && requestId.test(id) ? { request_id: id } : {}) } },
+      contexts: { api: { operation: context.operation, method: context.method, ...(context.endpoint ? {endpoint: context.endpoint} : {}), ...(context.decode_stage ? {decode_stage: context.decode_stage} : {}), ...(kind === 'network' ? {error_name: safeErrorName(originalError), online: navigator.onLine, visibility: document.visibilityState} : {}), ...(status !== undefined ? { status } : {}), ...(id && requestId.test(id) ? { request_id: id } : {}) } },
       fingerprint: ['api-failure', context.operation, context.method, kind],
     })
   }).catch(() => {})
@@ -52,7 +55,7 @@ export function reportResponseFailure(response: Response, kind: FailureKind) {
 /** Scoped to the supplied client; preserves arguments, response and retry ownership. */
 export function observeApiFetch(fetcher: typeof fetch, operation: string): typeof fetch {
   return async (input, init) => {
-    const context = { operation, method: (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase() }
+    const context = { operation, endpoint: accountEndpoint(input), method: (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase() }
     let response: Response
     try { response = await fetcher(input, init) }
     catch (error) {
@@ -171,4 +174,26 @@ export function reportReactError(error: unknown, errorInfo: ErrorInfo) {
       captureContext: { contexts: { react: { componentStack: errorInfo.componentStack } } },
     })
   }).catch(() => {})
+}
+
+
+function safeErrorName(error: unknown) {
+  const name = error && typeof error === 'object' && 'name' in error ? error.name : undefined
+  return typeof name === 'string' && ['Error', 'TypeError', 'SyntaxError', 'TimeoutError', 'NetworkError', 'SecurityError'].includes(name) ? name : 'Error'
+}
+
+function accountEndpoint(input: RequestInfo | URL) {
+  try {
+    const path = new URL(input instanceof Request ? input.url : String(input), 'https://account.invalid').pathname
+    switch (path) {
+      case '/api/account/v1/csrf-token': return 'csrf'
+      case '/api/account/v1/session/access-token': return 'access_token'
+      case '/api/account/v1/refresh': return 'refresh'
+      case '/api/account/v1/session': return 'session'
+      case '/api/account/v1/session/logout': return 'logout'
+      case '/api/account/v1/session/logout-all': return 'logout_all'
+      case '/api/account/v1/oauth/token': return 'oauth_token'
+      default: return 'unknown'
+    }
+  } catch { return 'unknown' }
 }
