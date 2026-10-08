@@ -154,3 +154,14 @@ it('includes only safe network name and browser state, and deduplicates an origi
   expect(sentry.captureException.mock.calls[0][1].contexts.api).toMatchObject({ error_name: 'TypeError', online: navigator.onLine, visibility: document.visibilityState })
   expect(JSON.stringify(sentry.captureException.mock.calls)).not.toContain('private')
 })
+
+it.each([
+  ['/api/account/v1/csrf-token?token=private', 'GET', 'csrf'],
+  ['/api/account/v1/refresh?email=private@example.test', 'POST', 'refresh'],
+  ['/api/account/v1/other/private', 'GET', 'unknown'],
+])('classifies Account network endpoint %s without query data', async (path, method, endpoint) => {
+  await observeApiFetch(async () => {throw new TypeError('offline')}, 'account.session')(path, {method}).catch(() => {})
+  await flushSentry()
+  expect(sentry.captureException.mock.calls[0][1].contexts.api).toMatchObject({endpoint, method})
+  expect(JSON.stringify(sentry.captureException.mock.calls)).not.toContain('private')
+})

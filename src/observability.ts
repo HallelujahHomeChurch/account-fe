@@ -55,7 +55,7 @@ export function reportResponseFailure(response: Response, kind: FailureKind) {
 /** Scoped to the supplied client; preserves arguments, response and retry ownership. */
 export function observeApiFetch(fetcher: typeof fetch, operation: string): typeof fetch {
   return async (input, init) => {
-    const context = { operation, method: (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase() }
+    const context = { operation, endpoint: accountEndpoint(input), method: (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase() }
     let response: Response
     try { response = await fetcher(input, init) }
     catch (error) {
@@ -180,4 +180,20 @@ export function reportReactError(error: unknown, errorInfo: ErrorInfo) {
 function safeErrorName(error: unknown) {
   const name = error && typeof error === 'object' && 'name' in error ? error.name : undefined
   return typeof name === 'string' && ['Error', 'TypeError', 'SyntaxError', 'TimeoutError', 'NetworkError', 'SecurityError'].includes(name) ? name : 'Error'
+}
+
+function accountEndpoint(input: RequestInfo | URL) {
+  try {
+    const path = new URL(input instanceof Request ? input.url : String(input), 'https://account.invalid').pathname
+    switch (path) {
+      case '/api/account/v1/csrf-token': return 'csrf'
+      case '/api/account/v1/session/access-token': return 'access_token'
+      case '/api/account/v1/refresh': return 'refresh'
+      case '/api/account/v1/session': return 'session'
+      case '/api/account/v1/session/logout': return 'logout'
+      case '/api/account/v1/session/logout-all': return 'logout_all'
+      case '/api/account/v1/oauth/token': return 'oauth_token'
+      default: return 'unknown'
+    }
+  } catch { return 'unknown' }
 }
