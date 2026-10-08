@@ -1,6 +1,6 @@
 # 服事表 Web Push 設計
 
-狀態：使用者已同意把瀏覽器推播納入本輪；以下跨服務接線設計待審閱。
+狀態：使用者已審閱後指示「繼續到完成」，依此設計持續實作與驗證。
 本文件是設計，不代表程式或正式派送已完成。
 
 ## 目的與範圍
@@ -115,4 +115,3 @@ producer-before-consumer release 順序、VAPID 公私鑰一致、HTTPS/SW MIME/
   https://webkit.org/blog/13878/web-push-for-web-apps-on-ios-and-ipados/
 - PushManager.subscribe 必須由使用者操作觸發：
   https://developer.mozilla.org/en-US/docs/Web/API/PushManager/subscribe
-

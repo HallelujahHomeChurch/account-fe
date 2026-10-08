@@ -100,6 +100,24 @@ export class MemberServiceApi {
     )
   }
 
+  getPushConfig(signal?: AbortSignal) {
+    return unwrapOperations(
+      this.client.raw.GET('/api/operations/me/service/push-config', { signal }),
+    )
+  }
+
+  registerInstallation(
+    body: Schemas['ServiceInstallation'],
+    signal?: AbortSignal,
+  ) {
+    return unwrapOperations(
+      this.client.raw.POST('/api/operations/me/service/installation', {
+        body,
+        signal,
+      }),
+    )
+  }
+
   getPreference(signal?: AbortSignal) {
     return unwrapOperations(
       this.client.raw.GET('/api/operations/me/service/preference', { signal }),

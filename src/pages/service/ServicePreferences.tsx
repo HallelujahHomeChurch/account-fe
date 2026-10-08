@@ -1,3 +1,4 @@
+import { BrowserServicePushControl } from './BrowserServicePushControl'
 import { DirtyNavigationGuard } from '../../components/DirtyNavigationGuard'
 import { memberDetailsMessages } from '../../i18n/member-details'
 import { Button, Select, Skeleton, Switch } from '@hallelujahhomechurch/ui'
@@ -121,6 +122,7 @@ export function ServicePreferences() {
         </div>
       ) : null}
       {!pref && !error ? <Skeleton label={t.loading} /> : null}
+      <BrowserServicePushControl />
       {pref ? (
         <form
           className="member-service-detail"

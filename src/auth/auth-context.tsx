@@ -1,3 +1,4 @@
+import { disableBrowserServicePush, synchronizeBrowserServicePushAccount } from '../lib/browser-service-push'
 import { MemberServiceApi } from '../lib/member-service-api'
 import { markLoginCompleted } from '../lib/analytics-events'
 /* oxlint-disable react/only-export-components */
@@ -247,6 +248,11 @@ export function AuthProvider({
   }), [config.operationsApiBaseUrl, refreshOperationsToken])
   const operationsApi = useMemo<OperationsApiClient>(() => injectedOperationsApi ?? new OperationsApi(operationsClient), [operationsClient, injectedOperationsApi])
   const serviceApi = useMemo(() => injectedServiceApi ?? new MemberServiceApi(operationsClient), [operationsClient, injectedServiceApi])
+  useEffect(() => {
+    if (state.status === 'authenticated' || state.status === 'anonymous') {
+      void synchronizeBrowserServicePushAccount(serviceApi, state.profile?.id ?? '').catch(() => {})
+    }
+  }, [serviceApi, state.status, state.profile?.id])
   const unitNotificationsApi = useMemo(() => injectedUnitNotificationsApi ?? new UnitNotificationsApi({
     getAccessToken: () => tokenRef.current,
     refreshAfterUnauthorized: refreshOperationsToken,
@@ -405,6 +411,7 @@ export function AuthProvider({
   const logout = useCallback(async () => {
     authRevisionRef.current += 1
     patchState({ logoutError: null })
+    await disableBrowserServicePush(serviceApi, stateRef.current.profile?.id ?? '').catch(() => {})
     try {
       if (authRuntime) await authRuntime.signOut()
       else await (api.logoutAll ? api.logoutAll() : api.logout())
@@ -422,7 +429,7 @@ export function AuthProvider({
       }
       patchState({ logoutError: errorLabelsRef.current.signOutFailed })
     }
-  }, [api, authRuntime, commitState, navigateAfterLogout, patchState])
+  }, [api, authRuntime, commitState, navigateAfterLogout, patchState, serviceApi])
 
   const clearLocalSession = useCallback((redirectTo = '/login?signed_out=1') => {
     authRevisionRef.current += 1

@@ -106,10 +106,32 @@ This uses trusted gateway identity fixtures and does not prove real OAuth,
 deployed gateway identity or provider delivery.
 
 The user approved including browser push in this round. The proposed cross-service
-design is [service-web-push-20261009.md](service-web-push-20261009.md); it remains
-unimplemented and requires review before changing subscription/delivery contracts.
+design is [service-web-push-20261009.md](service-web-push-20261009.md).
+Implementation and automated verification are complete in isolated task worktrees;
+release, public package publication and real-device receipt remain separate gates.
 
 Detail now displays the complete start/end interval in the selected timezone,
 including both dates for overnight duties. The overnight regression and full
 585-test suite (64 files), lint and production build passed. This final interval
 formatting change has not had a separate rendered-browser check.
+
+
+## Web Push implementation evidence, 2026-10-09
+
+- Account: 598 tests / 67 files passed with two workers; lint/build and release
+  policy passed. The original unrestricted parallel run overloaded the local
+  test environment; no production behavior was changed to mask its timeouts.
+- Operations: full race suite against task PostgreSQL, vet and canonical OpenAPI
+  validation passed. Native behavior remains covered; web-only registration,
+  endpoint key rotation/ownership and encrypted dispatch have integration coverage.
+- Notification: full race integration suite passed including provider eligibility,
+  bounded TTL, callbacks after eight-day payload tombstoning and no provider resend.
+- Gateway: route contract/runtime tests passed for the exact authenticated config
+  GET on all three hosts; generated SDK tests passed.
+- Terraform: 25 mocked plan tests and validate passed, including independent web
+  flags, public key and versioned encryption-secret prerequisites.
+- Independent review found three issues (pending cleanup UX, account-change busy
+  state, callback identity retention); all fixed, regression tested and re-reviewed.
+- New push settings have DOM/state-machine coverage. Prior responsive browser
+  evidence covers the roster; fresh rendered push-control and real provider/device
+  acceptance are not yet claimed. No production flags or cloud resources changed.
