@@ -76,3 +76,22 @@ No main writes, merges or production changes in this implementation phase.
   Prettier, with no new runtime dependencies.
 - Browser acceptance, route/auth integration tests, complete translations, real
   API verification and coordinated release prerequisites remain open.
+
+## Browser and route acceptance, 2026-10-09
+
+Ego-lite space 164 ran the real Account shell, providers, navigation and new pages
+with injected synthetic service data. Verified desktop 1470 px, tablet 820 px,
+narrow 390 px, light/dark rendering; no horizontal overflow at tested widths.
+Exercised nominated substitution, member selection, notification-to-detail,
+acceptance and immediate My service refresh, reminder toggle/save and fellowship
+view. Corrected double vertical spacing and narrow status/text crowding.
+
+Artifacts (local): `/private/tmp/hhc-account-roster-desktop-final.png`,
+`hhc-account-roster-mobile-light.png`, `hhc-account-substitution-mobile.png`,
+`hhc-account-preferences-mobile.png`, `hhc-account-tablet-light.png` in the same
+folder. The initial dark roster screenshot predates the narrow status fix.
+
+App route suite 48 tests passed, including disabled feature gate, unverified
+session making no service reads and verified assignment deep-link entry.
+Japanese and Korean labels now have translations rather than English fallback.
+These browser checks do not prove real OAuth, deployed APIs or notification delivery.

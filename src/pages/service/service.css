@@ -1,5 +1,6 @@
 .member-service {
   max-width: 960px;
+  gap: 24px;
 }
 .member-service-heading,
 .member-service-toolbar,
@@ -35,7 +36,7 @@
   background: var(--hhc-border);
   border-radius: 14px;
   padding: 4px;
-  margin-block: 24px;
+  margin-block: 0;
 }
 .member-service-segments > button {
   flex: 1;
@@ -51,7 +52,7 @@
 .member-service-toolbar {
   flex-wrap: wrap;
   justify-content: space-between;
-  margin-bottom: 32px;
+  margin-bottom: 0;
 }
 .member-service-month {
   gap: 4px;
@@ -142,11 +143,16 @@
   .member-service-duty {
     padding: 16px;
     gap: 12px;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) 18px;
+  }
+  .member-service-duty > svg {
+    grid-column: 3;
+    grid-row: 1;
   }
   .member-service-duty small {
-    margin-left: 54px;
-    order: 3;
+    grid-column: 2;
+    margin-left: 0;
     max-width: 100%;
   }
   .member-service-toolbar {
