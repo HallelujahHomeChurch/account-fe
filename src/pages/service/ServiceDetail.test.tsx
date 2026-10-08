@@ -60,6 +60,17 @@ function mount() {
     </LocaleProvider>,
   )
 }
+it('shows the full service interval, including the end date for an overnight duty', async () => {
+  api.getAssignment.mockResolvedValue({
+    ...item,
+    startsAt: '2030-01-01T15:00:00Z',
+    endsAt: '2030-01-01T17:00:00Z',
+  })
+  mount()
+  const range = await screen.findByText(/23:00/)
+  expect(range).toHaveTextContent('01:00')
+  expect(range).toHaveTextContent('1/2')
+})
 it('accepts an invitation with its version and request ID without exposing manager actions', async () => {
   mount()
   await userEvent.click(

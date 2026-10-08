@@ -129,16 +129,15 @@ export function ServiceDetail({
   const memberId = teams.find((team) => team.id === item?.teamId)?.memberId
   const actions = item ? memberActions(item, memberId) : []
   const isRequest = action === 'request' || action === 'switch'
-  const format = (value: string) =>
-    new Intl.DateTimeFormat(locale, {
-      timeZone: zone,
-      month: 'numeric',
-      day: 'numeric',
-      weekday: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    }).format(new Date(value))
+  const dateFormat = new Intl.DateTimeFormat(locale, {
+    timeZone: zone,
+    month: 'numeric',
+    day: 'numeric',
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
   async function send() {
     if (
       !item ||
@@ -254,7 +253,12 @@ export function ServiceDetail({
             <small>{item.teamName}</small>
             <h2>{item.label}</h2>
             <div className="member-service-context">
-              <strong>{format(item.startsAt)}</strong>
+              <strong>
+                {dateFormat.formatRange(
+                  new Date(item.startsAt),
+                  new Date(item.endsAt),
+                )}
+              </strong>
               <span>{item.meetingName}</span>
               <span>
                 {item.cancelled
@@ -294,7 +298,7 @@ export function ServiceDetail({
             ) : null}
             {item.reminderAt ? (
               <p>
-                {t.reminder} · {format(item.reminderAt)}
+                {t.reminder} · {dateFormat.format(new Date(item.reminderAt))}
               </p>
             ) : null}
             {done ? <p role="status">{t.done}</p> : null}

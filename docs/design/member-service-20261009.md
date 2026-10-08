@@ -108,3 +108,8 @@ deployed gateway identity or provider delivery.
 The user approved including browser push in this round. The proposed cross-service
 design is [service-web-push-20261009.md](service-web-push-20261009.md); it remains
 unimplemented and requires review before changing subscription/delivery contracts.
+
+Detail now displays the complete start/end interval in the selected timezone,
+including both dates for overnight duties. The overnight regression and full
+585-test suite (64 files), lint and production build passed. This final interval
+formatting change has not had a separate rendered-browser check.
