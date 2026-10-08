@@ -95,3 +95,16 @@ App route suite 48 tests passed, including disabled feature gate, unverified
 session making no service reads and verified assignment deep-link entry.
 Japanese and Korean labels now have translations rather than English fallback.
 These browser checks do not prove real OAuth, deployed APIs or notification delivery.
+
+## HTTP/PostgreSQL acceptance and Web Push scope, 2026-10-09
+
+Operations `TestMemberServicePublishedWorkflowHTTP` passed against a dedicated
+local PostgreSQL database: draft isolation, manager publication, outsider denial,
+nominated substitution/acceptance, idempotent retry, inbox read and reminder
+preference conflict handling. The full HTTP package race suite and vet passed.
+This uses trusted gateway identity fixtures and does not prove real OAuth,
+deployed gateway identity or provider delivery.
+
+The user approved including browser push in this round. The proposed cross-service
+design is [service-web-push-20261009.md](service-web-push-20261009.md); it remains
+unimplemented and requires review before changing subscription/delivery contracts.
