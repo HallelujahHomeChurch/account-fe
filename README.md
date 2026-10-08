@@ -66,3 +66,15 @@ consent, and query/fragment-free login or general profile pages are eligible.
 Sensitive routes reload before mounting when GA has started. Only successful
 interactive login and ordinary profile saves emit fixed events; hydration and
 session refresh do not. No account identity or form data is sent to analytics.
+
+## Church statement preferences
+
+The profile statement shares the signed-in Website API dismissal with WWW and
+all account devices. Anonymous dismissal uses the shared preferences package in
+one browser. A newly published version prompts again, while the publication
+window still controls availability. Auth bootstrap, stale account/version
+responses and failed preference requests are handled before showing a popup.
+
+Delivery requires frontend-platform v1.0.47 publication before adding the exact
+Website client/preference dependencies and regenerating the registry lockfile.
+Local verification uses packed v1.0.47 artifacts.

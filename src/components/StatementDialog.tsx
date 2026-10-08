@@ -9,7 +9,7 @@ type Block =
   | { id: string; type: 'list'; ordered: boolean; items: { content: Inline[] }[] }
   | { id: string; type: 'image'; url: string; size?: 'small' | 'medium' | 'full'; alignment?: 'start' | 'center' | 'end'; alt: { mode: 'text'; text: string } | { mode: 'decorative' }; caption?: Inline[] }
 export type StatementContent = { title: string; body?: string; bodyJson?: { schemaVersion: 1; blocks: Block[] }; resolvedLocale: string }
-export type StatementLabels = { notice: string; close: string; hideToday: string; openImage: string; closeImage: string }
+export type StatementLabels = { syncError: string; notice: string; close: string; doNotShowAgain: string; openImage: string; closeImage: string }
 
 function inlines(nodes?: Inline[]): ReactNode {
   return nodes?.map((node, index) => {
@@ -59,10 +59,10 @@ function StatementBody({ statement, labels }: { statement: StatementContent; lab
   })}</div>
 }
 
-export function StatementDialog({ statement, labels, onClose }: { statement: StatementContent; labels: StatementLabels; onClose: (hideToday: boolean) => void }) {
+export function StatementDialog({ statement, labels, onClose, saving = false }: { statement: StatementContent; labels: StatementLabels; onClose: (doNotShowAgain: boolean) => void; saving?: boolean }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const heading = useRef<HTMLHeadingElement>(null)
-  const [hideToday, setHideToday] = useState(false)
+  const [doNotShowAgain, setHideToday] = useState(false)
   useEffect(() => {
     const element = dialog.current
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
@@ -76,11 +76,11 @@ export function StatementDialog({ statement, labels, onClose }: { statement: Sta
       if (previousFocus?.isConnected) previousFocus.focus()
     }
   }, [])
-  return <dialog ref={dialog} aria-labelledby="account-statement-title" onCancel={(event) => { event.preventDefault(); onClose(hideToday) }} className="statement-dialog">
+  return <dialog ref={dialog} aria-labelledby="account-statement-title" onCancel={(event) => { event.preventDefault(); onClose(doNotShowAgain) }} className="statement-dialog">
     <div className="statement-dialog-layout">
-      <header><div><p>{labels.notice}</p><h2 id="account-statement-title" ref={heading} tabIndex={-1} lang={statement.resolvedLocale}>{statement.title}</h2></div><button type="button" aria-label={labels.close} onClick={() => onClose(hideToday)}>×</button></header>
+      <header><div><p>{labels.notice}</p><h2 id="account-statement-title" ref={heading} tabIndex={-1} lang={statement.resolvedLocale}>{statement.title}</h2></div><button type="button" disabled={saving} aria-label={labels.close} onClick={() => onClose(doNotShowAgain)}>×</button></header>
       <section><StatementBody statement={statement} labels={labels} /></section>
-      <footer><label><input type="checkbox" checked={hideToday} onChange={(event) => setHideToday(event.target.checked)} />{labels.hideToday}</label><button type="button" onClick={() => onClose(hideToday)}>{labels.close}</button></footer>
+      <footer><label><input type="checkbox" disabled={saving} checked={doNotShowAgain} onChange={(event) => setHideToday(event.target.checked)} />{labels.doNotShowAgain}</label><button type="button" disabled={saving} onClick={() => onClose(doNotShowAgain)}>{labels.close}</button></footer>
     </div>
   </dialog>
 }
