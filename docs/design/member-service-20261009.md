@@ -60,3 +60,19 @@ No main writes, merges or production changes in this implementation phase.
   error-path tests, protected/deep-link route tests, reminder dirty-navigation
   protection, Japanese/Korean copy (currently English fallback), independent code
   review, real API integration, registry package and release coordination.
+
+## Review corrections
+
+- Independent read-only review found candidate pagination truncation and off-month
+  notification overlap omissions. Fetch all candidate pages with cursor-cycle
+  rejection. Fetch each actionable detail's 24-hour lookback interval across all
+  fellowships (the backend caps meeting duration at 1440 minutes). Acceptance is
+  disabled until the overlap check succeeds; owners retain overlap warnings.
+- Read acknowledgement no longer blocks inbox navigation. Prior inbox pages stay
+  visible after pagination errors. Extracted the existing Member Details router
+  guard for reminder settings; browser-close protection clears after saving.
+- Focused regression suite: 37 tests in 6 files passed, including existing Member
+  Details behavior. Typecheck and lint passed. Formatting uses already-installed
+  Prettier, with no new runtime dependencies.
+- Browser acceptance, route/auth integration tests, complete translations, real
+  API verification and coordinated release prerequisites remain open.
