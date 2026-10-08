@@ -243,3 +243,5 @@ async function operationError(response: Response, body: unknown) {
   const code = typeof record.error === 'string' ? record.error : typeof record.error_code === 'string' ? record.error_code : undefined
   return new OperationsApiError(response.status, code, typeof record.message === 'string' ? record.message : undefined)
 }
+
+export { unwrap as unwrapOperations }

@@ -1,7 +1,8 @@
+import { DirtyNavigationGuard } from '../components/DirtyNavigationGuard'
 import { isSupportedCountry } from 'libphonenumber-js/min'
 import { Button, Card, Form, Input, Label, Skeleton, TextField } from '@hallelujahhomechurch/ui'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { Link, Navigate, UNSAFE_DataRouterContext, useBlocker } from 'react-router-dom'
+import { Link, Navigate, UNSAFE_DataRouterContext } from 'react-router-dom'
 import { MobileNumberField } from '../components/MobileNumberField'
 import { normalizeMobile } from '../lib/mobile-number'
 import { useAuth } from '../auth/auth-context'
@@ -11,13 +12,6 @@ import { isMemberCsrfFailure, isMemberDetails, MemberDetailsClient, MemberDetail
 
 const empty: MemberDetails = { familyName: null, givenName: null, gender: null, identityDocument: null, mobile: null }
 
-function DirtyNavigationGuard({ dirty, message }: { dirty: boolean; message: string }) {
- const blocker = useBlocker(dirty)
- useEffect(() => {
-  if (blocker.state === 'blocked') { if (window.confirm(message)) blocker.proceed(); else blocker.reset() }
- }, [blocker, message])
- return null
-}
 export function MemberDetailsPage() {
  const auth = useAuth()
  const { locale } = useLocale()

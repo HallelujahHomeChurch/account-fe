@@ -1,0 +1,18 @@
+{
+  "id": "/",
+  "name": "HHC Account",
+  "short_name": "HHC",
+  "start_url": "/service",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/assets/brand/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

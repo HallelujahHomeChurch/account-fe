@@ -638,3 +638,32 @@ it('waits on a direct private-page visit when capabilities arrive after church a
   expect(screen.getByTestId('route-path')).toHaveTextContent('/profile/member-details')
  } finally { load.mockRestore() }
 })
+
+describe('member service route gate', () => {
+  afterEach(() => vi.unstubAllEnvs())
+  const operationsApi = { getMyAccess: async () => ({ churchMembership: true, responsibilities: [], memberDetailsEligible: false }), listMyResources: async () => [] }
+  it('does not request service data while the session is unverified', () => {
+    vi.stubEnv('VITE_SERVICE_DUTIES_ENABLED', 'true')
+    const listTeams = vi.fn()
+    const pendingApi = { ...signedInApi, getSession: () => new Promise<never>(() => {}) }
+    render(<MemoryRouter initialEntries={['/service/assignments/one']}><LocaleProvider><AuthProvider api={pendingApi} operationsApi={operationsApi as never} serviceApi={{listTeams} as never}><App/></AuthProvider></LocaleProvider></MemoryRouter>)
+    expect(listTeams).not.toHaveBeenCalled()
+    expect(screen.queryByRole('heading', {name:'Service details'})).not.toBeInTheDocument()
+  })
+  it('hides the entry and does not load service data when disabled', async () => {
+    vi.stubEnv('VITE_SERVICE_DUTIES_ENABLED', 'false')
+    const listTeams = vi.fn()
+    render(<MemoryRouter initialEntries={['/service']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never} serviceApi={{listTeams} as never}><App/></AuthProvider></LocaleProvider></MemoryRouter>)
+    await screen.findByRole('link',{name:'Personal info'})
+    expect(screen.queryByRole('link',{name:'Service roster'})).not.toBeInTheDocument()
+    expect(listTeams).not.toHaveBeenCalled()
+  })
+  it('opens a protected assignment deep link after session verification', async () => {
+    vi.stubEnv('VITE_SERVICE_DUTIES_ENABLED','true')
+    const item={id:'one',teamId:'team',label:'Deep linked duty',teamName:'Fellowship',meetingName:'Meeting',startsAt:'2020-01-01T00:00:00Z',endsAt:'2020-01-01T01:00:00Z',version:1}
+    const serviceApi={listTeams:vi.fn().mockResolvedValue([{id:'team',name:'Fellowship',memberId:'me'}]),listAssignments:vi.fn().mockResolvedValue([]),getAssignment:vi.fn().mockResolvedValue(item),listCandidates:vi.fn().mockResolvedValue([])}
+    render(<MemoryRouter initialEntries={['/service/assignments/one']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never} serviceApi={serviceApi as never}><App/></AuthProvider></LocaleProvider></MemoryRouter>)
+    expect(await screen.findByRole('heading',{name:'Deep linked duty'})).toBeInTheDocument()
+    expect(serviceApi.getAssignment).toHaveBeenCalledWith('one',expect.any(AbortSignal))
+  })
+})

@@ -1,0 +1,137 @@
+# Account member service roster
+
+Approved scope: add a signed-in Account navigation page, aligned with the shipped
+source of the mobile demo (`hhc-apps`, Android demo branch, eb92744). Web scheduling
+management stays exclusively in Admin. No mobile store submission in this task.
+
+## Experience
+
+Use Account's shell, shared controls, typography and theme tokens. Carry over the
+mobile segmented My service / Fellowship roster switch, monthly navigation,
+date-grouped assignments and focused assignment detail. No large hero or explanatory
+intro. Date and task name lead; fellowship, assignee and actionable status follow.
+On narrow screens retain the same reading order. Deep links must survive login.
+
+Detail supports the existing mobile workflow: invite a named peer, request openly,
+switch method, withdraw, accept, decline a named invitation, ask the responsible
+leader for help. Hide commands for past/cancelled assignments and never expose
+admin commands, even to a leader using this member view. Show overlap warnings.
+Published-only reads must also exclude drafts defensively for manager accounts.
+
+## Integration and reliability
+
+Reuse authenticated Operations transport, generated canonical schemas, abortable
+reads and current session refresh. Load every cursor page and every eligible team
+for My service, filtering month boundaries in the display timezone. Detail and
+candidate loads must not overwrite a newer selection or account. Use server
+assignment version and stable idempotency key for uncertain retries. A stale
+version requires refreshed detail and explicit reconsideration, never blind replay.
+Keep a successful mutation distinct from a failed subsequent refresh.
+
+Include service inbox/deep links and reminder preferences using existing service
+contracts to match the member flow; browser delivery is not native Expo push.
+Preserve existing legal and analytics exclusions. Never emit names or schedule
+content into analytics, or cache private rosters persistently.
+
+## Acceptance and delivery
+
+Test command eligibility and month/DST boundaries; typed API paths, pagination,
+idempotency and error handling; page loading/empty/error states, stale response
+races, detail flows, translated copy, protected navigation and default-off gate.
+Run repository full tests, lint and build, review diff, then ego-lite desktop,
+tablet and narrow light/dark interaction checks. Record synthetic vs real API
+checks separately. Publish reviewed client package before replacing preview pins;
+coordinate backend/gateway feature activation only through reviewed release flows.
+No main writes, merges or production changes in this implementation phase.
+
+## Implementation checkpoint
+
+- Added shared authenticated member transport and published-only pagination; no
+  scheduling methods in the member adapter. Baseline 558 tests passed.
+- Added monthly personal/fellowship roster, responsive date-grouped list, focused
+  assignment drawer, substitution selection/confirmation, reminder settings and
+  paged service inbox. Account routes remain behind default-off build flag.
+- Command retry keeps its key after uncertain failure; stale versions disable
+  further commands until an explicit detail reload. Account identity keys isolate
+  page state; reads are abortable and late month responses are ignored.
+- Focused UI checks cover filtering, load recovery, late response, acceptance,
+  uncertain retry, stale version and preference conflict.
+- Still pending before readiness: full shell/browser acceptance, inbox unmount and
+  error-path tests, protected/deep-link route tests, reminder dirty-navigation
+  protection, Japanese/Korean copy (currently English fallback), independent code
+  review, real API integration, registry package and release coordination.
+
+## Review corrections
+
+- Independent read-only review found candidate pagination truncation and off-month
+  notification overlap omissions. Fetch all candidate pages with cursor-cycle
+  rejection. Fetch each actionable detail's 24-hour lookback interval across all
+  fellowships (the backend caps meeting duration at 1440 minutes). Acceptance is
+  disabled until the overlap check succeeds; owners retain overlap warnings.
+- Read acknowledgement no longer blocks inbox navigation. Prior inbox pages stay
+  visible after pagination errors. Extracted the existing Member Details router
+  guard for reminder settings; browser-close protection clears after saving.
+- Focused regression suite: 37 tests in 6 files passed, including existing Member
+  Details behavior. Typecheck and lint passed. Formatting uses already-installed
+  Prettier, with no new runtime dependencies.
+- Browser acceptance, route/auth integration tests, complete translations, real
+  API verification and coordinated release prerequisites remain open.
+
+## Browser and route acceptance, 2026-10-09
+
+Ego-lite space 164 ran the real Account shell, providers, navigation and new pages
+with injected synthetic service data. Verified desktop 1470 px, tablet 820 px,
+narrow 390 px, light/dark rendering; no horizontal overflow at tested widths.
+Exercised nominated substitution, member selection, notification-to-detail,
+acceptance and immediate My service refresh, reminder toggle/save and fellowship
+view. Corrected double vertical spacing and narrow status/text crowding.
+
+Artifacts (local): `/private/tmp/hhc-account-roster-desktop-final.png`,
+`hhc-account-roster-mobile-light.png`, `hhc-account-substitution-mobile.png`,
+`hhc-account-preferences-mobile.png`, `hhc-account-tablet-light.png` in the same
+folder. The initial dark roster screenshot predates the narrow status fix.
+
+App route suite 48 tests passed, including disabled feature gate, unverified
+session making no service reads and verified assignment deep-link entry.
+Japanese and Korean labels now have translations rather than English fallback.
+These browser checks do not prove real OAuth, deployed APIs or notification delivery.
+
+## HTTP/PostgreSQL acceptance and Web Push scope, 2026-10-09
+
+Operations `TestMemberServicePublishedWorkflowHTTP` passed against a dedicated
+local PostgreSQL database: draft isolation, manager publication, outsider denial,
+nominated substitution/acceptance, idempotent retry, inbox read and reminder
+preference conflict handling. The full HTTP package race suite and vet passed.
+This uses trusted gateway identity fixtures and does not prove real OAuth,
+deployed gateway identity or provider delivery.
+
+The user approved including browser push in this round. The proposed cross-service
+design is [service-web-push-20261009.md](service-web-push-20261009.md).
+Implementation and automated verification are complete in isolated task worktrees;
+release, public package publication and real-device receipt remain separate gates.
+
+Detail now displays the complete start/end interval in the selected timezone,
+including both dates for overnight duties. The overnight regression and full
+585-test suite (64 files), lint and production build passed. This final interval
+formatting change has not had a separate rendered-browser check.
+
+
+## Web Push implementation evidence, 2026-10-09
+
+- Account: 598 tests / 67 files passed with two workers; lint/build and release
+  policy passed. The original unrestricted parallel run overloaded the local
+  test environment; no production behavior was changed to mask its timeouts.
+- Operations: full race suite against task PostgreSQL, vet and canonical OpenAPI
+  validation passed. Native behavior remains covered; web-only registration,
+  endpoint key rotation/ownership and encrypted dispatch have integration coverage.
+- Notification: full race integration suite passed including provider eligibility,
+  bounded TTL, callbacks after eight-day payload tombstoning and no provider resend.
+- Gateway: route contract/runtime tests passed for the exact authenticated config
+  GET on all three hosts; generated SDK tests passed.
+- Terraform: 25 mocked plan tests and validate passed, including independent web
+  flags, public key and versioned encryption-secret prerequisites.
+- Independent review found three issues (pending cleanup UX, account-change busy
+  state, callback identity retention); all fixed, regression tested and re-reviewed.
+- New push settings have DOM/state-machine coverage. Prior responsive browser
+  evidence covers the roster; fresh rendered push-control and real provider/device
+  acceptance are not yet claimed. No production flags or cloud resources changed.

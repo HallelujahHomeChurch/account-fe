@@ -110,6 +110,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          VITE_SERVICE_DUTIES_ENABLED: ${{ vars.SERVICE_DUTIES_ENABLED == 'true' && 'true' || 'false' }}
           VITE_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
           VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
           VITE_SENTRY_ENVIRONMENT: production
