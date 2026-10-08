@@ -191,6 +191,7 @@ const messageCatalog = {
       signOutFailed: '目前無法登出，請再試一次。',
     },
     validation: { invalidEmail: '請輸入有效的 Email。' },
+    turnstile: { unavailable: '驗證暫時無法使用，請重試。', retry: '重試' },
     legalAcceptance: { prefix: '我同意', terms: '使用條款', middle: '並確認已閱讀', privacy: '隱私權聲明', suffix: '。', loadFailed: '目前無法載入條款資訊。', retry: '重試' },
     policyAcceptance: { title: '確認條款', description: '請先確認目前的使用條款與隱私權聲明，再繼續登入。', continue: '繼續', invalid: '此確認要求無效或已過期。', restart: '重新登入', failed: '目前無法記錄確認，請稍後再試。' },
     nav: {
@@ -491,6 +492,7 @@ const messageCatalog = {
       signOutFailed: '目前无法退出登录，请再试一次。',
     },
     validation: { invalidEmail: '请输入有效的 Email。' },
+    turnstile: { unavailable: '验证暂时无法使用，请重试。', retry: '重试' },
     legalAcceptance: { prefix: '我同意', terms: '使用条款', middle: '并确认已阅读', privacy: '隐私权声明', suffix: '。', loadFailed: '目前无法载入条款信息。', retry: '重试' },
     policyAcceptance: { title: '确认条款', description: '请先确认目前的使用条款与隐私权声明，再继续登录。', continue: '继续', invalid: '此确认请求无效或已过期。', restart: '重新登录', failed: '目前无法记录确认，请稍后重试。' },
     nav: {
@@ -791,6 +793,7 @@ const messageCatalog = {
       signOutFailed: 'Unable to sign out. Try again.',
     },
     validation: { invalidEmail: 'Enter a valid email.' },
+    turnstile: { unavailable: 'Verification is unavailable. Please retry.', retry: 'Retry' },
     legalAcceptance: { prefix: 'I agree to the', terms: 'Terms of Use', middle: 'and acknowledge the', privacy: 'Privacy Notice', suffix: '.', loadFailed: 'Unable to load policy information.', retry: 'Retry' },
     policyAcceptance: { title: 'Review account policies', description: 'Review the current Terms of Use and Privacy Notice before continuing sign-in.', continue: 'Continue', invalid: 'This review request is invalid or expired.', restart: 'Start sign-in again', failed: 'Unable to record your acknowledgement. Try again later.' },
     nav: {
@@ -1091,6 +1094,7 @@ const messageCatalog = {
       signOutFailed: 'ログアウトできませんでした。もう一度お試しください。',
     },
     validation: { invalidEmail: '有効なメールアドレスを入力してください。' },
+    turnstile: { unavailable: '認証を利用できません。再試行してください。', retry: '再試行' },
     legalAcceptance: { prefix: '', terms: '利用規約', middle: 'に同意し、', privacy: 'プライバシー通知', suffix: 'を確認しました。', loadFailed: '規約情報を読み込めませんでした。', retry: '再試行' },
     policyAcceptance: { title: '規約を確認', description: 'ログインを続ける前に、現在の利用規約とプライバシー通知をご確認ください。', continue: '続ける', invalid: 'この確認リクエストは無効か期限切れです。', restart: 'ログインをやり直す', failed: '確認を記録できませんでした。しばらくしてからもう一度お試しください。' },
     nav: {
@@ -1391,6 +1395,7 @@ const messageCatalog = {
       signOutFailed: '로그아웃할 수 없어요. 다시 시도해 주세요.',
     },
     validation: { invalidEmail: '올바른 이메일 주소를 입력해 주세요.' },
+    turnstile: { unavailable: '인증을 사용할 수 없어요. 다시 시도해 주세요.', retry: '다시 시도' },
     legalAcceptance: { prefix: '', terms: '이용약관', middle: '에 동의하고', privacy: '개인정보 처리방침', suffix: '을 확인했습니다.', loadFailed: '정책 정보를 불러올 수 없어요.', retry: '다시 시도' },
     policyAcceptance: { title: '약관 확인', description: '로그인을 계속하기 전에 현재 이용약관과 개인정보 처리방침을 확인해 주세요.', continue: '계속', invalid: '이 확인 요청은 유효하지 않거나 만료되었어요.', restart: '다시 로그인하기', failed: '확인을 기록할 수 없어요. 잠시 후 다시 시도해 주세요.' },
     nav: {
