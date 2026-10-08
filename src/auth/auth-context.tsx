@@ -1,3 +1,4 @@
+import { MemberServiceApi } from '../lib/member-service-api'
 import { markLoginCompleted } from '../lib/analytics-events'
 /* oxlint-disable react/only-export-components */
 import {
@@ -77,6 +78,7 @@ type AuthContextValue = {
   bootstrapError: string | null
   logoutError: string | null
   api: AuthApi
+  serviceApi: MemberServiceApi
   operationsApi: OperationsApiClient
   unitNotificationsApi: UnitNotificationsApi
   login: (request: LoginRequest) => Promise<LoginResponse>
@@ -128,6 +130,7 @@ const defaultAuthErrorLabels: AuthErrorLabels = {
 type AuthProviderProps = {
   children: ReactNode
   api?: AuthApi
+  serviceApi?: MemberServiceApi
   operationsApi?: OperationsApiClient
   unitNotificationsApi?: UnitNotificationsApi
   config?: RuntimeConfig
@@ -155,6 +158,7 @@ export function AuthProvider({
   children,
   api: injectedApi,
   operationsApi: injectedOperationsApi,
+  serviceApi: injectedServiceApi,
   unitNotificationsApi: injectedUnitNotificationsApi,
   config: suppliedConfig,
   restoreSession = true,
@@ -236,11 +240,13 @@ export function AuthProvider({
     return token
   }, [api, authRuntime, setTokenRef])
 
-  const operationsApi = useMemo<OperationsApiClient>(() => injectedOperationsApi ?? new OperationsApi(createOperationsClient({
+  const operationsClient = useMemo(() => createOperationsClient({
     baseUrl: config.operationsApiBaseUrl ?? '/',
     getAccessToken: async () => tokenRef.current,
     refreshAfterUnauthorized: refreshOperationsToken,
-  })), [config.operationsApiBaseUrl, injectedOperationsApi, refreshOperationsToken])
+  }), [config.operationsApiBaseUrl, refreshOperationsToken])
+  const operationsApi = useMemo<OperationsApiClient>(() => injectedOperationsApi ?? new OperationsApi(operationsClient), [operationsClient, injectedOperationsApi])
+  const serviceApi = useMemo(() => injectedServiceApi ?? new MemberServiceApi(operationsClient), [operationsClient, injectedServiceApi])
   const unitNotificationsApi = useMemo(() => injectedUnitNotificationsApi ?? new UnitNotificationsApi({
     getAccessToken: () => tokenRef.current,
     refreshAfterUnauthorized: refreshOperationsToken,
@@ -674,6 +680,7 @@ export function AuthProvider({
       isBootstrapping: state.status === 'loading',
       api,
       operationsApi,
+      serviceApi,
       unitNotificationsApi,
       login,
       completeLogin,
@@ -686,7 +693,7 @@ export function AuthProvider({
       clearLocalSession,
       navigateExternal,
     }),
-    [navigation, presentation, api, beginAuthorization, clearLocalSession, completeLogin, completeOAuthCallback, login, logout, navigateExternal, operationsApi, refreshProfile, revalidateSession, state, unitNotificationsApi, verifyMfa],
+    [navigation, presentation, api, beginAuthorization, clearLocalSession, completeLogin, completeOAuthCallback, login, logout, navigateExternal, operationsApi, serviceApi, refreshProfile, revalidateSession, state, unitNotificationsApi, verifyMfa],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
