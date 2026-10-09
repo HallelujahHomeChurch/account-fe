@@ -26,8 +26,8 @@ importers:
         specifier: 1.0.47
         version: 1.0.47
       '@hallelujahhomechurch/ui':
-        specifier: 1.0.27
-        version: 1.0.27(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: 1.0.55
+        version: 1.0.55(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@sentry/react':
         specifier: 10.69.0
         version: 10.69.0(react@19.2.7)
@@ -263,8 +263,8 @@ packages:
   '@hallelujahhomechurch/preferences@1.0.47':
     resolution: {integrity: sha512-J2Pa5+gk3A3ww/O5nNj9/UAIpmS1eJod47ixeP32fPUOob1sXw9OLks/hPxhrGUryGzpUc78WECQP2CRe5LL+g==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/preferences/1.0.47/69a13e5cf0cca0c51738180b194a1cbfb5d59884}
 
-  '@hallelujahhomechurch/ui@1.0.27':
-    resolution: {integrity: sha512-mlVsOIYpjOmuoleEx8l+YZfK0Wh2Vx9bSEU5ztbsGGeOJLB/IbYJ68npYbMxwbDAMqo8TmDCKlxaI1Dt4/uftg==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/ui/1.0.27/f5d55a66dbe9402ff4d65b838d6bf09bec9fcb1d}
+  '@hallelujahhomechurch/ui@1.0.55':
+    resolution: {integrity: sha512-/S0AiAj9vUJJTPV4Qeg2XEJykJKoTPds3q2Tfuz062v8I4BhDSZg4fJupTJCKBG+F7eHS0Y1gM1tDjThrgctTw==, tarball: https://npm.pkg.github.com/download/@hallelujahhomechurch/ui/1.0.55/6657feea9e625c5c06f7608473ae2c2d18218fa8}
     peerDependencies:
       react: ^19.0.0
       react-dom: ^19.0.0
@@ -1796,7 +1796,7 @@ snapshots:
 
   '@hallelujahhomechurch/preferences@1.0.47': {}
 
-  '@hallelujahhomechurch/ui@1.0.27(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@hallelujahhomechurch/ui@1.0.55(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@internationalized/date': 3.12.4
       input-otp: 1.5.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)

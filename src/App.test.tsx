@@ -638,3 +638,21 @@ it('waits on a direct private-page visit when capabilities arrive after church a
   expect(screen.getByTestId('route-path')).toHaveTextContent('/profile/member-details')
  } finally { load.mockRestore() }
 })
+
+it('includes authorized small groups before Admin without an Account self-link', async()=>{
+ const operationsApi={listMyResources:vi.fn().mockResolvedValue([]),getMyAccess:vi.fn().mockResolvedValue({churchMembership:{id:'church-member'},responsibilities:[{responsibilityId:'r1'}]})};
+ const adminApi={...signedInApi,me:async()=>({id:'u1',email:'ray@example.com',permissions:['*']})};
+ render(<MemoryRouter initialEntries={['/profile']}><AuthProvider api={adminApi} operationsApi={operationsApi as never}><App/></AuthProvider></MemoryRouter>);
+ await userEvent.click(await screen.findByLabelText(/account menu/i));
+ await waitFor(()=>expect(screen.getAllByRole('menuitem').map(item=>item.textContent)).toEqual(['Official site','Projection system','Small group','Admin','Sign out']));
+});
+
+it('does not show cached small group avatar access while the current lookup fails',async()=>{
+ const cached=createNavigationPresentation({key:'hhc:navigation:account-web',allowedIds:['shell','admin','organizations','resources']});
+ cached.identify('u1');cached.capture('u1')('account',['shell']);cached.capture('u1')('operations',['organizations']);
+ const operationsApi={listMyResources:vi.fn().mockResolvedValue([]),getMyAccess:vi.fn().mockRejectedValue(new Error('unavailable'))};
+ render(<MemoryRouter initialEntries={['/profile']}><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><App/></AuthProvider></MemoryRouter>);
+ await userEvent.click(await screen.findByLabelText(/account menu/i));
+ expect(await screen.findByRole('menuitem',{name:'Official site'})).toBeInTheDocument();
+ expect(screen.queryByRole('menuitem',{name:'Small group'})).not.toBeInTheDocument();
+});

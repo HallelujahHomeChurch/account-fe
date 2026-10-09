@@ -240,6 +240,6 @@ async function operationError(response: Response, body: unknown) {
     try { value = await response.clone().json() } catch { value = undefined }
   }
   const record = typeof value === 'object' && value !== null ? value as Record<string, unknown> : {}
-  const code = typeof record.error === 'string' ? record.error : typeof record.error_code === 'string' ? record.error_code : undefined
+  const code = typeof record.error_code === 'string' && record.error_code ? record.error_code : typeof record.error === 'string' ? record.error : undefined
   return new OperationsApiError(response.status, code, typeof record.message === 'string' ? record.message : undefined)
 }

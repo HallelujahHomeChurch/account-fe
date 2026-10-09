@@ -227,10 +227,10 @@ function UnitForm({ kinds, labels, pending, name: initialName = '', email: initi
       {kinds ? <label>{labels.kind}<select className="organization-input" value={kind} onChange={event => setKind(event.target.value as typeof kind)}>{kinds.map(value => <option key={value} value={value}>{labels[value]}</option>)}</select></label> : null}
       <label>{labels.name}<input className="organization-input" required maxLength={200} value={name} onChange={event => setName(event.target.value)} /></label>
       <label>{labels.email}<input className="organization-input" type="email" maxLength={254} value={email} onChange={event => setEmail(event.target.value)} /></label>
-      {Array.isArray(policy) ? <fieldset className="organization-dialog-stack"><legend>{labels.policyTitle}</legend>
+      {policyEditable && Array.isArray(policy) ? <fieldset className="organization-dialog-stack"><legend>{labels.policyTitle}</legend>
         <p className="muted-copy">{labels.policyHelp}</p>
-        {hasParent ? <label className="organization-checkbox"><input type="checkbox" checked={inherits} disabled={!policyEditable} onChange={event => setInherits(event.target.checked)} />{labels.inheritPolicy}</label> : null}
-        {managedEntitlementCodes.map((code,index) => <label className="organization-checkbox" key={code}><input type="checkbox" checked={previewPolicy.includes(code)} disabled={!policyEditable || inherits} onChange={event => setCodes(current => event.target.checked ? [...current,code] : current.filter(value => value !== code))} />{index === 3 ? labels.video : managedEntitlementLabels[index]}</label>)}
+        {hasParent ? <Switch label={labels.inheritPolicy} isSelected={inherits} isDisabled={pending} onChange={setInherits} /> : null}
+        {managedEntitlementCodes.map((code,index) => <Switch key={code} label={index === 3 ? labels.video : managedEntitlementLabels[index]} isSelected={previewPolicy.includes(code)} isDisabled={pending || inherits} onChange={selected => setCodes(current => selected ? [...current,code] : current.filter(value => value !== code))} />)}
         <p className="muted-copy">{labels.effectivePolicy}: {(policyChanged ? previewPolicy : effectivePolicy)?.length ? (policyChanged ? previewPolicy : effectivePolicy)!.map(code => code === 'video.meeting-recordings.access' ? labels.video : managedEntitlementLabels[managedEntitlementCodes.indexOf(code)]).join(' · ') : labels.noEntitlements}</p>
       </fieldset> : null}
       <Button type="submit" isDisabled={pending || !name.trim()}>{labels.save}</Button>
