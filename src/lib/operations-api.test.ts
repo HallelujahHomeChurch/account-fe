@@ -42,3 +42,13 @@ it('sends optional access in the admission request while keeping old calls uncha
  await api.admitManagedMember('unit','account','legacy')
  expect(raw.POST).toHaveBeenLastCalledWith('/api/operations/manage/org-units/{unitId}/members',expect.objectContaining({body:{accountUserId:'account'}}))
 })
+
+it('preserves the specific final-binding confirmation code over the generic conflict', async () => {
+ const raw={DELETE:vi.fn().mockResolvedValue({error:{error:'conflict',error_code:'last_binding_requires_membership_end'},response:new Response(null,{status:409})}),use:vi.fn()}
+ const api=new OperationsApi({raw} as never)
+ await expect(api.removeManagedAffiliation('unit','member','affiliation',1,false,'key')).rejects.toMatchObject({status:409,code:'last_binding_requires_membership_end'})
+})
+it('keeps the generic error fallback when no specific error code exists', async () => {
+ const raw={DELETE:vi.fn().mockResolvedValue({error:{error:'forbidden'},response:new Response(null,{status:403})}),use:vi.fn()}
+ await expect(new OperationsApi({raw} as never).removeManagedAffiliation('unit','member','affiliation',1,false,'key')).rejects.toMatchObject({status:403,code:'forbidden'})
+})

@@ -22,7 +22,7 @@
     "@hallelujahhomechurch/hhc-web-client": "1.0.47",
     "@hallelujahhomechurch/operations-client": "1.0.35",
     "@hallelujahhomechurch/preferences": "1.0.47",
-    "@hallelujahhomechurch/ui": "1.0.27",
+    "@hallelujahhomechurch/ui": "1.0.55",
     "@sentry/react": "10.69.0",
     "jose": "6.2.1",
     "libphonenumber-js": "^1.13.14",

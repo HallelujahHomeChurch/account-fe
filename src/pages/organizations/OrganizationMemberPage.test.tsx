@@ -5,7 +5,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 
 import { useAuth } from '../../auth/auth-context'
 import { messages } from '../../i18n/messages'
-import { OperationsApiError } from '../../lib/operations-api'
+import { OperationsApi, OperationsApiError } from '../../lib/operations-api'
 import { OrganizationMemberPage } from './OrganizationMemberPage'
 
 vi.mock('../../auth/auth-context', () => ({ useAuth: vi.fn() }))
@@ -135,3 +135,40 @@ it('locks mutations after a successful write with failed reload and retries only
  expect(screen.getByRole('switch',{name:'繁體週報下載'})).not.toBeDisabled()
  expect(api.applyManagedEntitlements).toHaveBeenCalledTimes(1)
 })
+
+it('opens final-binding confirmation from the real conflict response and returns to the unit list',async()=>{
+ const raw={use:vi.fn(),DELETE:vi.fn().mockResolvedValueOnce({error:{error:'conflict',error_code:'last_binding_requires_membership_end'},response:new Response(null,{status:409})}).mockResolvedValueOnce({data:{},response:new Response(null,{status:200})})};
+ const adapter=new OperationsApi({raw} as never);
+ api.removeManagedAffiliation.mockImplementation((...args:Parameters<OperationsApi['removeManagedAffiliation']>)=>adapter.removeManagedAffiliation(...args));
+ render(<MemoryRouter initialEntries={['/organizations/unit/members/member']}><Routes><Route path="/organizations/:unitId/members/:memberId" element={<OrganizationMemberPage/>}/><Route path="/organizations/:unitId" element={<h1>Unit member list</h1>}/></Routes></MemoryRouter>);
+ await userEvent.click(await screen.findByRole('button',{name:'Remove affiliation'}));
+ const dialog=await screen.findByRole('dialog');
+ expect(raw.DELETE).toHaveBeenCalledOnce();
+ await userEvent.click(within(dialog).getByRole('button',{name:'Remove affiliation'}));
+ expect(await screen.findByRole('heading',{name:'Unit member list'})).toBeInTheDocument();
+ expect(raw.DELETE).toHaveBeenCalledTimes(2);
+});
+
+it('cancels final-binding confirmation without another removal request', async () => {
+ api.removeManagedAffiliation.mockRejectedValueOnce(new OperationsApiError(409, 'last_binding_requires_membership_end'));
+ render(<MemoryRouter initialEntries={['/organizations/unit/members/member']}><Routes><Route path="/organizations/:unitId/members/:memberId" element={<OrganizationMemberPage />} /><Route path="/organizations/:unitId" element={<h1>Unit member list</h1>} /></Routes></MemoryRouter>);
+ await userEvent.click(await screen.findByRole('button', {name: 'Remove affiliation'}));
+ const dialog = await screen.findByRole('dialog');
+ await userEvent.click(within(dialog.querySelector('.organization-actions') as HTMLElement).getByRole('button', {name: messages.en.organizations.cancel}));
+ await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+ expect(api.removeManagedAffiliation).toHaveBeenCalledOnce();
+ expect(screen.getByRole('heading', {name: 'Alice', hidden: true})).toBeInTheDocument();
+ expect(screen.queryByRole('heading', {name: 'Unit member list'})).not.toBeInTheDocument();
+});
+
+it.each([403, 409, 412, 503])('stays on the member page when confirmed removal fails with %s', async status => {
+ api.removeManagedAffiliation.mockRejectedValueOnce(new OperationsApiError(409, 'last_binding_requires_membership_end')).mockRejectedValueOnce(new OperationsApiError(status, 'request_failed'));
+ render(<MemoryRouter initialEntries={['/organizations/unit/members/member']}><Routes><Route path="/organizations/:unitId/members/:memberId" element={<OrganizationMemberPage />} /><Route path="/organizations/:unitId" element={<h1>Unit member list</h1>} /></Routes></MemoryRouter>);
+ await userEvent.click(await screen.findByRole('button', {name: 'Remove affiliation'}));
+ const dialog = await screen.findByRole('dialog');
+ await userEvent.click(within(dialog).getByRole('button', {name: 'Remove affiliation'}));
+ expect(await within(dialog).findByRole('alert')).toBeInTheDocument();
+ expect(api.removeManagedAffiliation).toHaveBeenCalledTimes(2);
+ expect(screen.getByRole('heading', {name: 'Alice', hidden: true})).toBeInTheDocument();
+ expect(screen.queryByRole('heading', {name: 'Unit member list'})).not.toBeInTheDocument();
+});

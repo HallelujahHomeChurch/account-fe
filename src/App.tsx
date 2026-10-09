@@ -3,6 +3,8 @@ import { Bell, CalendarDays, FileArchive, Menu, MonitorSmartphone, ShieldCheck, 
 import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 
+import { canAccessAdmin } from '@hallelujahhomechurch/account-client/admin-access'
+
 import { useAuth } from './auth/auth-context'
 import { consumePostLoginReturnTo, hasPostLoginReturnTo, isAuthRoutePath, loginPath } from './auth/auth-routes'
 import { useLocale } from './i18n/locale-context'
@@ -56,10 +58,11 @@ function LayoutContent() {
   const { capabilities, error: capabilitiesError } = useAuthCapabilitiesState(!isAuthRoute)
   const dsrEnabled = capabilities?.dsr?.enabled === true
   const [resourceLookupFailed, setResourceLookupFailed] = useState(false)
-  const [managedAccess, setManagedAccess] = useState<'loading' | 'allowed' | 'denied' | 'failed'>('loading')
+  const [managedAccessResult, setManagedAccess] = useState<{ owner?: string; status: 'loading' | 'allowed' | 'denied' | 'failed' }>({ status: 'loading' })
   const [accessRevision, setAccessRevision] = useState(0)
   const [memberAccess, setMemberAccess] = useState<{ owner: string; allowed: boolean }>({ owner: '', allowed: false })
   const owner = verified ? auth.profile?.id : undefined
+  const managedAccess = owner && managedAccessResult.owner === owner ? managedAccessResult.status : 'loading'
   const [memberTransportAccess, setMemberTransportAccess] = useState<{ owner: string; allowed: boolean }>({ owner: '', allowed: false })
   const memberEligible = memberAccess.owner === owner && memberAccess.allowed
   const memberAllowed = capabilities?.memberDetailsEnabled === true && memberEligible && memberTransportAccess.owner === owner && memberTransportAccess.allowed
@@ -91,15 +94,15 @@ function LayoutContent() {
   }, [auth.operationsApi, auth.presentation, auth.profile, isAuthRoute, isResourceRoute, verified])
 
   useEffect(() => {
-    setManagedAccess('loading')
+    setManagedAccess({ owner, status: 'loading' })
     setMemberAccess({ owner: '', allowed: false })
     if (isAuthRoute || !owner || !auth.operationsApi.getMyAccess) return
     let active = true
     const controller = new AbortController()
     const remember = auth.presentation.capture(owner)
     const check = () => auth.operationsApi.getMyAccess(controller.signal)
-      .then((access) => { if (active && remember('operations', access.churchMembership && access.responsibilities.length > 0 ? ['organizations'] : [])) { setManagedAccess(access.churchMembership && access.responsibilities.length > 0 ? 'allowed' : 'denied'); setMemberAccess({ owner, allowed: access.memberDetailsEligible === true }) } })
-      .catch(() => { if (active) setManagedAccess('failed') })
+      .then((access) => { if (active && remember('operations', access.churchMembership && access.responsibilities.length > 0 ? ['organizations'] : [])) { setManagedAccess({ owner, status: access.churchMembership && access.responsibilities.length > 0 ? 'allowed' : 'denied' }); setMemberAccess({ owner, allowed: access.memberDetailsEligible === true }) } })
+      .catch(() => { if (active) setManagedAccess({ owner, status: 'failed' }) })
     void check()
     window.addEventListener('focus', check)
     return () => { active = false; controller.abort(); window.removeEventListener('focus', check) }
@@ -245,7 +248,8 @@ function LayoutContent() {
               links={[
                 { id: 'official-site', label: t.nav.churchSite, href: `${publicSiteUrl}/${locale}` },
                 { id: 'projection', label: t.nav.projectionSystem, href: 'https://client.alive.org.tw/', newWindow: { label: t.nav.projectionWindowLabel, blockedMessage: t.nav.projectionPopupBlocked } },
-                ...(auth.navigation?.sources.account?.ids.includes('admin')
+                ...(verified && managedAccess === 'allowed' ? [{ id: 'organizations', label: t.nav.menuOrganizations, href: '/organizations' }] : []),
+                ...(verified && canAccessAdmin(auth.profile?.permissions ?? [])
                   ? [{ id: 'admin', label: t.nav.adminManagement, href: 'https://admin.alive.org.tw/' }]
                   : []),
               ]}

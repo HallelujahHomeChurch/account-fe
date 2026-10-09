@@ -1705,11 +1705,7 @@ textarea::selection {
   }
 
   .login-footer {
-    position: fixed;
-    z-index: 20;
-    bottom: max(22px, env(safe-area-inset-bottom));
-    left: 22px;
-    padding: 0;
+    padding: 14px 8px 0;
   }
 
   .login-form-panel .input-otp {
