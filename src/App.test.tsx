@@ -426,7 +426,17 @@ describe('App layout', () => {
     ).not.toBeInTheDocument()
   })
 
-  it.each(['cms:pages:read', 'iam:service-principals:read', 'cms:recordings:read'])('shows admin management for %s', async (permission) => {
+  it.each(['dsr:read', 'dsr:manage'])('does not expose Admin for retired %s grants', async (permission) => {
+    const cached = createNavigationPresentation({key: 'hhc:navigation:account-web', allowedIds: ['shell', 'admin', 'organizations', 'resources']})
+    cached.identify('u1'); cached.capture('u1')('account', ['shell', 'admin'])
+    const api: AuthApi = {...signedInApi, me: async () => ({id: 'u1', email: 'ray@example.com', permissions: [permission]})}
+    render(<MemoryRouter initialEntries={['/profile']}><AuthProvider api={api}><App /></AuthProvider></MemoryRouter>)
+    await userEvent.click(await screen.findByLabelText(/account menu/i))
+    expect(screen.getByRole('menuitem', {name: 'Sign out'})).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', {name: 'Admin'})).not.toBeInTheDocument()
+  })
+
+  it.each(['*', 'cms:pages:read', 'iam:service-principals:read', 'cms:recordings:read'])('shows admin management for %s', async (permission) => {
     const user = userEvent.setup()
     const adminApi: AuthApi = {
       ...signedInApi,
