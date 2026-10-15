@@ -113,19 +113,6 @@ it('distinguishes a CSRF rejection from membership revocation without retry', as
  expect(calls).toHaveLength(2)
 })
 
-it('decrypts a bounded DSR archive under its own path without requiring member eligibility', async () => {
- const { client, requests } = fixture()
- const blob = await client.downloadExport('/api/account/v1/dsr/downloads/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=', new AbortController().signal)
- expect(blob.type).toBe('application/zip'); expect(blob.size).toBeGreaterThan(16384)
- expect(requests[0].path).toBe('/api/account/v1/dsr/downloads/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=')
- expect(requests[0].precondition).toBeNull()
-})
-it.each(['owner', 'message', 'method', 'status', 'etag', 'expired', 'unknown-field', 'wrong-key'])('rejects a DSR %s response before offering a file', async scenario => {
- const { client, calls } = fixture(scenario)
- await expect(client.downloadExport('/api/account/v1/dsr/downloads/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=', new AbortController().signal)).rejects.toBeInstanceOf(MemberDetailsError)
- expect(calls).toHaveLength(1)
-})
-
 it('does not re-pin an editor after an invalid GET in a replacement session', async () => {
  const { client, calls, setSession } = fixture('invalid-details')
  const signal = new AbortController().signal

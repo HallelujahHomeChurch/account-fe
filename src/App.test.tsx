@@ -133,27 +133,11 @@ describe('App layout', () => {
     expect(document.querySelector('.hhc-brand-loading-screen')).not.toBeInTheDocument()
   })
 
-  it('keeps capability loading inside the account content area', async () => {
+  it('rejects retired data requests even when the server still advertises DSR', async () => {
     render(
       <MemoryRouter initialEntries={['/data-requests']}>
         <LocaleProvider>
-          <AuthProvider api={{ ...signedInApi, getAuthCapabilities: () => new Promise(() => undefined) }}>
-            <App />
-          </AuthProvider>
-        </LocaleProvider>
-      </MemoryRouter>,
-    )
-
-    await screen.findByRole('navigation', { name: 'Account navigation' })
-    expect(screen.getByRole('status', { name: 'Loading data requests' })).toHaveClass('account-page-skeleton')
-    expect(document.querySelector('.hhc-brand-loading-screen')).not.toBeInTheDocument()
-  })
-
-  it('hides data requests navigation and route while DSR is disabled', async () => {
-    render(
-      <MemoryRouter initialEntries={['/data-requests']}>
-        <LocaleProvider>
-          <AuthProvider api={{ ...signedInApi, getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, dsr: { enabled: false } }) }}>
+          <AuthProvider api={{ ...signedInApi, getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, dsr: { enabled: true } }) }}>
             <NavigationProbe />
             <App />
           </AuthProvider>
@@ -218,19 +202,18 @@ describe('App layout', () => {
   })
 
   it('consumes a social sign-in continuation after the authenticated profile return', async () => {
-    savePostLoginReturnTo('/data-requests')
+    savePostLoginReturnTo('/security')
     render(
       <MemoryRouter initialEntries={['/profile']}>
         <LocaleProvider><AuthProvider api={{
           ...signedInApi,
           getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, dsr: { enabled: true } }),
-          listDSRRequests: async () => [],
         }}><NavigationProbe /><App /></AuthProvider></LocaleProvider>
       </MemoryRouter>,
     )
 
-    expect(await screen.findByRole('heading', { name: 'Data and privacy requests' })).toBeInTheDocument()
-    expect(screen.getByTestId('route-path')).toHaveTextContent('/data-requests')
+    expect(await screen.findByRole('heading', { name: 'Security' })).toBeInTheDocument()
+    expect(screen.getByTestId('route-path')).toHaveTextContent('/security')
     expect(sessionStorage.getItem('hhc_account_post_login_return_to')).toBeNull()
   })
   it('uses the shared branded loading screen until protected-route bootstrap finishes', () => {

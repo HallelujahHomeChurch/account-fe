@@ -1,5 +1,5 @@
 import { AccountMenu, BrandLoadingScreen, Button, Drawer, Skeleton, Toast, ToastProvider } from '@hallelujahhomechurch/ui'
-import { Bell, CalendarDays, FileArchive, Menu, MonitorSmartphone, ShieldCheck, UserRound, UsersRound } from 'lucide-react'
+import { Bell, CalendarDays, Menu, MonitorSmartphone, ShieldCheck, UserRound, UsersRound } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 
@@ -30,7 +30,6 @@ import { NotificationsPage } from './pages/NotificationsPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { NativeAuthCompletePage } from './pages/NativeAuthCompletePage'
 import { PolicyAcceptancePage } from './pages/PolicyAcceptancePage'
-import { DataRequestsPage } from './pages/DataRequestsPage'
 import { MyResourceReservationsPage } from './pages/MyResourceReservationsPage'
 import { ResourceListPage } from './pages/ResourceListPage'
 import { ResourceReservationPage } from './pages/ResourceReservationPage'
@@ -56,7 +55,6 @@ function LayoutContent() {
   const isResourceRoute = location.pathname === '/resources' || location.pathname.startsWith('/resources/')
   const publicSiteUrl = readRuntimeConfig().publicSiteUrl
   const { capabilities, error: capabilitiesError } = useAuthCapabilitiesState(!isAuthRoute)
-  const dsrEnabled = capabilities?.dsr?.enabled === true
   const [resourceLookupFailed, setResourceLookupFailed] = useState(false)
   const [managedAccessResult, setManagedAccess] = useState<{ owner?: string; status: 'loading' | 'allowed' | 'denied' | 'failed' }>({ status: 'loading' })
   const [accessRevision, setAccessRevision] = useState(0)
@@ -115,7 +113,6 @@ function LayoutContent() {
     { icon: MonitorSmartphone, label: t.nav.devices, path: '/devices' },
     { icon: Bell, label: t.nav.notificationSettings, path: '/notifications' },
     ...(auth.navigation?.sources.resources?.ids.includes('resources') ? [{ icon: CalendarDays, label: t.nav.resourceReservations, path: '/resources' }] : []),
-    ...(dsrEnabled ? [{ icon: FileArchive, label: t.nav.dataRequests, path: '/data-requests' }] : []),
   ]
 
   if (isAuthRoute) {
@@ -315,14 +312,6 @@ function LayoutContent() {
               <Route element={<SecurityPage />} path="/security" />
               <Route element={<DevicesPage />} path="/devices" />
               <Route element={<NotificationsPage />} path="/notifications" />
-              <Route
-                element={dsrEnabled
-                  ? <DataRequestsPage />
-                  : !capabilities && !capabilitiesError
-                    ? <Skeleton className="account-page-skeleton" label={t.dataRequests.loading} />
-                    : <Navigate replace to="/profile" />}
-                path="/data-requests"
-              />
               <Route element={<ResourceListPage />} path="/resources" />
               <Route element={<MyResourceReservationsPage />} path="/resources/reservations" />
               <Route element={<ResourceReservationPage />} path="/resources/:resourceKey" />

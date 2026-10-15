@@ -1,4 +1,4 @@
-import { MemberDetailsClient, memberCsrfFailure, type PrivateTransportPath } from './member-details'
+import { memberCsrfFailure, type PrivateTransportPath } from './member-details'
 import {
   AccountSessionError,
   createAccountLegalClient,
@@ -75,60 +75,6 @@ export type AuthCapabilities = {
   nicknameWriteEnabled?: boolean
   memberDetailsEnabled?: boolean
   policy?: PolicyCapabilities
-  dsr?: { enabled: boolean; encrypted_delivery?: boolean }
-}
-
-export type DSRScopeTarget = 'subscriptions' | 'membership' | 'personalized_bulletins' | 'website_content'
-export type DSRCreateDetails = { description?: string; current_value?: string; requested_value?: string; scope_targets?: DSRScopeTarget[]; scope_confirmed?: boolean }
-
-export type DSRRequestType = 'access_export' | 'correction' | 'restrict_processing' | 'erasure'
-export type DSRRequestStatus = 'submitted' | 'in_review' | 'processing' | 'action_required' | 'completed' | 'rejected' | 'cancelled'
-export type DSRExecutionStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'manual' | 'not_applicable'
-export type DSROwner = 'account' | 'engagement' | 'notification' | 'asset' | 'website_manual' | 'operations' | 'website_watermark'
-
-export type DSRExecution = {
-  owner: DSROwner
-  action: 'export' | 'correct' | 'restrict_processing' | 'erase' | 'withdraw_restriction'
-  status: DSRExecutionStatus
-  attempt_count: number
-  result_summary: { record_count?: number; checksum?: string; reason_codes?: string[]; review_scope?: string; public_response?: string; supplement?: string }
-  last_error_code?: string
-  started_at?: string
-  completed_at?: string
-  updated_at?: string
-}
-
-export type DSRPublicEvent = { action: string; case_version: number; created_at: string; public_message?: string; public_supplement?: { description: string; current_value: string; requested_value: string } }
-export type DSRRequest = {
-  public_history?: DSRPublicEvent[]
-  public_history_has_more?: boolean
-  public_history_next_cursor?: string
-  received_at?: string
-  received_source?: 'unknown' | 'portal' | 'email' | 'offline'
-  decision_at?: string
-  decision_due_at?: string
-  deadline_state?: 'needs_review' | 'confirmed'
-  policy_version?: string
-  scope_targets?: DSRScopeTarget[]
-  plan_version?: number
-  description?: string
-  current_value?: string
-  requested_value?: string
-  information_requested?: string
-
-  id: string
-  request_type: DSRRequestType
-  status: DSRRequestStatus
-  identity_verified_at: string
-  approved_at?: string
-  decision_public_response?: string
-  rejected_reason_code?: string
-  export_expires_at?: string
-  submitted_at: string
-  started_at?: string
-  completed_at?: string
-  version: number
-  executions?: DSRExecution[]
 }
 
 export type OAuthOnboardingStatus = {
@@ -416,58 +362,6 @@ export class AccountApi {
     return this.request<NewsletterPreference>('/notification-preferences/newsletter')
   }
 
-  async listDSRRequests() {
-    return (await this.request<{ requests: DSRRequest[] }>('/dsr/requests')).requests
-  }
-
-  listDSRPublicHistory(requestId: string, version: number, before?: string) {
-    const query = new URLSearchParams({ case_version: String(version) })
-    if (before) query.set('before', before)
-    return this.request<{ events: DSRPublicEvent[]; case_version: number; next_cursor?: string }>(`/dsr/requests/${encodeURIComponent(requestId)}/history?${query}`)
-  }
-
-  getDSRRequest(requestId: string) {
-    return this.request<DSRRequest>(`/dsr/requests/${encodeURIComponent(requestId)}`)
-  }
-
-  createDSRRequest(requestType: DSRRequestType, details: DSRCreateDetails = {}) {
-    return this.request<DSRRequest>('/dsr/requests', { method: 'POST', body: { request_type: requestType, ...details } })
-  }
-
-  supplementDSRRequest(requestId: string, input: { version: number; description: string; current_value: string; requested_value: string; scope_targets?: DSRScopeTarget[]; scope_confirmed?: boolean }) {
-    return this.request<DSRRequest>(`/dsr/requests/${encodeURIComponent(requestId)}/supplement`, { method: 'POST', body: input })
-  }
-
-  cancelDSRRequest(requestId: string, version: number) {
-    return this.request<DSRRequest>(`/dsr/requests/${encodeURIComponent(requestId)}/cancel`, { method: 'POST', body: { version } })
-  }
-
-  confirmDSRErasure(requestId: string, version: number, confirmationEmail: string) {
-    return this.request<DSRRequest>(`/dsr/requests/${encodeURIComponent(requestId)}/confirm-erasure`, {
-      method: 'POST', body: { version, confirmation_email: confirmationEmail },
-    })
-  }
-
-  issueDSRDownload(requestId: string) {
-    return this.request<{ download_url: string }>(`/dsr/requests/${encodeURIComponent(requestId)}/download`, { method: 'POST' })
-  }
-
-  async redeemDSRDownload(downloadUrl: string, signal = new AbortController().signal): Promise<Blob> {
-    if (!/^\/api\/account\/v1\/dsr\/downloads\/[A-Za-z0-9_-]{43}=$/.test(downloadUrl)) {
-      throw new Error('Invalid DSR download URL')
-    }
-    const capabilities = await this.getAuthCapabilities()
-    signal.throwIfAborted()
-    if (capabilities.dsr?.encrypted_delivery === true) {
-      const owner = await this.me()
-      signal.throwIfAborted()
-      return new MemberDetailsClient((path, init) => this.memberTransportFetch(path, init), owner.id).downloadExport(downloadUrl, signal)
-    }
-    const response = await this.authenticatedFetch(downloadUrl)
-    if (!response.ok) return this.readResponse<never>(response)
-    return response.blob()
-  }
-
   updateNewsletterPreference(subscribed: boolean) {
     return this.request<NewsletterPreference>('/notification-preferences/newsletter', {
       method: 'PUT',
@@ -587,7 +481,7 @@ export class AccountApi {
   }
 
   async getAuthCapabilities(): Promise<AuthCapabilities> {
-    const response = await this.request<{ providers?: string[]; registration_enabled?: boolean; nickname_write_enabled?: boolean; member_details_enabled?: boolean; policy?: PolicyCapabilities; dsr?: { enabled: boolean; encrypted_delivery?: boolean } }>(
+    const response = await this.request<{ providers?: string[]; registration_enabled?: boolean; nickname_write_enabled?: boolean; member_details_enabled?: boolean; policy?: PolicyCapabilities }>(
       '/oauth-providers',
       { auth: false },
     )
@@ -597,7 +491,6 @@ export class AccountApi {
       nicknameWriteEnabled: response.nickname_write_enabled === true,
       memberDetailsEnabled: response.member_details_enabled === true,
       policy: response.policy,
-      dsr: response.dsr,
     }
   }
 
@@ -610,7 +503,7 @@ export class AccountApi {
     let response = await send()
     // Bootstrap has no encrypted operation; only it can use the existing refresh
     // coordinator. A write envelope is never replayed by this transport.
-    if ((path === '/member-details/transport-key' || path === '/dsr/transport-key') && response.status === 401) {
+    if (path === '/member-details/transport-key' && response.status === 401) {
       const next = await this.recoverUnauthorized(token ?? null)
       const current = this.getAccessToken?.() ?? null
       if (next && (current === token || current === next)) { this.setAccessToken?.(next); headers.set('Authorization', `Bearer ${next}`); response = await send() }
@@ -675,21 +568,6 @@ export class AccountApi {
     }
 
     return this.readResponse<T>(response)
-  }
-
-  private async authenticatedFetch(url: string, retry = true): Promise<Response> {
-    const token = this.getAccessToken?.() ?? null
-    const headers: Record<string, string> = token ? { authorization: `Bearer ${token}` } : {}
-    const response = await this.fetcher(url, { credentials: 'include', headers })
-    if (response.status === 401 && retry) {
-      const nextToken = await this.recoverUnauthorized(token)
-      const currentToken = this.getAccessToken?.() ?? null
-      if (nextToken && (currentToken === token || currentToken === nextToken)) {
-        this.setAccessToken?.(nextToken)
-        return this.authenticatedFetch(url, false)
-      }
-    }
-    return response
   }
 
   private recoverUnauthorized(rejectedToken: string | null) {

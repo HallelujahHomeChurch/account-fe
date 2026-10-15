@@ -6,7 +6,7 @@ const etagPattern = /^"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0
 const encoder = new TextEncoder()
 const decoder = new TextDecoder('utf-8', { fatal: true })
 export type MemberDetails = { familyName: string | null; givenName: string | null; gender: 'male' | 'female' | 'other' | 'prefer_not_to_say' | null; identityDocument: string | null; mobile: string | null }
-export type PrivateTransportPath = '/member-details' | '/member-details/transport-key' | '/dsr/transport-key' | `/dsr/downloads/${string}`
+export type PrivateTransportPath = '/member-details' | '/member-details/transport-key'
 export type MemberTransportFetch = (path: PrivateTransportPath, init: RequestInit) => Promise<Response>
 export class MemberDetailsError extends Error {
   readonly code: string
@@ -75,27 +75,14 @@ export class MemberDetailsClient {
     const result = await this.request('DELETE', null, etag, signal)
     if (!exact(result.payload, ['deleted']) || result.payload.deleted !== true || result.etag !== null) throw new MemberDetailsError('invalid_response', 0, true)
   }
-  async downloadExport(downloadUrl: string, signal: AbortSignal): Promise<Blob> {
-    if (!/^\/api\/account\/v1\/dsr\/downloads\/[A-Za-z0-9_-]{43}=$/.test(downloadUrl)) throw new MemberDetailsError('invalid_request')
-    const result = await this.request('GET', null, null, signal, downloadUrl)
-    const payload = result.payload
-    if (result.etag !== null || !exact(payload, ['encoding', 'mediaType', 'data']) || payload.encoding !== 'base64url' || payload.mediaType !== 'application/zip' || typeof payload.data !== 'string' || payload.data.length > Math.ceil((16 << 20) * 4 / 3) || !/^[A-Za-z0-9_-]+$/.test(payload.data)) throw new MemberDetailsError('invalid_response')
-    const raw = base64url.decode(payload.data)
-    try {
-      if (raw.length === 0 || raw.length > (16 << 20) || base64url.encode(raw) !== payload.data) throw new MemberDetailsError('invalid_response')
-      signal.throwIfAborted()
-      return new Blob([raw.slice().buffer], { type: 'application/zip' })
-    } finally { raw.fill(0) }
-  }
-  private async request(method: 'GET' | 'PUT' | 'DELETE', payload: MemberDetails | null, etag: string | null, signal: AbortSignal, downloadPath?: string) {
-    const requestPath = downloadPath ?? path
-    const isExport = downloadPath !== undefined
+  private async request(method: 'GET' | 'PUT' | 'DELETE', payload: MemberDetails | null, etag: string | null, signal: AbortSignal) {
+    const requestPath = path
     let sent = false
     const responseKey = crypto.getRandomValues(new Uint8Array(32))
     try {
       signal.throwIfAborted()
       if (etag !== null && !etagPattern.test(etag) || method === 'DELETE' && etag === null) throw new MemberDetailsError('invalid_precondition')
-      const bootstrapResponse = await this.send(isExport ? '/dsr/transport-key' : '/member-details/transport-key', { method: 'GET', signal, cache: 'no-store' })
+      const bootstrapResponse = await this.send('/member-details/transport-key', { method: 'GET', signal, cache: 'no-store' })
       if (!bootstrapResponse.ok) throw new MemberDetailsError('unavailable', bootstrapResponse.status)
       const bootstrap: unknown = JSON.parse(await readBody(bootstrapResponse, 4096))
       const now = Math.floor(Date.now() / 1000)
@@ -111,9 +98,9 @@ export class MemberDetailsClient {
       if (method !== 'GET') headers[etag === null ? 'If-None-Match' : 'If-Match'] = etag ?? '*'
       signal.throwIfAborted()
       sent = true
-      const response = await this.send(isExport ? requestPath.slice('/api/account/v1'.length) as PrivateTransportPath : '/member-details', { method, headers, body: method === 'PUT' ? wire : undefined, signal, cache: 'no-store' })
+      const response = await this.send('/member-details', { method, headers, body: method === 'PUT' ? wire : undefined, signal, cache: 'no-store' })
       signal.throwIfAborted()
-      const body = await readBody(response, isExport ? 32 << 20 : 16384)
+      const body = await readBody(response, 16384)
       if (response.headers.get('content-type')?.split(';')[0] !== 'application/jose') {
         if (response.ok) throw new MemberDetailsError('invalid_response', 0, method !== 'GET')
         let code = 'unavailable'
@@ -121,7 +108,7 @@ export class MemberDetailsClient {
         throw new MemberDetailsError(code, response.status, response.status >= 500 && method !== 'GET')
       }
       const { plaintext, protectedHeader } = await compactDecrypt(body, responseKey, { keyManagementAlgorithms: ['dir'], contentEncryptionAlgorithms: ['A256GCM'] })
-      if (!exact(protectedHeader, ['alg', 'enc', 'typ']) || protectedHeader.typ !== 'hhc-member-response+jwe' || plaintext.length > (isExport ? 22 << 20 : 8192)) throw new MemberDetailsError('invalid_response', 0, method !== 'GET')
+      if (!exact(protectedHeader, ['alg', 'enc', 'typ']) || protectedHeader.typ !== 'hhc-member-response+jwe' || plaintext.length > 8192) throw new MemberDetailsError('invalid_response', 0, method !== 'GET')
       let decoded: unknown
       try { decoded = JSON.parse(decoder.decode(plaintext)) } finally { plaintext.fill(0) }
       const nowResponse = Math.floor(Date.now() / 1000)
