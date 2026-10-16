@@ -1,3 +1,4 @@
+import { emailCorrectionMessages } from '../features/email-correction/messages'
 import {
   BrandLoadingScreen,
   Button,
@@ -25,7 +26,7 @@ import { ApiError } from '../lib/api'
 
 export function LoginPage() {
   const auth = useAuth()
-  const { messages: t } = useLocale()
+  const { locale, messages: t } = useLocale()
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
@@ -43,7 +44,7 @@ export function LoginPage() {
     registrationEmail?: string
   } | null
   const [notice, setNotice] = useState(() =>
-    registrationState?.registrationComplete ? t.registration.verificationSent : '',
+    registrationState?.registrationComplete ? t.registration.verificationSent : searchParams.get('email_correction') === '1' ? emailCorrectionMessages[locale].unauthorized : '',
   )
   const [isSuccessNotice, setIsSuccessNotice] = useState(Boolean(registrationState?.registrationComplete))
   const [initialEmail] = useState(registrationState?.registrationEmail ?? '')

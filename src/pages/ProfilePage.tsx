@@ -1,7 +1,8 @@
+import { emailCorrectionMessages } from '../features/email-correction/messages'
 import { markProfileSaved } from '../lib/analytics-events'
 import { Button, Card, FieldError, Form, Input, Label, Modal, Skeleton, TextField } from '@hallelujahhomechurch/ui'
 import { useEffect, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { memberDetailsMessages } from '../i18n/member-details'
 
 import { useAuth } from '../auth/auth-context'
@@ -91,6 +92,7 @@ export function ProfilePage({ memberDetailsAvailable = false }: { memberDetailsA
             <div className="settings-row-copy">
               <span className="settings-row-label">{t.profile.email}</span>
               <strong>{profile.email}</strong>
+              {capabilities?.emailCorrectionEnabled ? <Link to="/data-requests">{emailCorrectionMessages[locale].title}</Link> : null}
             </div>
             <span className="status-pill">
               {profile.is_email_verified ? t.profile.emailVerified : t.profile.emailNotVerified}

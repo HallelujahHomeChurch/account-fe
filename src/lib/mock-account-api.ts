@@ -1,3 +1,4 @@
+import { createAccountDataRequestsClient } from '@hallelujahhomechurch/account-client'
 import { ApiError, type AccountNameUpdate, type Device, type LineBindingSummary, type LinkedAccount, type MfaSetup, type Profile } from './api'
 
 const token = 'mock-access-token'
@@ -5,6 +6,11 @@ const lineConfirmationNonce = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
 const mockTimestamp = (millisecondsAgo: number) => new Date(Date.now() - millisecondsAgo).toISOString()
 
 export class MockAccountApi {
+  readonly dataRequests = createAccountDataRequestsClient(async (path) => {
+    if (path === '/oauth-providers') return { dataRequests: { emailCorrection: { enabled: false } } }
+    if (path === '/data-requests/requests/current') return { request: null, serverTime: new Date().toISOString() }
+    throw new ApiError(503, 'Mock email correction unavailable', 'ACC_SERVICE_UNAVAILABLE')
+  })
   private authenticated = false
   private profile: Profile = {
     id: 'mock-admin',
@@ -254,7 +260,7 @@ export class MockAccountApi {
 
   async getAuthCapabilities() {
     return {
-      providers: ['google', 'line', 'microsoft'], registrationEnabled: true, nicknameWriteEnabled: true,
+      providers: ['google', 'line', 'microsoft'], registrationEnabled: true, nicknameWriteEnabled: true, emailCorrectionEnabled: false,
       policy: { enforced: false, terms_version: '', privacy_notice_version: '' },
     }
   }

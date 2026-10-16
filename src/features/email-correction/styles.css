@@ -1,0 +1,13 @@
+.email-correction { min-width: 0; }
+.email-correction .form-stack, .correction-stack { display: grid; gap: 1.25rem; min-width: 0; }
+.email-correction p { margin: 0; }
+.correction-summary { display: grid; gap: 1.25rem; margin: 0; min-width: 0; }
+.correction-summary > div { display: grid; gap: .4rem; min-width: 0; }
+.correction-summary dt { color: var(--color-muted); font-size: .875rem; }
+.correction-summary dd { margin: 0; overflow-wrap: anywhere; }
+.correction-progress { display: flex; flex-wrap: wrap; gap: .75rem 2rem; padding-inline-start: 1.25rem; margin: 0; }
+.correction-progress [aria-current="step"] { font-weight: 700; }
+.correction-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+.email-correction button { min-height: 44px; white-space: normal; }
+.email-correction input { min-width: 0; }
+@media (max-width: 600px) { .correction-actions { flex-direction: column; } .correction-actions > * { width: 100%; } .correction-progress { display: grid; } }
