@@ -1,5 +1,5 @@
 import { createAccountDataRequestsClient } from '@hallelujahhomechurch/account-client'
-import { ApiError, type AccountNameUpdate, type Device, type LineBindingSummary, type LinkedAccount, type MfaSetup, type Profile } from './api'
+import { ApiError, type AccountNameUpdate, type Device, type LineBindingResult, type LineBindingSummary, type LinkedAccount, type MfaSetup, type Profile } from './api'
 
 const token = 'mock-access-token'
 const lineConfirmationNonce = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
@@ -11,6 +11,8 @@ export class MockAccountApi {
     if (path === '/data-requests/requests/current') return { request: null, serverTime: new Date().toISOString() }
     throw new ApiError(503, 'Mock email correction unavailable', 'ACC_SERVICE_UNAVAILABLE')
   })
+  private lineViewNonce = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+  private lineStatus: LineBindingResult["status"] = "created"
   private authenticated = false
   private profile: Profile = {
     id: 'mock-admin',
@@ -176,8 +178,30 @@ export class MockAccountApi {
   async getLineLinkIntent(): Promise<LineBindingSummary> {
     return {
       line_account_name: 'HHC Official LINE',
-      view_nonce: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      view_nonce: this.lineViewNonce,
+      status: this.lineStatus,
+      current: true,
       expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+    }
+  }
+
+  async restartLineLinkIntent(viewNonce: string): Promise<LineBindingSummary> {
+    if (viewNonce !== this.lineViewNonce) {
+      throw new ApiError(410, 'This view is no longer current.', 'ACC_LINE_BINDING_INVALID')
+    }
+    this.lineViewNonce = crypto.randomUUID().replaceAll('-', '').padEnd(43, 'C')
+    this.lineStatus = 'created'
+    return this.getLineLinkIntent()
+  }
+
+  async cancelLineLinkIntent(viewNonce: string): Promise<LineBindingResult> {
+    if (viewNonce !== this.lineViewNonce) {
+      throw new ApiError(410, 'This view is no longer current.', 'ACC_LINE_BINDING_INVALID')
+    }
+    this.lineStatus = 'cancelled'
+    return {
+      intent_id: '018f0c1f-18d0-7e81-9f6f-69c456db7901', generation: '1',
+      expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(), status: 'cancelled',
     }
   }
 
