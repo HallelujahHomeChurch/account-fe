@@ -114,3 +114,10 @@ it('shows the server retry time and disables retry until that deadline', async (
   expect(screen.getByRole('button', { name: 'Retry' })).not.toBeDisabled()
   expect(screen.queryByText(/^Try again after /)).not.toBeInTheDocument()
 })
+
+it.each(Object.keys(emailCorrectionMessages) as Array<keyof typeof emailCorrectionMessages>)('explains missing identity methods in %s without reviewer guidance', locale => {
+  render(<DataRequestsPage {...props} locale={locale} view="ineligible" eligible={false} />)
+  expect(screen.getByRole('status')).toHaveTextContent(emailCorrectionMessages[locale].ineligible)
+  expect(screen.queryByText(emailCorrectionMessages[locale].noReviewer)).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: emailCorrectionMessages[locale].next })).not.toBeInTheDocument()
+})

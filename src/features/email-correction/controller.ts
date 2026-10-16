@@ -78,8 +78,12 @@ export class CorrectionController {
       const catalog = await this.api.catalog()
       if (seq !== this.sequence || !this.active) return
       this.patch({ catalog, currentEmail: catalog.currentEmail, eligible: this.account.eligible && catalog.eligibility.status === 'eligible' && catalog.allowedActions.includes('reauth') })
+      if (catalog.eligibility.status === 'ineligible' && catalog.eligibility.errorCode === 'ACC_CORRECTION_DISABLED') { this.patch({ enabled: false }); if (!current.request) this.redirect('/profile'); return }
       if (intentId && /^[A-Za-z0-9_-]{43}=$/.test(intentId)) { const restored = await this.api.restoreReauth(intentId); if (seq === this.sequence) await this.acceptIntent(restored); return }
-      if (!current.request) this.patch({ view: this.state.eligible ? 'form' : catalog.eligibility.status === 'ineligible' && catalog.eligibility.errorCode === 'ACC_CORRECTION_EMAIL_UNVERIFIED' ? 'unverified' : 'no_reviewer' })
+      if (!current.request) {
+        const views: Record<string, State['view']> = { ACC_CORRECTION_EMAIL_UNVERIFIED: 'unverified', ACC_CORRECTION_REVIEWER_UNAVAILABLE: 'no_reviewer', ACC_CORRECTION_INELIGIBLE: 'ineligible' }
+        this.patch({ view: this.state.eligible ? 'form' : catalog.eligibility.status === 'ineligible' ? views[catalog.eligibility.errorCode] ?? 'ineligible' : 'ineligible' })
+      }
     } catch (error) { if (seq === this.sequence) this.fail(error) }
     finally { if (seq === this.sequence || this.state.view === 'intent_expired') { this.operation = false; this.patch({ busy: false }) } }
   }

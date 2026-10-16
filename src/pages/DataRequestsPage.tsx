@@ -6,7 +6,7 @@ import { useRetryCooldown } from '../features/email-correction/useRetryCooldown'
 import { emailCorrectionMessages, type EmailCorrectionLocale } from '../features/email-correction/messages'
 import '../features/email-correction/styles.css'
 
-export type CorrectionView = 'loading' | 'form' | 'reauth' | 'mfa' | 'checking' | 'pending_verification' | 'link_expired' | 'pending_approval' | 'completed' | 'cancelled' | 'expired' | 'invalidated' | 'superseded' | 'unauthorized' | 'unverified' | 'no_reviewer' | 'load_error' | 'intent_expired'
+export type CorrectionView = 'loading' | 'form' | 'reauth' | 'mfa' | 'checking' | 'pending_verification' | 'link_expired' | 'pending_approval' | 'completed' | 'cancelled' | 'expired' | 'invalidated' | 'superseded' | 'unauthorized' | 'unverified' | 'no_reviewer' | 'ineligible' | 'load_error' | 'intent_expired'
 export type CorrectionAction = 'next' | 'back' | 'password' | 'mfa' | 'provider' | 'resend' | 'replace' | 'cancel' | 'new' | 'retry' | 'profile' | 'signin' | 'verify_current' | 'current'
 export type DataRequestsPageProps = {
   locale: EmailCorrectionLocale
@@ -82,7 +82,7 @@ export function DataRequestsPage({ locale, view, currentEmail, newEmail, expires
     {view === 'loading' ? <Skeleton className="account-page-skeleton" label={t.loading} /> : null}
     {view === 'load_error' ? <div role="alert"><p className="form-error">{t.loadError}</p><Button isDisabled={coolingDown || busy} onPress={() => onAction('retry')}>{t.retry}</Button></div> : null}
     {view === 'unauthorized' ? <Card className="panel-card settings-card"><Card.Content><p role="status">{t.unauthorized}</p><Button onPress={() => onAction('signin')}>{t.signIn}</Button></Card.Content></Card> : null}
-    {view === 'unverified' || view === 'no_reviewer' ? <Card className="panel-card settings-card"><Card.Content><p role="status">{view === 'unverified' ? t.unverified : t.noReviewer}</p>{view === 'unverified' ? <Button onPress={() => onAction('verify_current')}>{t.verifyStep}</Button> : null}</Card.Content></Card> : null}
+    {view === 'unverified' || view === 'no_reviewer' || view === 'ineligible' ? <Card className="panel-card settings-card"><Card.Content><p role="status">{view === 'unverified' ? t.unverified : view === 'no_reviewer' ? t.noReviewer : t.ineligible}</p>{view === 'unverified' ? <Button onPress={() => onAction('verify_current')}>{t.verifyStep}</Button> : null}</Card.Content></Card> : null}
     {(editing && item) || identity ? <Card className="panel-card settings-card"><Card.Content>
       {view === 'intent_expired' ? <p className="form-error" role="alert">{t.intentExpired}</p> : null}
       {replacing ? <p className="form-notice">{t.replacementHint}</p> : null}
