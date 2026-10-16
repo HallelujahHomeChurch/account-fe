@@ -1,7 +1,7 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import { useState } from 'react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DataRequestsPage, type DataRequestsPageProps } from './DataRequestsPage'
 import { correctionCatalog } from '../features/email-correction/catalog'
 import { emailCorrectionMessages } from '../features/email-correction/messages'
@@ -83,4 +83,34 @@ it('renders the server catalog field order and maps its known field labels witho
  render(<DataRequestsPage {...props} catalog={{items:[{kind:'email_change',fields:fields as [typeof fields[number],typeof fields[number]]}],currentEmail:props.currentEmail,serverTime:'2026-10-16T00:00:00Z',eligibility:{status:'eligible'},allowedActions:['reauth']}}/>)
  expect(screen.getAllByRole('textbox').map(input=>input.getAttribute('name'))).toEqual(['newEmail','currentEmail'])
  expect(screen.getByLabelText('Current email')).toHaveAttribute('readonly')
+})
+
+it.each(['reauth', 'mfa'] as const)('clears the submitted %s secret on factor rejection while retaining the email', async view => {
+  const action = vi.fn()
+  function RejectedFactor() {
+    const [failed, setFailed] = useState(false)
+    return <DataRequestsPage {...props} view={view} error={failed ? 'reauth' : undefined} onAction={(...args) => { action(...args); setFailed(true) }} />
+  }
+  const { container } = render(<RejectedFactor />)
+  const secret = container.querySelector<HTMLInputElement>(view === 'mfa' ? 'input[name="code"]' : 'input[name="password"]')!
+  const value = view === 'mfa' ? '123456' : 'wrong-secret'
+  await userEvent.type(secret, value)
+  await userEvent.click(screen.getByRole('button', { name: 'Verify and submit' }))
+  expect(action).toHaveBeenCalledWith(view === 'mfa' ? 'mfa' : 'password', value)
+  expect(container.querySelector(view === 'mfa' ? 'input[name="code"]' : 'input[name="password"]')).toHaveValue('')
+  expect(screen.getByText('new@example.test')).toBeVisible()
+  expect(screen.getByRole('alert')).toHaveTextContent(emailCorrectionMessages.en.reauthFailed)
+})
+
+afterEach(() => vi.useRealTimers())
+it('shows the server retry time and disables retry until that deadline', async () => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-16T00:00:00Z'))
+  render(<DataRequestsPage {...props} view="pending_verification" error="unavailable" retryAt={Date.now() + 45000} />)
+  expect(screen.getByText(/^Try again after /)).toBeVisible()
+  expect(screen.getByRole('button', { name: 'Retry' })).toBeDisabled()
+  await act(() => vi.advanceTimersByTimeAsync(44999))
+  expect(screen.getByRole('button', { name: 'Retry' })).toBeDisabled()
+  await act(() => vi.advanceTimersByTimeAsync(1))
+  expect(screen.getByRole('button', { name: 'Retry' })).not.toBeDisabled()
+  expect(screen.queryByText(/^Try again after /)).not.toBeInTheDocument()
 })

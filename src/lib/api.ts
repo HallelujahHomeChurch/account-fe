@@ -174,6 +174,8 @@ export class ApiError extends Error {
   code?: string
   data: unknown
   retryAfter?: string | null
+  // The original mutation was rejected; recovery succeeded but no write was replayed.
+  authRecovered = false
 
   constructor(status: number, message: string, code?: string, data?: unknown, retryAfter?: string | null) {
     super(message)
@@ -568,7 +570,15 @@ export class AccountApi {
       }
     }
 
-    if (response.status === 401 && options.auth !== false && options.recoverWithoutReplay) await this.recoverUnauthorized(previousToken)
+    let authRecovered = false
+    if (response.status === 401 && options.auth !== false && options.recoverWithoutReplay) {
+      const token = await this.recoverUnauthorized(previousToken)
+      const currentToken = this.getAccessToken?.() ?? null
+      if (token && (currentToken === previousToken || currentToken === token)) {
+        this.setAccessToken?.(token)
+        authRecovered = true
+      }
+    }
 
     if (
       response.status === 401 &&
@@ -584,7 +594,11 @@ export class AccountApi {
       }
     }
 
-    return this.readResponse<T>(response)
+    try { return await this.readResponse<T>(response) }
+    catch (error) {
+      if (error instanceof ApiError) error.authRecovered = authRecovered
+      throw error
+    }
   }
 
   private recoverUnauthorized(rejectedToken: string | null) {

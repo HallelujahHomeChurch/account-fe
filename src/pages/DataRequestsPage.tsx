@@ -2,6 +2,7 @@ import { Button, Card, FieldError, Form, Input, Label, Modal, OTP, REGEXP_ONLY_D
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { CorrectionCatalog, EmailCorrectionRequest } from '@hallelujahhomechurch/account-client'
 import { correctionCatalog } from '../features/email-correction/catalog'
+import { useRetryCooldown } from '../features/email-correction/useRetryCooldown'
 import { emailCorrectionMessages, type EmailCorrectionLocale } from '../features/email-correction/messages'
 import '../features/email-correction/styles.css'
 
@@ -21,6 +22,7 @@ export type DataRequestsPageProps = {
   providers?: string[]
   requiresMfa?: boolean
   replacing?: boolean
+  retryAt?: number
   busy?: boolean
   error?: 'unavailable' | 'conflict' | 'reauth' | 'email'
   notice?: 'queued'
@@ -28,9 +30,11 @@ export type DataRequestsPageProps = {
   onAction: (action: CorrectionAction, value?: string) => void
 }
 
-export function DataRequestsPage({ locale, view, currentEmail, newEmail, expiresAt, catalog, allowedActions, enabled = true, eligible = true, passwordAvailable = true, providers = [], requiresMfa = false, replacing = false, busy = false, error, notice, onEmailChange, onAction }: DataRequestsPageProps) {
+export function DataRequestsPage({ locale, view, currentEmail, newEmail, expiresAt, catalog, allowedActions, enabled = true, eligible = true, passwordAvailable = true, providers = [], requiresMfa = false, replacing = false, busy = false, retryAt, error, notice, onEmailChange, onAction }: DataRequestsPageProps) {
   const t = emailCorrectionMessages[locale]
+  const coolingDown = useRetryCooldown(retryAt)
   const [cancelOpen, setCancelOpen] = useState(false)
+  const [factorAttempt, setFactorAttempt] = useState(0)
   const [emailError, setEmailError] = useState(false)
   const heading = useRef<HTMLHeadingElement>(null)
   const previousView = useRef(view)
@@ -52,7 +56,7 @@ export function DataRequestsPage({ locale, view, currentEmail, newEmail, expires
 
   function submitForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!enabled || !eligible || busy) return
+    if (!enabled || !eligible || busy || coolingDown) return
     if (editing) {
       setEmailError(sameEmail)
       if (sameEmail) {
@@ -64,17 +68,19 @@ export function DataRequestsPage({ locale, view, currentEmail, newEmail, expires
       onAction('next')
     } else {
       const data = new FormData(event.currentTarget)
+      setFactorAttempt(attempt => attempt + 1)
       onAction(view === 'mfa' ? 'mfa' : 'password', String(data.get(view === 'mfa' ? 'code' : 'password') ?? ''))
     }
   }
 
   return <section className="account-document email-correction" aria-labelledby="correction-title">
     <div className="page-heading"><h1 id="correction-title" ref={heading} tabIndex={-1}>{identity ? t.identity : t.title}</h1><p>{identity ? t.identityHint : t.intro}</p></div>
+    {coolingDown && retryAt ? <p className="form-notice">{t.retryAvailableAt.replace('{time}', new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeStyle: 'long' }).format(new Date(retryAt)))}</p> : null}
     {!enabled ? <p className="form-notice" role="status">{t.paused}</p> : null}
-    {errorText ? <div role="alert"><p className="form-error">{errorText}</p>{error === 'unavailable' || error === 'conflict' ? <Button variant="secondary" onPress={() => onAction('retry')}>{t.retry}</Button> : null}</div> : null}
+    {errorText ? <div role="alert"><p className="form-error">{errorText}</p>{error === 'unavailable' || error === 'conflict' ? <Button variant="secondary" isDisabled={coolingDown || busy} onPress={() => onAction('retry')}>{t.retry}</Button> : null}</div> : null}
     {notice ? <p className="form-notice" role="status">{t.queued}</p> : null}
     {view === 'loading' ? <Skeleton className="account-page-skeleton" label={t.loading} /> : null}
-    {view === 'load_error' ? <div role="alert"><p className="form-error">{t.loadError}</p><Button onPress={() => onAction('retry')}>{t.retry}</Button></div> : null}
+    {view === 'load_error' ? <div role="alert"><p className="form-error">{t.loadError}</p><Button isDisabled={coolingDown || busy} onPress={() => onAction('retry')}>{t.retry}</Button></div> : null}
     {view === 'unauthorized' ? <Card className="panel-card settings-card"><Card.Content><p role="status">{t.unauthorized}</p><Button onPress={() => onAction('signin')}>{t.signIn}</Button></Card.Content></Card> : null}
     {view === 'unverified' || view === 'no_reviewer' ? <Card className="panel-card settings-card"><Card.Content><p role="status">{view === 'unverified' ? t.unverified : t.noReviewer}</p>{view === 'unverified' ? <Button onPress={() => onAction('verify_current')}>{t.verifyStep}</Button> : null}</Card.Content></Card> : null}
     {(editing && item) || identity ? <Card className="panel-card settings-card"><Card.Content>
@@ -88,14 +94,14 @@ export function DataRequestsPage({ locale, view, currentEmail, newEmail, expires
             <FieldError>{emailError ? t.sameEmail : error === 'email' ? t.unavailableEmail : t.invalidEmail}</FieldError>
           </TextField>)}
           <p id="correction-consequence" className="muted">{t.signOutHint}</p>
-          <Button type="submit" isDisabled={!enabled || !eligible} isPending={busy}>{t.next}</Button>
+          <Button type="submit" isDisabled={!enabled || !eligible || coolingDown} isPending={busy}>{t.next}</Button>
         </> : <>
           <dl className="correction-summary"><div><dt>{t.currentEmail}</dt><dd dir="ltr">{currentEmail}</dd></div><div><dt>{t.newEmail}</dt><dd dir="ltr">{newEmail}</dd></div></dl>
           <p>{t.signOutHint}</p>
-          {view === 'mfa' ? <OTP label={t.mfa} name="code" maxLength={6} pattern={REGEXP_ONLY_DIGITS} inputMode="numeric" autoComplete="one-time-code" required /> : passwordAvailable ? <TextField name="password" type="password" isRequired><Label>{t.password}</Label><Input autoComplete="current-password" /><FieldError /></TextField> : null}
-          {view === 'mfa' || passwordAvailable ? <Button type="submit" isPending={busy} isDisabled={!enabled || !eligible}>{view !== 'mfa' && requiresMfa ? t.continue : t.submit}</Button> : null}
-          {view === 'reauth' ? providers.map(provider => <Button key={provider} variant="secondary" isDisabled={busy || !enabled || !eligible} onPress={() => onAction('provider', provider)}>{t.provider.replace('{provider}', provider)}</Button>) : null}
-          <Button variant="ghost" isDisabled={busy} onPress={() => onAction('back')}>{t.back}</Button>
+          {view === 'mfa' ? <OTP key={factorAttempt} label={t.mfa} name="code" maxLength={6} pattern={REGEXP_ONLY_DIGITS} inputMode="numeric" autoComplete="one-time-code" required /> : passwordAvailable ? <TextField key={factorAttempt} name="password" type="password" isRequired><Label>{t.password}</Label><Input autoComplete="current-password" /><FieldError /></TextField> : null}
+          {view === 'mfa' || passwordAvailable ? <Button type="submit" isPending={busy} isDisabled={!enabled || !eligible || coolingDown}>{view !== 'mfa' && requiresMfa ? t.continue : t.submit}</Button> : null}
+          {view === 'reauth' ? providers.map(provider => <Button key={provider} variant="secondary" isDisabled={busy || !enabled || !eligible || coolingDown} onPress={() => onAction('provider', provider)}>{t.provider.replace('{provider}', provider)}</Button>) : null}
+          <Button variant="ghost" isDisabled={busy || coolingDown} onPress={() => onAction('back')}>{t.back}</Button>
         </>}
       </Form>
     </Card.Content></Card> : null}
@@ -106,14 +112,14 @@ export function DataRequestsPage({ locale, view, currentEmail, newEmail, expires
         {pending || view === 'completed' ? <dl className="correction-summary"><div><dt>{view === 'completed' ? t.currentEmail : t.newEmail}</dt><dd dir="ltr">{view === 'completed' ? currentEmail : newEmail}</dd></div>{pending && expiresAt ? <div><dt>{t.expires}</dt><dd><time dateTime={expiresAt}>{new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeStyle: 'long' }).format(new Date(expiresAt))}</time></dd></div> : null}</dl> : null}
         <p role="status">{view === 'pending_verification' ? t.verifyHint : view === 'link_expired' ? t.linkExpired : view === 'pending_approval' ? t.approvalHint : view === 'completed' ? t.completedHint : view === 'superseded' ? t.superseded : t.unchanged}</p>
         <div className="correction-actions">
-          {(view === 'pending_verification' || view === 'link_expired') && enabled && allowed('resend_verification') ? <Button isPending={busy} onPress={() => onAction('resend')}>{t.resend}</Button> : null}
-          {pending && enabled && allowed('reapply') ? <Button variant="secondary" isDisabled={busy} onPress={() => onAction('replace')}>{t.replace}</Button> : null}
-          {pending && allowed('cancel') ? <Button variant="ghost" isDisabled={busy} onPress={() => setCancelOpen(true)}>{t.cancel}</Button> : null}
-          {terminal && enabled && eligible ? <Button onPress={() => onAction(view === 'superseded' ? 'current' : 'new')}>{view === 'superseded' ? t.viewCurrent : t.newRequest}</Button> : null}
-          {view === 'completed' ? <><Button onPress={() => onAction('profile')}>{t.profile}</Button>{enabled && eligible ? <Button variant="secondary" onPress={() => onAction('new')}>{t.newRequest}</Button> : null}</> : null}
+          {(view === 'pending_verification' || view === 'link_expired') && enabled && allowed('resend_verification') ? <Button isPending={busy} isDisabled={coolingDown} onPress={() => onAction('resend')}>{t.resend}</Button> : null}
+          {pending && enabled && allowed('reapply') ? <Button variant="secondary" isDisabled={busy || coolingDown} onPress={() => onAction('replace')}>{t.replace}</Button> : null}
+          {pending && allowed('cancel') ? <Button variant="ghost" isDisabled={busy || coolingDown} onPress={() => setCancelOpen(true)}>{t.cancel}</Button> : null}
+          {terminal && enabled && eligible ? <Button isDisabled={coolingDown || busy} onPress={() => onAction(view === 'superseded' ? 'current' : 'new')}>{view === 'superseded' ? t.viewCurrent : t.newRequest}</Button> : null}
+          {view === 'completed' ? <><Button onPress={() => onAction('profile')}>{t.profile}</Button>{enabled && eligible ? <Button variant="secondary" isDisabled={coolingDown || busy} onPress={() => onAction('new')}>{t.newRequest}</Button> : null}</> : null}
         </div>
       </Card.Content>
     </Card> : null}
-    <Modal isOpen={cancelOpen} onOpenChange={setCancelOpen}><Modal.Backdrop><Modal.Container><Modal.Dialog><Modal.Header><Modal.Heading>{t.cancelTitle}</Modal.Heading></Modal.Header><Modal.Body><p>{t.cancelHint}</p></Modal.Body><Modal.Footer><Button variant="secondary" onPress={() => setCancelOpen(false)}>{t.keep}</Button><Button variant="danger" isPending={busy} onPress={() => { setCancelOpen(false); onAction('cancel') }}>{t.cancel}</Button></Modal.Footer></Modal.Dialog></Modal.Container></Modal.Backdrop></Modal>
+    <Modal isOpen={cancelOpen} onOpenChange={setCancelOpen}><Modal.Backdrop><Modal.Container><Modal.Dialog><Modal.Header><Modal.Heading>{t.cancelTitle}</Modal.Heading></Modal.Header><Modal.Body><p>{t.cancelHint}</p></Modal.Body><Modal.Footer><Button variant="secondary" onPress={() => setCancelOpen(false)}>{t.keep}</Button><Button variant="danger" isPending={busy} isDisabled={coolingDown} onPress={() => { setCancelOpen(false); onAction('cancel') }}>{t.cancel}</Button></Modal.Footer></Modal.Dialog></Modal.Container></Modal.Backdrop></Modal>
   </section>
 }

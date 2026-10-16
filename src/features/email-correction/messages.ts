@@ -1,6 +1,7 @@
 // Feature copy follows the existing product locales; no global locale expansion.
 export const emailCorrectionMessages = {
   "zh-Hant": {
+    "retryAvailableAt": "可於 {time} 後重試。",
     "title": "申請資料更正",
     "intro": "驗證新 Email 並經管理員核准後，才會更新帳號 Email。",
     "item": "需要更正的資料或位置",
@@ -84,6 +85,7 @@ export const emailCorrectionMessages = {
     "adminHome": "返回管理首頁"
   },
   "zh-Hans": {
+    "retryAvailableAt": "可于 {time} 后重试。",
     "title": "申请资料更正",
     "intro": "验证新 Email 并经管理员核准后，才会更新账号 Email。",
     "item": "需要更正的资料或位置",
@@ -167,6 +169,7 @@ export const emailCorrectionMessages = {
     "adminHome": "返回管理首页"
   },
   "en": {
+    "retryAvailableAt": "Try again after {time}.",
     "title": "Request a data correction",
     "intro": "Your account email changes only after you verify the new email and an administrator approves.",
     "item": "Information to correct",
@@ -250,6 +253,7 @@ export const emailCorrectionMessages = {
     "adminHome": "Back to admin home"
   },
   "ja": {
+    "retryAvailableAt": "{time} 以降に再試行できます。",
     "title": "登録情報の訂正申請",
     "intro": "新しいメールアドレスの確認と管理者の承認後に、アカウントのメールアドレスが変更されます。",
     "item": "訂正する情報",
@@ -333,6 +337,7 @@ export const emailCorrectionMessages = {
     "adminHome": "管理画面に戻る"
   },
   "ko": {
+    "retryAvailableAt": "{time} 이후에 다시 시도할 수 있습니다.",
     "title": "정보 정정 신청",
     "intro": "새 이메일 인증과 관리자 승인 후 계정 이메일이 변경됩니다.",
     "item": "정정할 정보",

@@ -1,10 +1,10 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import { PublicVerificationRoute } from './PublicVerificationRoute'
 import { captureEmailCorrectionEntry, clearVerificationToken } from '../../lib/email-correction-entry'
 
-afterEach(() => { vi.unstubAllGlobals(); clearVerificationToken(); history.replaceState(null, '', '/') })
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); clearVerificationToken(); history.replaceState(null, '', '/') })
 it('initial GET is inert and explicit verification uses no login, bearer, cookies or CSRF bootstrap', async () => {
   history.replaceState(null, '', '/data-requests/verify-email#token=memory-token')
   captureEmailCorrectionEntry()
@@ -46,4 +46,24 @@ it('keeps verification disabled after discovery failure and retries only the saf
   fail = false; await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
   await waitFor(() => expect(screen.getByRole('button', { name: 'Confirm verification' })).not.toBeDisabled())
   expect(calls).toEqual(['/api/account/v1/oauth-providers', '/api/account/v1/oauth-providers'])
+})
+
+it.each(['discovery', 'verification'])('exposes Retry-After and disables the %s action until available', async stage => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-16T00:00:00Z'))
+  history.replaceState(null, '', '/data-requests/verify-email#token=memory-token'); captureEmailCorrectionEntry()
+  let requests = 0
+  vi.stubGlobal('fetch', async (input: RequestInfo | URL) => {
+    requests++
+    const limited = stage === 'discovery' || !String(input).endsWith('/oauth-providers')
+    return new Response(JSON.stringify(limited ? { errorCode: 'ACC_AUTH_RATE_LIMITED' } : { dataRequests: { emailCorrection: { enabled: true } } }), { status: limited ? 429 : 200, headers: { 'Retry-After': '45' } })
+  })
+  await act(async () => { render(<PublicVerificationRoute />) })
+  if (stage === 'verification') await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Confirm verification' })) })
+  const label = stage === 'discovery' ? 'Retry' : 'Confirm verification'
+  expect(screen.getByText(/^Try again after /)).toBeVisible()
+  expect(screen.getByRole('button', { name: label })).toBeDisabled()
+  fireEvent.click(screen.getByRole('button', { name: label }))
+  expect(requests).toBe(stage === 'discovery' ? 1 : 2)
+  await act(() => vi.advanceTimersByTimeAsync(45000))
+  expect(screen.getByRole('button', { name: label })).not.toBeDisabled()
 })

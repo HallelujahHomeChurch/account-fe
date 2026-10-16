@@ -22,13 +22,13 @@ export function PublicVerificationRoute() {
   const [view, setView] = useState<VerificationView>(() => readVerificationToken() ? 'verifying' : 'missing_token')
   const enabled = useRef<boolean | null>(null)
   const busy = useRef(false)
-  const retryAt = useRef(0)
+  const [retryAt, setRetryAt] = useState(0)
   const discovery = useRef<ReturnType<typeof client.capability> | null>(null)
   function fail(error: unknown) {
     const value = error as PublicFailure
     if (value.status === 429) {
       const seconds = Number(value.retryAfter)
-      retryAt.current = value.retryAfter && Number.isFinite(seconds) ? Date.now() + Math.max(0, seconds) * 1000 : Math.max(Date.now() + 30000, Date.parse(value.retryAfter ?? '') || 0)
+      setRetryAt(value.retryAfter && Number.isFinite(seconds) ? Date.now() + Math.max(0, seconds) * 1000 : Math.max(Date.now() + 30000, Date.parse(value.retryAfter ?? '') || 0))
     }
     if (!value.status || value.status >= 500 || value.status === 429 || value.status >= 200 && value.status < 300) setView('unavailable')
     else { clearVerificationToken(); setView(value.code === 'ACC_CORRECTION_DISABLED' ? 'disabled' : 'invalid') }
@@ -46,7 +46,7 @@ export function PublicVerificationRoute() {
   }, [])
   async function verify() {
     const token = readVerificationToken()
-    if (!token || enabled.current !== true || busy.current || view === 'verifying' || Date.now() < retryAt.current) return
+    if (!token || enabled.current !== true || busy.current || view === 'verifying' || Date.now() < retryAt) return
     busy.current = true
     setView('verifying')
     try {
@@ -57,12 +57,12 @@ export function PublicVerificationRoute() {
     finally { busy.current = false }
   }
   async function retryDiscovery() {
-    if (busy.current || Date.now() < retryAt.current) return
+    if (busy.current || Date.now() < retryAt) return
     busy.current = true
     setView('verifying')
     try { enabled.current = (await client.capability()).dataRequests.emailCorrection.enabled; setView(enabled.current ? 'ready' : 'disabled') }
     catch (error) { fail(error) }
     finally { busy.current = false }
   }
-  return <EmailCorrectionVerification canVerify={enabled.current === true} onRetry={() => void retryDiscovery()} locale={locale} view={view} onVerify={() => void verify()} onReturn={() => { clearVerificationToken(); window.location.assign('/data-requests') }} />
+  return <EmailCorrectionVerification retryAt={retryAt} canVerify={enabled.current === true} onRetry={() => void retryDiscovery()} locale={locale} view={view} onVerify={() => void verify()} onReturn={() => { clearVerificationToken(); window.location.assign('/data-requests') }} />
 }

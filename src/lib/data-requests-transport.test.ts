@@ -39,19 +39,26 @@ describe('data requests transport', () => {
 
 it('recovers protected 401 normally but does not replay a correction mutation', async () => {
   let writes = 0
+  let token = 'old-token'
   const refresh = vi.fn(async () => 'recovered-token')
   const api = new AccountApi({    
-baseUrl: '/api/account/v1', getAccessToken: () => 'old-token', refreshAfterUnauthorized: refresh, fetcher: async (url) => {
+baseUrl: '/api/account/v1', getAccessToken: () => token, setAccessToken: value => { token = value ?? '' }, refreshAfterUnauthorized: refresh, fetcher: async (url) => {
       if (String(url).endsWith('/csrf-token')) return json({ csrf_token: 'csrf' })
       writes++; return json({ status: 'error', errorCode: 'ACC_AUTH_TOKEN_INVALID' }, 401)
     }  
 })
-  await expect(api.dataRequests.cancel('request', { requestVersion: 1 })).rejects.toMatchObject({ status: 401 })
+  await expect(api.dataRequests.cancel('request', { requestVersion: 1 })).rejects.toMatchObject({ status: 401, code: 'ACC_AUTH_TOKEN_INVALID', authRecovered: true })
   expect(refresh).toHaveBeenCalledWith('old-token'); expect(writes).toBe(1)
+  expect(token).toBe('recovered-token')
 })
 it('keeps the session on 503 without an authentication recovery call', async () => {
   const refresh = vi.fn()
   const api = new AccountApi({ baseUrl: '/api/account/v1', getAccessToken: () => 'token', refreshAfterUnauthorized: refresh, fetcher: async () => json({ status: 'error', errorCode: 'ACC_SERVICE_UNAVAILABLE' }, 503) })
   await expect(api.dataRequests.current()).rejects.toMatchObject({ status: 503, code: 'ACC_SERVICE_UNAVAILABLE' })
   expect(refresh).not.toHaveBeenCalled()
+})
+
+it('does not mark an unrecoverable mutation as recovered', async () => {
+  const api = new AccountApi({ baseUrl: '/api/account/v1', getAccessToken: () => 'old-token', refreshAfterUnauthorized: async () => null, fetcher: async url => String(url).endsWith('/csrf-token') ? json({ csrf_token: 'csrf' }) : json({ errorCode: 'ACC_AUTH_TOKEN_INVALID' }, 401) })
+  await expect(api.dataRequests.cancel('request', { requestVersion: 1 })).rejects.toMatchObject({ status: 401, authRecovered: false })
 })
