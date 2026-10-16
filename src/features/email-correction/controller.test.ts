@@ -164,3 +164,12 @@ it('fetches and displays replacement B version one when the superseded A action 
   expect(current).toHaveBeenCalledTimes(2)
   expect(c.getSnapshot()).toMatchObject({ view: 'pending_verification', newEmail: 'replacement@example.test' }); c.dispose()
 })
+
+it.each(['pending_verification', 'completed'] as const)('retains owned %s when catalog becomes ineligible or disabled', async status => {
+  for (const errorCode of ['ACC_CORRECTION_INELIGIBLE', 'ACC_CORRECTION_DISABLED'] as const) {
+    const current = { ...row(), status, allowedActions: [] }
+    const c = setup({ current: async () => ({ request: current, serverTime: now }), catalog: async () => ({ currentEmail: 'old@example.test', serverTime: now, items: [], eligibility: { status: 'ineligible', errorCode }, allowedActions: [] }) })
+    try { await c.load(); expect(c.getSnapshot()).toMatchObject({ view: status, eligible: false }); if (errorCode === 'ACC_CORRECTION_DISABLED') expect(c.getSnapshot().enabled).toBe(false) }
+    finally { c.dispose() }
+  }
+})

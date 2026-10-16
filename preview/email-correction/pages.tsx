@@ -5,7 +5,7 @@ import { EmailCorrectionVerification, type VerificationView } from '../../src/pa
 import { useLocale } from '../../src/i18n/locale-context'
 import { locales } from '../../src/i18n/locales'
 
-const states = ['form', 'reauth', 'oauth_only', 'mfa', 'reauth_failed', 'intent_expired', 'checking', 'pending_verification', 'link_expired', 'pending_approval', 'completed', 'cancelled', 'expired', 'invalidated', 'superseded', 'unauthorized', 'unavailable', 'conflict', 'unverified', 'no_reviewer', 'load_error', 'loading', 'replacement_failed'] as const
+const states = ['form', 'reauth', 'oauth_only', 'mfa', 'reauth_failed', 'intent_expired', 'checking', 'pending_verification', 'link_expired', 'pending_approval', 'completed', 'cancelled', 'expired', 'invalidated', 'superseded', 'unauthorized', 'unavailable', 'conflict', 'unverified', 'no_reviewer', 'ineligible', 'load_error', 'loading', 'replacement_failed'] as const
 const verifyStates: VerificationView[] = ['ready', 'verifying', 'verified', 'already_verified', 'missing_token', 'expired', 'used', 'cancelled', 'superseded', 'invalidated', 'invalid', 'unavailable', 'disabled']
 const params = new URLSearchParams(location.search)
 const publicPreview = params.get('surface') === 'verify'
@@ -57,7 +57,7 @@ export function ProfilePage() {
     else if (action === 'signin') setState('completed')
     else if (action === 'profile') setState('form')
   }
-  return <DataRequestsPage locale={locale} view={view} currentEmail={view === 'completed' ? target : current} newEmail={view === 'intent_expired' ? '' : target} expiresAt="2026-10-23T08:30:00Z" enabled={enabled} eligible={!['unverified', 'no_reviewer'].includes(state)} passwordAvailable={state !== 'oauth_only'} providers={['Google', 'LINE', 'Microsoft']} requiresMfa replacing={replacing || state === 'replacement_failed'} busy={busy} error={state === 'unavailable' ? 'unavailable' : state === 'conflict' ? 'conflict' : state === 'reauth_failed' || state === 'replacement_failed' ? 'reauth' : undefined} notice={notice} onEmailChange={value => { setEmail(value); if (state === 'intent_expired') setState('form') }} onAction={action} />
+  return <DataRequestsPage locale={locale} view={view} currentEmail={view === 'completed' ? target : current} newEmail={view === 'intent_expired' ? '' : target} expiresAt="2026-10-23T08:30:00Z" enabled={enabled} eligible={!['unverified', 'no_reviewer', 'ineligible'].includes(state)} passwordAvailable={state !== 'oauth_only'} providers={['Google', 'LINE', 'Microsoft']} requiresMfa replacing={replacing || state === 'replacement_failed'} busy={busy} error={state === 'unavailable' ? 'unavailable' : state === 'conflict' ? 'conflict' : state === 'reauth_failed' || state === 'replacement_failed' ? 'reauth' : undefined} notice={notice} onEmailChange={value => { setEmail(value); if (state === 'intent_expired') setState('form') }} onAction={action} />
 }
 export function VerifyEmailPage() {
   const { locale } = useLocale()
