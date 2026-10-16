@@ -1,5 +1,6 @@
 import { Button, Card, FieldError, Form, Input, Label, Modal, OTP, REGEXP_ONLY_DIGITS, Select, Skeleton, TextField } from '@hallelujahhomechurch/ui'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import type { CorrectionCatalog, EmailCorrectionRequest } from '@hallelujahhomechurch/account-client'
 import { correctionCatalog } from '../features/email-correction/catalog'
 import { emailCorrectionMessages, type EmailCorrectionLocale } from '../features/email-correction/messages'
 import '../features/email-correction/styles.css'
@@ -12,6 +13,8 @@ export type DataRequestsPageProps = {
   currentEmail: string
   newEmail: string
   expiresAt?: string
+  catalog?: CorrectionCatalog
+  allowedActions?: EmailCorrectionRequest['allowedActions']
   enabled?: boolean
   eligible?: boolean
   passwordAvailable?: boolean
@@ -25,7 +28,7 @@ export type DataRequestsPageProps = {
   onAction: (action: CorrectionAction, value?: string) => void
 }
 
-export function DataRequestsPage({ locale, view, currentEmail, newEmail, expiresAt, enabled = true, eligible = true, passwordAvailable = true, providers = [], requiresMfa = false, replacing = false, busy = false, error, notice, onEmailChange, onAction }: DataRequestsPageProps) {
+export function DataRequestsPage({ locale, view, currentEmail, newEmail, expiresAt, catalog, allowedActions, enabled = true, eligible = true, passwordAvailable = true, providers = [], requiresMfa = false, replacing = false, busy = false, error, notice, onEmailChange, onAction }: DataRequestsPageProps) {
   const t = emailCorrectionMessages[locale]
   const [cancelOpen, setCancelOpen] = useState(false)
   const [emailError, setEmailError] = useState(false)
@@ -35,7 +38,9 @@ export function DataRequestsPage({ locale, view, currentEmail, newEmail, expires
     if (previousView.current !== view && ['form', 'reauth', 'mfa'].includes(view)) heading.current?.focus()
     previousView.current = view
   }, [view])
-  const item = correctionCatalog[0]
+  const definitions = catalog ? catalog.items.map(item => ({ ...item, labelKey: 'emailChange' as const })) : correctionCatalog
+  const item = definitions[0]
+  const allowed = (action: EmailCorrectionRequest['allowedActions'][number]) => !allowedActions || allowedActions.includes(action)
   const fields = { currentEmail, newEmail }
   const editing = view === 'form' || view === 'intent_expired'
   const identity = view === 'reauth' || view === 'mfa'
@@ -72,14 +77,14 @@ export function DataRequestsPage({ locale, view, currentEmail, newEmail, expires
     {view === 'load_error' ? <div role="alert"><p className="form-error">{t.loadError}</p><Button onPress={() => onAction('retry')}>{t.retry}</Button></div> : null}
     {view === 'unauthorized' ? <Card className="panel-card settings-card"><Card.Content><p role="status">{t.unauthorized}</p><Button onPress={() => onAction('signin')}>{t.signIn}</Button></Card.Content></Card> : null}
     {view === 'unverified' || view === 'no_reviewer' ? <Card className="panel-card settings-card"><Card.Content><p role="status">{view === 'unverified' ? t.unverified : t.noReviewer}</p>{view === 'unverified' ? <Button onPress={() => onAction('verify_current')}>{t.verifyStep}</Button> : null}</Card.Content></Card> : null}
-    {editing || identity ? <Card className="panel-card settings-card"><Card.Content>
+    {(editing && item) || identity ? <Card className="panel-card settings-card"><Card.Content>
       {view === 'intent_expired' ? <p className="form-error" role="alert">{t.intentExpired}</p> : null}
       {replacing ? <p className="form-notice">{t.replacementHint}</p> : null}
       <Form className="form-stack" onSubmit={submitForm}>
-        {editing ? <>
-          <Select label={t.item} selectedKey={item.kind} items={correctionCatalog.map(definition => ({ id: definition.kind, label: t[definition.labelKey] }))} />
+        {editing && item ? <>
+          <Select label={t.item} selectedKey={item.kind} items={definitions.map(definition => ({ id: definition.kind, label: t[definition.labelKey] }))} />
           {item.fields.map(field => <TextField key={field.key} name={field.key} type={field.type} isReadOnly={field.readOnly} isRequired={field.required} value={fields[field.key]} onChange={field.readOnly ? undefined : value => { onEmailChange(value); if (emailError) setEmailError(false) }} isInvalid={!field.readOnly && (emailError || error === 'email')}>
-            <Label>{t[field.labelKey]}</Label><Input dir="ltr" autoComplete={field.readOnly ? 'off' : 'email'} autoCapitalize="none" spellCheck={false} aria-describedby={field.readOnly ? undefined : 'correction-consequence'} />
+            <Label>{t[field.key]}</Label><Input dir="ltr" autoComplete={field.readOnly ? 'off' : 'email'} autoCapitalize="none" spellCheck={false} aria-describedby={field.readOnly ? undefined : 'correction-consequence'} />
             <FieldError>{emailError ? t.sameEmail : error === 'email' ? t.unavailableEmail : t.invalidEmail}</FieldError>
           </TextField>)}
           <p id="correction-consequence" className="muted">{t.signOutHint}</p>
@@ -101,10 +106,10 @@ export function DataRequestsPage({ locale, view, currentEmail, newEmail, expires
         {pending || view === 'completed' ? <dl className="correction-summary"><div><dt>{view === 'completed' ? t.currentEmail : t.newEmail}</dt><dd dir="ltr">{view === 'completed' ? currentEmail : newEmail}</dd></div>{pending && expiresAt ? <div><dt>{t.expires}</dt><dd><time dateTime={expiresAt}>{new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeStyle: 'long' }).format(new Date(expiresAt))}</time></dd></div> : null}</dl> : null}
         <p role="status">{view === 'pending_verification' ? t.verifyHint : view === 'link_expired' ? t.linkExpired : view === 'pending_approval' ? t.approvalHint : view === 'completed' ? t.completedHint : view === 'superseded' ? t.superseded : t.unchanged}</p>
         <div className="correction-actions">
-          {(view === 'pending_verification' || view === 'link_expired') && enabled ? <Button isPending={busy} onPress={() => onAction('resend')}>{t.resend}</Button> : null}
-          {pending && enabled ? <Button variant="secondary" isDisabled={busy} onPress={() => onAction('replace')}>{t.replace}</Button> : null}
-          {pending ? <Button variant="ghost" isDisabled={busy} onPress={() => setCancelOpen(true)}>{t.cancel}</Button> : null}
-          {terminal && enabled ? <Button onPress={() => onAction(view === 'superseded' ? 'current' : 'new')}>{view === 'superseded' ? t.viewCurrent : t.newRequest}</Button> : null}
+          {(view === 'pending_verification' || view === 'link_expired') && enabled && allowed('resend_verification') ? <Button isPending={busy} onPress={() => onAction('resend')}>{t.resend}</Button> : null}
+          {pending && enabled && allowed('reapply') ? <Button variant="secondary" isDisabled={busy} onPress={() => onAction('replace')}>{t.replace}</Button> : null}
+          {pending && allowed('cancel') ? <Button variant="ghost" isDisabled={busy} onPress={() => setCancelOpen(true)}>{t.cancel}</Button> : null}
+          {terminal && enabled && eligible ? <Button onPress={() => onAction(view === 'superseded' ? 'current' : 'new')}>{view === 'superseded' ? t.viewCurrent : t.newRequest}</Button> : null}
           {view === 'completed' ? <><Button onPress={() => onAction('profile')}>{t.profile}</Button>{enabled && eligible ? <Button variant="secondary" onPress={() => onAction('new')}>{t.newRequest}</Button> : null}</> : null}
         </div>
       </Card.Content>

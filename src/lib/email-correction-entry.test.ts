@@ -1,0 +1,26 @@
+import { beforeEach, expect, it, vi } from 'vitest'
+beforeEach(() => { vi.resetModules(); history.replaceState(null, '', '/'); document.head.querySelector('meta[name="referrer"]')?.remove() })
+it('captures fragment in memory and removes all URL payload before loading the public entry', async () => {
+  history.replaceState(null, '', '/data-requests/verify-email?unexpected=private#token=memory-secret')
+  const entry = await import('./email-correction-entry')
+  expect(entry.captureEmailCorrectionEntry()).toBe(true)
+  expect(location.href).not.toContain('memory-secret')
+  expect(location.search).toBe('')
+  expect(entry.readVerificationToken()).toBe('memory-secret')
+  expect(document.querySelector('meta[name="referrer"]')).toHaveAttribute('content', 'no-referrer')
+  entry.clearVerificationToken()
+  expect(entry.readVerificationToken()).toBeNull()
+})
+it('a refreshed public document has no recoverable token', async () => {
+  history.replaceState(null, '', '/data-requests/verify-email')
+  const entry = await import('./email-correction-entry')
+  expect(entry.captureEmailCorrectionEntry()).toBe(true)
+  expect(entry.readVerificationToken()).toBeNull()
+})
+it('does not initialize global telemetry on a public verification document', async () => {
+  history.replaceState(null, '', '/data-requests/verify-email#token=secret')
+  vi.stubEnv('VITE_SENTRY_DSN', 'https://test@example.test/1')
+  const { initObservability } = await import('../observability')
+  expect(initObservability()).toBeUndefined()
+  vi.unstubAllEnvs()
+})

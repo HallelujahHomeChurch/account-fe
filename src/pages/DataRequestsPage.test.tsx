@@ -78,3 +78,9 @@ describe('Email correction presentation', () => {
     expect(screen.getByLabelText(emailCorrectionMessages[locale].newEmail)).toBeVisible()
   })
 })
+it('renders the server catalog field order and maps its known field labels without inventing a form branch',()=>{
+ const fields=correctionCatalog[0].fields.map(field=>({...field,labelKey:`dataRequests.${field.key}`})).reverse()
+ render(<DataRequestsPage {...props} catalog={{items:[{kind:'email_change',fields:fields as [typeof fields[number],typeof fields[number]]}],currentEmail:props.currentEmail,serverTime:'2026-10-16T00:00:00Z',eligibility:{status:'eligible'},allowedActions:['reauth']}}/>)
+ expect(screen.getAllByRole('textbox').map(input=>input.getAttribute('name'))).toEqual(['newEmail','currentEmail'])
+ expect(screen.getByLabelText('Current email')).toHaveAttribute('readonly')
+})

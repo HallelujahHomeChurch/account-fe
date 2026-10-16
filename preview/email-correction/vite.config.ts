@@ -21,9 +21,7 @@ export default defineConfig(({ command }) => {
         return code.replace('path="/profile"', 'path="/data-requests"')
           .replace('path="/verify-email"', 'path="/data-requests/verify-email"')
           .replace('const isAuthRoute = isAuthRoutePath(location.pathname)', "const isAuthRoute = location.pathname === '/data-requests/verify-email' || isAuthRoutePath(location.pathname)")
-          .replace("{ icon: Bell, label: t.nav.notificationSettings, path: '/notifications' },", "{ icon: Bell, label: t.nav.notificationSettings, path: '/notifications' },\n    { icon: UserRound, label: correctionPreviewTitle, path: '/data-requests' },")
-          .replace("import { AccountMenu,", "import { emailCorrectionMessages } from './features/email-correction/messages'\nimport { AccountMenu,")
-          .replace('const navigation = [', 'const correctionPreviewTitle = emailCorrectionMessages[locale].title\n  const navigation = [')
+          .replace('<Route element={<CorrectionRoute key={auth.profile?.id} />} path="/data-requests" />', '')
           .replace('hasPostLoginReturnTo() ?', 'false ?').replace('verified && hasLineLinkAutoContinue()', 'false')
       },
       configureServer(server) {

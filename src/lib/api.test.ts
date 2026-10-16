@@ -534,6 +534,7 @@ describe('AccountApi', () => {
 	  registrationEnabled: true,
 	  nicknameWriteEnabled: true,
       memberDetailsEnabled: false,
+      emailCorrectionEnabled: false,
 	})
   })
 

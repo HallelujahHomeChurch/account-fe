@@ -1,3 +1,4 @@
+import { isEmailCorrectionVerificationPath } from './lib/email-correction-entry'
 import type { ErrorInfo } from 'react'
 import type { Breadcrumb } from '@sentry/react'
 import type { AccountAuthEvent } from '@hallelujahhomechurch/account-client'
@@ -144,11 +145,13 @@ export function recordRequestId(
 }
 
 export function initObservability() {
+  if (isEmailCorrectionVerificationPath()) return
   if (sentryReady) return sentryReady
   const dsn = import.meta.env.VITE_SENTRY_DSN?.trim()
   if (!dsn) return
 
   sentryReady = import('@sentry/react').then((Sentry) => {
+    if (isEmailCorrectionVerificationPath()) return undefined
     addSentryBreadcrumb = Sentry.addBreadcrumb
     Sentry.init({
       dsn,

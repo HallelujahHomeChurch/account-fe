@@ -1,3 +1,5 @@
+import { CorrectionRoute } from './features/email-correction/CorrectionRoute'
+import { emailCorrectionMessages } from './features/email-correction/messages'
 import { AccountMenu, BrandLoadingScreen, Button, Drawer, Skeleton, Toast, ToastProvider } from '@hallelujahhomechurch/ui'
 import { Bell, CalendarDays, Menu, MonitorSmartphone, ShieldCheck, UserRound, UsersRound } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
@@ -112,6 +114,7 @@ function LayoutContent() {
     ...(auth.navigation?.sources.operations?.ids.includes('organizations') ? [{ icon: UsersRound, label: t.nav.organizationManagement, path: '/organizations' }] : []),
     { icon: MonitorSmartphone, label: t.nav.devices, path: '/devices' },
     { icon: Bell, label: t.nav.notificationSettings, path: '/notifications' },
+    ...(capabilities?.emailCorrectionEnabled ? [{ icon: UserRound, label: emailCorrectionMessages[locale].title, path: '/data-requests' }] : []),
     ...(auth.navigation?.sources.resources?.ids.includes('resources') ? [{ icon: CalendarDays, label: t.nav.resourceReservations, path: '/resources' }] : []),
   ]
 
@@ -161,7 +164,7 @@ function LayoutContent() {
   }
 
   if (!auth.profile && !cachedShell) {
-    return <Navigate replace to={loginPath(`${location.pathname}${location.search}${location.hash}`)} />
+    return <Navigate replace to={location.pathname === '/data-requests' ? '/login?return_to=%2Fdata-requests&email_correction=1' : loginPath(`${location.pathname}${location.search}${location.hash}`)} />
   }
 
   if (verified && hasLineLinkAutoContinue()) {
@@ -312,6 +315,7 @@ function LayoutContent() {
               <Route element={<SecurityPage />} path="/security" />
               <Route element={<DevicesPage />} path="/devices" />
               <Route element={<NotificationsPage />} path="/notifications" />
+              <Route element={<CorrectionRoute key={auth.profile?.id} />} path="/data-requests" />
               <Route element={<ResourceListPage />} path="/resources" />
               <Route element={<MyResourceReservationsPage />} path="/resources/reservations" />
               <Route element={<ResourceReservationPage />} path="/resources/:resourceKey" />

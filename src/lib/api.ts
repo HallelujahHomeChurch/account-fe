@@ -1,6 +1,7 @@
 import { memberCsrfFailure, type PrivateTransportPath } from './member-details'
 import {
   AccountSessionError,
+  createAccountDataRequestsClient,
   createAccountLegalClient,
   isLegalSnapshot,
   type LegalLocale,
@@ -74,6 +75,7 @@ export type AuthCapabilities = {
   registrationEnabled: boolean
   nicknameWriteEnabled?: boolean
   memberDetailsEnabled?: boolean
+  emailCorrectionEnabled?: boolean
   policy?: PolicyCapabilities
 }
 
@@ -157,6 +159,10 @@ type RequestOptions = {
   auth?: boolean
   retry?: boolean
   csrfRetry?: boolean
+  csrf?: boolean
+  credentials?: RequestCredentials
+  redirect?: RequestRedirect
+  recoverWithoutReplay?: boolean
   cache?: RequestCache
 }
 
@@ -167,13 +173,15 @@ export class ApiError extends Error {
   status: number
   code?: string
   data: unknown
+  retryAfter?: string | null
 
-  constructor(status: number, message: string, code?: string, data?: unknown) {
+  constructor(status: number, message: string, code?: string, data?: unknown, retryAfter?: string | null) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.code = code
     this.data = data
+    this.retryAfter = retryAfter
   }
 }
 
@@ -184,6 +192,11 @@ export class AccountApi {
   private readonly setAccessToken?: (token: string | null) => void
   private readonly refreshAfterUnauthorized?: (rejectedToken: string) => Promise<string | null>
   private csrfToken: string | null = null
+  readonly dataRequests = createAccountDataRequestsClient((path, options) => this.request<unknown>(path, {
+    ...options,
+    // Writes reconcile their nonce/version in the controller; never replay a lost response.
+    ...(options.method !== 'GET' ? { retry: false, csrfRetry: false, recoverWithoutReplay: options.auth !== false } : {}),
+  }))
   readonly legal = createAccountLegalClient((path, options) => this.request<unknown>(path, { ...options, cache: 'no-store' }))
 
   constructor(options: AccountApiOptions) {
@@ -481,7 +494,7 @@ export class AccountApi {
   }
 
   async getAuthCapabilities(): Promise<AuthCapabilities> {
-    const response = await this.request<{ providers?: string[]; registration_enabled?: boolean; nickname_write_enabled?: boolean; member_details_enabled?: boolean; policy?: PolicyCapabilities }>(
+    const response = await this.request<{ providers?: string[]; registration_enabled?: boolean; nickname_write_enabled?: boolean; member_details_enabled?: boolean; policy?: PolicyCapabilities; dataRequests?: { emailCorrection?: { enabled?: boolean } } }>(
       '/oauth-providers',
       { auth: false },
     )
@@ -490,6 +503,7 @@ export class AccountApi {
       registrationEnabled: response.registration_enabled === true,
       nicknameWriteEnabled: response.nickname_write_enabled === true,
       memberDetailsEnabled: response.member_details_enabled === true,
+      emailCorrectionEnabled: response.dataRequests?.emailCorrection?.enabled === true,
       policy: response.policy,
     }
   }
@@ -526,7 +540,7 @@ export class AccountApi {
       headers['content-type'] = 'application/json'
     }
 
-    if (this.needsCsrf(method)) {
+    if (options.csrf !== false && this.needsCsrf(method)) {
       headers['x-csrf-token'] = await this.getCsrfToken()
     }
 
@@ -539,19 +553,22 @@ export class AccountApi {
 
     const response = await this.fetcher(`${this.baseUrl}${path}`, {
       method,
-      credentials: 'include',
+      credentials: options.credentials ?? 'include',
+      ...(options.redirect ? { redirect: options.redirect } : {}),
       ...(options.cache ? { cache: options.cache } : {}),
       headers,
       body: requestBody,
     })
 
-    if (response.status === 403 && options.csrfRetry !== false && this.needsCsrf(method)) {
+    if (response.status === 403 && options.csrf !== false && this.needsCsrf(method)) {
       const data = await response.clone().json().catch(() => undefined) as { error_code?: string } | undefined
       if (['ACC_AUTH_CSRF_INVALID', 'ACC_CSRF_TOKEN_INVALID', 'ACC_CSRF_TOKEN_MISSING'].includes(data?.error_code ?? '')) {
         this.csrfToken = null
-        return this.request<T>(path, { ...options, csrfRetry: false })
+        if (options.csrfRetry !== false) return this.request<T>(path, { ...options, csrfRetry: false })
       }
     }
+
+    if (response.status === 401 && options.auth !== false && options.recoverWithoutReplay) await this.recoverUnauthorized(previousToken)
 
     if (
       response.status === 401 &&
@@ -631,12 +648,10 @@ export class AccountApi {
       const code =
         typeof data === 'object' &&
         data !== null &&
-        'error_code' in data &&
-        typeof data.error_code === 'string'
-          ? data.error_code
-          : undefined
+        'errorCode' in data && typeof data.errorCode === 'string' ? data.errorCode
+          : typeof data === 'object' && data !== null && 'error_code' in data && typeof data.error_code === 'string' ? data.error_code : undefined
 
-      throw new ApiError(response.status, message, code, data)
+      throw new ApiError(response.status, message, code, data, response.headers.get('Retry-After'))
     }
 
     return data as T
