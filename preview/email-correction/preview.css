@@ -1,0 +1,7 @@
+.fixture-controls { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem; padding: 1rem; border-bottom: 1px solid var(--color-line); background: var(--color-paper); }
+.fixture-controls > strong { flex: 0 0 100%; width: 100%; }
+.fixture-controls > * { min-width: 0; }
+.fixture-controls button, .fixture-controls a { min-height: 44px; }
+@media (max-width: 600px) { .fixture-controls > * { flex: 1 1 130px; } }
+.fixture-controls .hhc-select, .fixture-controls .hhc-select__trigger { min-width: 0; max-width: 100%; }
+.fixture-controls .hhc-select__trigger > span { min-width: 0; overflow-wrap: anywhere; text-align: left; }
