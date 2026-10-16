@@ -34,3 +34,31 @@ it.each(eligibilityCases)('renders the actual catalog $eligibility through Accou
     } else expect(redirect).not.toHaveBeenCalled()
   } finally { controller.dispose() }
 })
+
+it('renders reviewer-unavailable catalog as no-reviewer through the installed official SDK', async () => {
+  const redirect = vi.fn()
+  const paths: string[] = []
+  const api = new AccountApi({ baseUrl: '/api/account/v1', fetcher: async url => {
+    const path = String(url)
+    paths.push(path)
+    if (path.endsWith('/oauth-providers')) return Response.json({ dataRequests: { emailCorrection: { enabled: true } } })
+    if (path.endsWith('/requests/current')) return Response.json({ request: null, serverTime: now })
+    if (path.endsWith('/data-requests/items')) return Response.json({
+      currentEmail: 'old@example.test', serverTime: now,
+      items: [{ kind: 'email_change', fields: correctionCatalog[0].fields }],
+      eligibility: { status: 'ineligible', errorCode: 'ACC_CORRECTION_REVIEWER_UNAVAILABLE' }, allowedActions: [],
+    })
+    throw new Error(`Unexpected request: ${path}`)
+  } })
+  const controller = new CorrectionController(api.dataRequests, { eligible: true, currentEmail: 'old@example.test' }, redirect)
+  try {
+    await controller.load()
+    render(<DataRequestsPage {...controller.getSnapshot()} locale="en" onEmailChange={() => {}} onAction={() => {}} />)
+    expect(paths.sort()).toEqual(['/api/account/v1/data-requests/items', '/api/account/v1/data-requests/requests/current', '/api/account/v1/oauth-providers'])
+    expect(screen.getByText(emailCorrectionMessages.en.noReviewer)).toBeVisible()
+    expect(controller.getSnapshot()).toMatchObject({ view: 'no_reviewer', eligible: false, error: undefined })
+    expect(screen.queryByText(emailCorrectionMessages.en.loadError)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: emailCorrectionMessages.en.next })).not.toBeInTheDocument()
+    expect(redirect).not.toHaveBeenCalled()
+  } finally { controller.dispose() }
+})
