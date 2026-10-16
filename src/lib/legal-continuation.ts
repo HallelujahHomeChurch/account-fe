@@ -32,7 +32,7 @@ export function legalContinuation(value: string | null): string | null {
       if (!Object.hasOwn(allowed, key) || url.searchParams.getAll(key).length !== 1 || !allowed[key](entry)) return null
     }
     if (url.searchParams.has('issueNumber') || url.searchParams.has('contentLocale')) {
-      if (['issueNumber', 'series', 'contentLocale'].some(key => url.searchParams.getAll(key).length !== 1) ||
+      if (['series', 'contentLocale'].some(key => url.searchParams.getAll(key).length !== 1) ||
         !bulletinEditions.some(edition => edition.series === url.searchParams.get('series') && edition.locale === url.searchParams.get('contentLocale'))) return null
     }
     return url.href

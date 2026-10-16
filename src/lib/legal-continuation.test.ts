@@ -20,6 +20,7 @@ it('preserves exact bulletin selectors and reader paths without accepting identi
   for (const suffix of [
     '/zh-Hant/literature-ministry?series=general&issueNumber=1733&contentLocale=en&mode=online',
     '/ja/literature-ministry?series=children&page=2&mode=pdf',
+    '/ja/literature-ministry?series=children&contentLocale=en&mode=online',
     '/ko/literature-ministry/1733/read/children/en',
   ]) {
     const url = `https://www.alive.org.tw${suffix}`
