@@ -16,16 +16,20 @@ describe('Email correction presentation', () => {
     expect(current).not.toBeDisabled()
     expect(screen.getByLabelText('New email')).toHaveAttribute('aria-describedby', expect.stringContaining('correction-consequence'))
   })
-  it('prevents an identical email and focuses the invalid field', async () => {
+  it('validates identical email after mouse release without shifting the submit target on blur', async () => {
+    const user = userEvent.setup()
     const action = vi.fn()
     function EditablePage() {
       const [email, setEmail] = useState('')
       return <DataRequestsPage {...props} newEmail={email} onEmailChange={setEmail} onAction={action} />
     }
     render(<EditablePage />)
-    await userEvent.type(screen.getByLabelText('New email'), 'OLD@example.test')
+    await user.type(screen.getByLabelText('New email'), 'OLD@example.test')
     const next = screen.getByRole('button', { name: 'Next: verify your identity' })
-    await userEvent.pointer([{ target: next, keys: '[MouseLeft>]' }, { target: next, keys: '[/MouseLeft]' }])
+    await user.pointer({ target: next, keys: '[MouseLeft>]' })
+    expect(screen.queryByText('Enter an email different from your current email.')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('New email')).not.toHaveAttribute('aria-invalid', 'true')
+    await user.pointer({ target: next, keys: '[/MouseLeft]' })
     expect(action).not.toHaveBeenCalled()
     expect(screen.getByText('Enter an email different from your current email.')).toBeVisible()
     await waitFor(() => expect(screen.getByLabelText('New email')).toHaveFocus())

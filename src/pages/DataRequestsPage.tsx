@@ -78,7 +78,7 @@ export function DataRequestsPage({ locale, view, currentEmail, newEmail, expires
       <Form className="form-stack" onSubmit={submitForm}>
         {editing ? <>
           <Select label={t.item} selectedKey={item.kind} items={correctionCatalog.map(definition => ({ id: definition.kind, label: t[definition.labelKey] }))} />
-          {item.fields.map(field => <TextField key={field.key} name={field.key} type={field.type} isReadOnly={field.readOnly} isRequired={field.required} value={fields[field.key]} onChange={field.readOnly ? undefined : value => { onEmailChange(value); if (emailError) setEmailError(false) }} onBlur={field.readOnly ? undefined : () => setEmailError(Boolean(newEmail) && sameEmail)} isInvalid={!field.readOnly && (emailError || error === 'email')}>
+          {item.fields.map(field => <TextField key={field.key} name={field.key} type={field.type} isReadOnly={field.readOnly} isRequired={field.required} value={fields[field.key]} onChange={field.readOnly ? undefined : value => { onEmailChange(value); if (emailError) setEmailError(false) }} isInvalid={!field.readOnly && (emailError || error === 'email')}>
             <Label>{t[field.labelKey]}</Label><Input dir="ltr" autoComplete={field.readOnly ? 'off' : 'email'} autoCapitalize="none" spellCheck={false} aria-describedby={field.readOnly ? undefined : 'correction-consequence'} />
             <FieldError>{emailError ? t.sameEmail : error === 'email' ? t.unavailableEmail : t.invalidEmail}</FieldError>
           </TextField>)}
