@@ -133,7 +133,12 @@ export class CorrectionController {
     if (Date.now() < this.retryAt) return
     if (action === 'current') { await this.load(); return }
     if (action === 'retry') {
-      if (!this.nonce && !this.intent) { await this.load(); return }
+      if (!this.nonce && !this.intent) {
+        // Retry the edited draft explicitly; loading current would replace it with the old request.
+        if (this.state.view === 'form') await this.action('next')
+        else await this.load()
+        return
+      }
       this.operation = true; this.patch({ busy: true })
       const seq = ++this.sequence
       try { if (this.nonce) await this.reconcile(true); else if (this.intent) { const next = await this.api.restoreReauth(this.intent.intentId); if (seq === this.sequence) await this.acceptIntent(next) } }
