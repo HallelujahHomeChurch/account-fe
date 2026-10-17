@@ -60,6 +60,7 @@ export function NewsletterPreferenceRow() {
         <><p className="form-error" role="alert">{t.notificationSettings.loadFailed}</p><Button variant="secondary" onPress={() => setRevision(value => value + 1)}>{t.notificationSettings.retry}</Button></>
       ) : <div className="newsletter-preference-control">
         <Switch
+          className="settings-row-switch"
           description={t.notificationSettings.newsletterDescription}
           isDisabled={isSaving || !auth.api.updateNewsletterPreference}
           isSelected={subscribed}

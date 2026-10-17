@@ -207,7 +207,7 @@ function LayoutContent() {
     <AccountMenu
               labels={{
                 greeting: verified && auth.profile ? `Hi ${accountGreetingName(auth.profile, t.profile.fallbackName)}` : t.nav.accountMenu,
-                menu: t.nav.accountMenu,
+                menu: mobile ? t.nav.my : t.nav.accountMenu,
                 signOut: t.nav.signOut,
               }}
               links={[
@@ -295,7 +295,7 @@ function LayoutContent() {
           onAction={id => { if (moreItems.some(item => item.path === id)) navigate(id) }}
           trigger={<Button variant="ghost" className="account-mobile-tab" aria-label={t.search.more} data-active={moreItems.some(item => active(item.path)) || undefined}><Ellipsis aria-hidden="true" /><span>{t.search.more}</span></Button>} /> :
           <Button variant="ghost" className="account-mobile-tab" aria-label={t.search.more} aria-describedby="account-more-unavailable" isDisabled><Ellipsis aria-hidden="true" /><span>{t.search.more}</span><span className="sr-only" id="account-more-unavailable">{t.search.emptyMore}</span></Button>}
-        <div className="account-mobile-avatar">{accountMenu}</div>
+        <div className="account-mobile-avatar">{accountMenu}<span aria-hidden="true">{t.nav.my}</span></div>
       </nav> : null}
     </div>
   )

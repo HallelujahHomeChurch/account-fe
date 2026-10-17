@@ -189,35 +189,20 @@ it('shows responsible people with existing read access without requesting delega
   expect(screen.queryByRole('button', { name: 'Unit settings' })).not.toBeInTheDocument()
 })
 
-it('filters responsible people before pagination and excludes child-unit rows', async () => {
-  operationsApi.getManagedUnit.mockResolvedValue({ unit: { id: 'church', kind: 'church', name: 'Church', status: 'active' }, breadcrumb: [], children: [{ id: 'family', kind: 'family', name: 'Family', status: 'active' }], actions: {} })
-  operationsApi.listManagedMembers.mockImplementation((_unit, _query, _page, _signal, responsibilityOnly) => Promise.resolve({ items: responsibilityOnly ? [{ memberId: 'leader', displayName: 'Leader from another page', email: 'leader@example.test', isResponsible: true }] : [{ memberId: 'ordinary', displayName: 'Ordinary', email: 'ordinary@example.test' }], page: 1 }))
-  mount()
-  await screen.findByText('ordinary@example.test')
-  await userEvent.click(screen.getByRole('button', { name: /Type/ }))
-  await userEvent.click(await screen.findByRole('option', { name: 'Responsible person' }))
-  expect(await screen.findByText('leader@example.test')).toBeInTheDocument()
-  expect(screen.queryByText('ordinary@example.test')).not.toBeInTheDocument()
-  expect(screen.queryByRole('link', { name: 'Family' })).not.toBeInTheDocument()
-})
-
-it.each([
-  ['unit', true, false],
-  ['member', false, true],
-  ['invalid', true, true],
-])('keeps the unit/member filter inclusive and falls back for %s', async (type, showUnit, showMember) => {
+it.each(['unit', 'member', 'responsibility', 'invalid'])('ignores the retired type filter %s and shows both units and members', async type => {
   operationsApi.getManagedUnit.mockResolvedValue({ unit: { id: 'church', kind: 'church', name: 'Church', status: 'active' }, breadcrumb: [], children: [{ id: 'family', kind: 'family', name: 'Family', status: 'active' }], actions: {} })
   operationsApi.listManagedMembers.mockResolvedValue({ items: [{ memberId: 'leader', displayName: 'Alice', email: 'alice@example.test', isResponsible: true }], page: 1 })
   mount('/organizations/church?type=' + type)
   const table = await screen.findByRole('table')
-  expect(Boolean(within(table).queryByRole('link', { name: 'Family' }))).toBe(showUnit)
-  expect(Boolean(within(table).queryByText('alice@example.test'))).toBe(showMember)
-  if (showMember) expect(within(table).getByText('Responsible person')).toBeInTheDocument()
-  if (!showMember) expect(operationsApi.listManagedMembers).not.toHaveBeenCalled()
+  expect(within(table).getByRole('link', { name: 'Family' })).toBeInTheDocument()
+  expect(within(table).getByText('alice@example.test')).toBeInTheDocument()
+  expect(within(table).getByText('Responsible person')).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: /Type/ })).not.toBeInTheDocument()
+  expect(operationsApi.listManagedMembers).toHaveBeenLastCalledWith('church', '', 1, expect.any(AbortSignal), false)
 })
 
-it('resets responsible-person filtering to the first page and preserves search', async () => {
-  operationsApi.listManagedMembers.mockImplementation((_unit, query, page, _signal, responsibilityOnly) => Promise.resolve({ items: [{ memberId: 'leader', displayName: 'Alice', email: `alice-${responsibilityOnly ? 'leader' : page}@example.test`, isResponsible: responsibilityOnly }], page, nextPage: !responsibilityOnly && !query ? 2 : undefined }))
+it('resets member pagination when the header search changes', async () => {
+  operationsApi.listManagedMembers.mockImplementation((_unit, query, page) => Promise.resolve({ items: [{ memberId: 'member', displayName: 'Alice', email: `alice-${page}@example.test` }], page, nextPage: !query ? 2 : undefined }))
   function FolderWithHeader() {
     const [value, setValue] = useState('')
     return <><AccountHeaderSearch mode="members" value={value} onChange={setValue} items={[]} /><OrganizationUnitPage searchQuery={value} /></>
@@ -226,13 +211,18 @@ it('resets responsible-person filtering to the first page and preserves search',
   await screen.findByText('alice-1@example.test')
   await userEvent.click(screen.getByRole('button', { name: 'Next' }))
   await screen.findByText('alice-2@example.test')
-  await userEvent.click(screen.getByRole('button', { name: /Type/ }))
-  await userEvent.click(await screen.findByRole('option', { name: 'Responsible person' }))
-  expect(await screen.findByText('alice-leader@example.test')).toBeInTheDocument()
-  expect(operationsApi.listManagedMembers).toHaveBeenLastCalledWith('church', '', 1, expect.any(AbortSignal), true)
   await userEvent.click(screen.getByRole('button', { name: 'Search members' }))
   await userEvent.type(screen.getByRole('searchbox', { name: 'Search members' }), 'Alice')
-  await waitFor(() => expect(operationsApi.listManagedMembers).toHaveBeenLastCalledWith('church', 'Alice', 1, expect.any(AbortSignal), true))
+  await waitFor(() => expect(operationsApi.listManagedMembers).toHaveBeenLastCalledWith('church', 'Alice', 1, expect.any(AbortSignal), false))
+})
+
+it.each(['small_group', 'fellowship'])('omits the unit-kind column for terminal unit %s', async kind => {
+  operationsApi.getManagedUnit.mockResolvedValue({ unit: { id: 'church', kind, name: 'Unit', status: 'active' }, breadcrumb: [], children: [], actions: {} })
+  mount()
+  const table = await screen.findByRole('table')
+  expect(within(table).queryByRole('columnheader', { name: messages.en.organizations.unitKind })).not.toBeInTheDocument()
+  expect(within(table).getAllByRole('columnheader')).toHaveLength(4)
+  expect(within(table).getAllByRole('cell')).toHaveLength(4)
 })
 
 it('uses the controlled header query without rendering a second roster search or archive controls', async () => {
@@ -243,9 +233,10 @@ it('uses the controlled header query without rendering a second roster search or
   expect(screen.queryByRole('checkbox', { name: 'Archived units' })).not.toBeInTheDocument()
 })
 
-it('keeps unit editing beside breadcrumbs above the business actions', async () => {
+it('groups editing with business actions separately from the breadcrumb', async () => {
  operationsApi.getManagedUnit.mockResolvedValue({ unit: { id: "church", kind: "church", name: "Church", status: "active", version: 1 }, breadcrumb: [], children: [], actions: { editUnit: true } });
  mount();
  const edit = await screen.findByRole('button', { name: messages.en.organizations.settings });
- expect(edit.closest('.organization-location')?.querySelector('.organization-breadcrumb')).toBeInTheDocument();
+ expect(edit.closest('.organization-location')).toBeNull();
+ expect(edit.closest('.organization-actions')).not.toBeNull();
 });
