@@ -195,7 +195,6 @@ function LayoutContent() {
               }}
               links={[
                 { id: 'official-site', label: t.nav.churchSite, href: `${publicSiteUrl}/${locale}` },
-                { id: 'projection', label: t.nav.projectionSystem, href: 'https://client.alive.org.tw/', newWindow: { label: t.nav.projectionWindowLabel, blockedMessage: t.nav.projectionPopupBlocked } },
                 ...(verified && canAccessAdmin(auth.profile?.permissions ?? [])
                   ? [{ id: 'admin', label: t.nav.adminManagement, href: 'https://admin.alive.org.tw/' }]
                   : []),
