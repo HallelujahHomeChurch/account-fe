@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import App, { PostLoginContinuation } from './App'
 import { AuthProvider, type AuthApi } from './auth/auth-context'
-import { LocaleProvider, useLocale } from './i18n/locale-context'
+import { LocaleProvider } from './i18n/locale-context'
 import { MemberDetailsClient } from './lib/member-details'
 import { ApiError } from './lib/api'
 import { clearLineLinkAutoContinue, markLineLinkAutoContinue } from './lib/line-link-intent'
@@ -39,6 +39,13 @@ afterEach(() => {
 })
 
 describe('App layout', () => {
+  it('uses the existing Account unknown-route fallback for removed management URLs', async () => {
+    const operationsApi = {getMyAccess: vi.fn().mockResolvedValue({memberDetailsEligible:false, responsibilities:[]}), listMyResources:vi.fn().mockResolvedValue([]), listManagedRoots:vi.fn()}
+    render(<MemoryRouter initialEntries={['/organizations']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+    await waitFor(() => expect(screen.getByTestId('route-path')).toHaveTextContent('/profile'))
+    expect(operationsApi.listManagedRoots).not.toHaveBeenCalled()
+  })
+
   it('restores the account shell without mounting profile or Operations requests before authentication', () => {
     const cached = createNavigationPresentation({key: 'hhc:navigation:account-web', allowedIds: ['shell', 'admin', 'organizations', 'resources']})
     cached.identify('previous-user')
@@ -48,7 +55,7 @@ describe('App layout', () => {
     const operationsApi = {listMyResources: vi.fn(), getMyAccess: vi.fn()}
     const pendingApi = {...signedInApi, getSession: () => new Promise<never>(() => {}), me}
     render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={pendingApi} operationsApi={operationsApi as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
-    expect(screen.getByRole('link', {name: 'Small group management'})).toBeInTheDocument()
+    expect(screen.queryByRole('link', {name: 'Small group management'})).not.toBeInTheDocument()
     expect(screen.queryByDisplayValue('Ray')).not.toBeInTheDocument()
     expect(screen.queryByText('previous-user')).not.toBeInTheDocument()
     expect(me).not.toHaveBeenCalled()
@@ -73,42 +80,6 @@ describe('App layout', () => {
   it.each([['/devices', 'devices'], ['/notifications', 'email-notifications']])('focuses the destination after the legacy %s redirect', async (path, id) => {
     render(<MemoryRouter initialEntries={[path]}><LocaleProvider><AuthProvider api={signedInApi}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
     await waitFor(() => expect(document.getElementById(id)).toHaveFocus())
-  })
-
-  it.each(['/organizations', '/organizations/unit', '/organizations/unit/members/member'])('redirects an ordinary member away from %s without loading management data', async (path) => {
-    const operationsApi = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValue({ responsibilities: [] }), listManagedRoots: vi.fn(), getManagedUnit: vi.fn(), getManagedMember: vi.fn() }
-    render(<MemoryRouter initialEntries={[path]}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
-    await waitFor(() => expect(screen.getByTestId('route-path')).toHaveTextContent('/profile'))
-    expect(screen.queryByRole('link', { name: 'Small group management' })).not.toBeInTheDocument()
-    expect(operationsApi.listManagedRoots).not.toHaveBeenCalled()
-    expect(operationsApi.getManagedUnit).not.toHaveBeenCalled()
-    expect(operationsApi.getManagedMember).not.toHaveBeenCalled()
-  })
-
-  it('rejects a responsibility without church membership', async () => {
-    const operationsApi = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValue({ responsibilities: [{ responsibilityId: 'stale' }] }), listManagedRoots: vi.fn().mockResolvedValue([]) }
-    render(<MemoryRouter initialEntries={['/organizations']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
-    await waitFor(() => expect(screen.getByTestId('route-path')).toHaveTextContent('/profile'))
-    expect(operationsApi.listManagedRoots).not.toHaveBeenCalled()
-  })
-
-  it('removes revoked membership access when returning to the window', async () => {
-    const operationsApi = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValueOnce({ churchMembership: { id: 'church-member' }, responsibilities: [{ responsibilityId: 'r1' }] }).mockResolvedValue({ churchMembership: null, responsibilities: [{ responsibilityId: 'r1' }] }), listManagedRoots: vi.fn().mockResolvedValue([]) }
-    render(<MemoryRouter initialEntries={['/organizations']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
-    await screen.findByRole('link', { name: 'Small group management' })
-    fireEvent.focus(window)
-    await waitFor(() => expect(screen.getByTestId('route-path')).toHaveTextContent('/profile'))
-    expect(screen.queryByRole('link', { name: 'Small group management' })).not.toBeInTheDocument()
-  })
-
-  it('keeps failed access lookup retryable and only loads the page after access is confirmed', async () => {
-    const operationsApi = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockRejectedValueOnce(new Error('unavailable')).mockResolvedValue({ churchMembership: { id: 'church-member' }, responsibilities: [{ responsibilityId: 'r1' }] }), listManagedRoots: vi.fn().mockResolvedValue([]) }
-    render(<MemoryRouter initialEntries={['/organizations']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
-    await screen.findByRole('alert')
-    expect(screen.getByTestId('route-path')).toHaveTextContent('/organizations')
-    expect(operationsApi.listManagedRoots).not.toHaveBeenCalled()
-    await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
-    await waitFor(() => expect(operationsApi.listManagedRoots).toHaveBeenCalledOnce())
   })
 
   it('keeps post-login continuation inside the account content area', () => {
@@ -160,7 +131,7 @@ describe('App layout', () => {
       getMyAccess: vi.fn().mockResolvedValue({ churchMembership: { id: 'church-member' }, responsibilities: [{ responsibilityId: 'r1', orgUnit: { id: 'unit', kind: 'family', name: 'Family' } }], memberships: [], orgRoles: [], entitlements: [], version: '1' }),
     }
     render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
-    expect(await screen.findByRole('link', { name: 'Small group management' })).toHaveAttribute('href', '/organizations')
+    expect(screen.queryByRole('link', { name: 'Small group management' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Open navigation' })).not.toBeInTheDocument()
   })
 
@@ -171,8 +142,8 @@ describe('App layout', () => {
     }
     render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={{ ...signedInApi, getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, dsr: { enabled: true } }) }} operationsApi={operationsApi as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
     const navigation = await screen.findByRole('navigation', { name: 'Account navigation' })
-    await within(navigation).findByRole('link', { name: 'Small group management' })
-    expect(within(navigation).getAllByRole('link').map(link => link.textContent)).toEqual(['Personal info', 'Security', 'Small group management'])
+    await within(navigation).findByRole('link', { name: 'Personal info' })
+    expect(within(navigation).getAllByRole('link').map(link => link.textContent)).toEqual(['Personal info', 'Security'])
   })
 
   it('surfaces resource lookup failures instead of treating them as no eligible resources', async () => {
@@ -460,14 +431,14 @@ describe('App layout', () => {
     )
   })
 
-  it.each([false, true])('uses four or five mobile destinations with organization permission %s', async allowed => {
+  it.each([false, true])('always keeps four Account mobile destinations with organization permission %s', async allowed => {
     vi.stubGlobal('matchMedia', vi.fn((query: string) => ({ matches: query === '(max-width: 767px)', media: query, addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn() })))
     const operationsApi = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValue({ churchMembership: {}, responsibilities: allowed ? [{ responsibilityId: 'r1' }] : [] }) }
     render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
     await screen.findByRole('heading', { level: 1 })
     await waitFor(() => expect(operationsApi.getMyAccess).toHaveBeenCalled())
     const nav = screen.getByRole('navigation', { name: 'Account navigation' })
-    await waitFor(() => expect(within(nav).getAllByRole('link').length + within(nav).getAllByRole('button').length).toBe(allowed ? 5 : 4))
+    await waitFor(() => expect(within(nav).getAllByRole('link').length + within(nav).getAllByRole('button').length).toBe(4))
     expect(screen.queryByRole('button', { name: /open navigation/i })).not.toBeInTheDocument()
     expect(document.querySelector('.account-header .hhc-account-menu')).not.toBeInTheDocument()
     expect(within(nav).getByRole('button', { name: 'My account' })).toBeInTheDocument()
@@ -482,28 +453,6 @@ describe('App layout', () => {
     expect(screen.getByTestId('route-path')).toHaveTextContent('/profile')
     expect(screen.getAllByRole('menuitem')[0]).toHaveTextContent('Data requests')
     expect(within(screen.getByRole('navigation', { name: 'Account navigation' })).getByRole('link', { name: 'Personal info' })).toHaveAttribute('aria-current', 'page')
-  })
-
-  it('feeds only the current authorized unit roster from header search without changing the URL', async () => {
-    const operationsApi = {
-      listMyResources: vi.fn().mockResolvedValue([]),
-      getMyAccess: vi.fn().mockResolvedValue({ churchMembership: {}, responsibilities: [{ responsibilityId: 'r1' }] }),
-      getManagedUnit: vi.fn().mockResolvedValue({ unit: { id: 'unit', kind: 'family', name: 'Family', status: 'active' }, breadcrumb: [], children: [], actions: {} }),
-      listManagedMembers: vi.fn().mockResolvedValue({ items: [], page: 1 }),
-    }
-    function ChangeLocale() { const { setLocale } = useLocale(); return <button onClick={() => setLocale('zh-Hant')}>Change test locale</button> }
-    render(<MemoryRouter initialEntries={['/organizations/unit']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><NavigationProbe /><ChangeLocale /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
-    const search = await screen.findByRole('button', { name: 'Search members' })
-    await waitFor(() => expect(search).not.toBeDisabled())
-    await userEvent.click(search)
-    await userEvent.type(screen.getByRole('searchbox'), 'Alice')
-    await waitFor(() => expect(operationsApi.listManagedMembers).toHaveBeenLastCalledWith('unit', 'Alice', 1, expect.any(AbortSignal), false))
-    expect(screen.getByTestId('route-path')).toHaveTextContent('/organizations/unit')
-    expect(screen.getAllByRole('searchbox')).toHaveLength(1)
-    const signal = operationsApi.listManagedMembers.mock.calls.at(-1)![3] as AbortSignal
-    expect(signal.aborted).toBe(false)
-    await userEvent.click(screen.getByRole('button', { name: 'Change test locale' }))
-    expect(signal.aborted).toBe(true)
   })
 
   it('localizes the account brand and legal links using canonical public routes', async () => {
@@ -630,7 +579,7 @@ it('includes authorized small groups before Admin without an Account self-link',
  const adminApi={...signedInApi,me:async()=>({id:'u1',email:'ray@example.com',permissions:['*']})};
  render(<MemoryRouter initialEntries={['/profile']}><AuthProvider api={adminApi} operationsApi={operationsApi as never}><App/></AuthProvider></MemoryRouter>);
  await userEvent.click(await screen.findByLabelText(/account menu/i));
- await waitFor(()=>expect(screen.getAllByRole('menuitem').map(item=>item.textContent)).toEqual(['Official site','Projection system','Small group','Admin','Sign out']));
+ await waitFor(()=>expect(screen.getAllByRole('menuitem').map(item=>item.textContent)).toEqual(['Official site','Projection system','Admin','Sign out']));
 });
 
 it('does not show cached small group avatar access while the current lookup fails',async()=>{
@@ -642,3 +591,14 @@ it('does not show cached small group avatar access while the current lookup fail
  expect(await screen.findByRole('menuitem',{name:'Official site'})).toBeInTheDocument();
  expect(screen.queryByRole('menuitem',{name:'Small group'})).not.toBeInTheDocument();
 });
+
+
+it('has no management destinations in navigation or feature search for a delegated manager', async () => {
+ const operationsApi = {listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValue({churchMembership: {}, responsibilities: [{responsibilityId: 'r'}]})}
+ render(<MemoryRouter initialEntries={['/profile']}><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><App /></AuthProvider></MemoryRouter>)
+ await screen.findByRole('heading', {name: 'Personal info'})
+ expect(screen.queryByRole('link', {name: 'Small group management'})).not.toBeInTheDocument()
+ await userEvent.click(screen.getByRole('button', {name: 'Search account settings'}))
+ await userEvent.type(screen.getByRole('searchbox'), 'Small group{Enter}')
+ expect(await screen.findByRole('dialog')).not.toHaveTextContent('Small group management')
+})

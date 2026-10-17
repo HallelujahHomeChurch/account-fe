@@ -32,7 +32,6 @@ import { useLocale } from '../i18n/locale-context'
 import { AccountApi, ApiError, type LoginRequest, type LoginResponse, type Profile } from '../lib/api'
 import { MockAccountApi } from '../lib/mock-account-api'
 import { OperationsApi, type OperationsApiClient } from '../lib/operations-api'
-import { UnitNotificationsApi } from '../lib/unit-notifications-api'
 import { observeApiFetch, recordAccountAuthEvent } from '../observability'
 import {
   accountOAuthConfig,
@@ -78,7 +77,6 @@ type AuthContextValue = {
   logoutError: string | null
   api: AuthApi
   operationsApi: OperationsApiClient
-  unitNotificationsApi: UnitNotificationsApi
   login: (request: LoginRequest) => Promise<LoginResponse>
   completeLogin: (response: LoginResponse) => Promise<LoginResponse>
   verifyMfa: (code: string) => Promise<LoginResponse>
@@ -129,7 +127,6 @@ type AuthProviderProps = {
   children: ReactNode
   api?: AuthApi
   operationsApi?: OperationsApiClient
-  unitNotificationsApi?: UnitNotificationsApi
   config?: RuntimeConfig
   restoreSession?: boolean
   navigateAfterLogout?: (url: string) => void
@@ -155,7 +152,6 @@ export function AuthProvider({
   children,
   api: injectedApi,
   operationsApi: injectedOperationsApi,
-  unitNotificationsApi: injectedUnitNotificationsApi,
   config: suppliedConfig,
   restoreSession = true,
   navigateAfterLogout = defaultNavigateAfterLogout,
@@ -165,7 +161,7 @@ export function AuthProvider({
   errorLabels = defaultAuthErrorLabels,
 }: AuthProviderProps) {
   const [config] = useState(() => suppliedConfig ?? readRuntimeConfig())
-  const presentation = useMemo(() => createNavigationPresentation({ key: 'hhc:navigation:account-web', allowedIds: ['shell', 'admin', 'organizations', 'resources'] }), [])
+  const presentation = useMemo(() => createNavigationPresentation({ key: 'hhc:navigation:account-web', allowedIds: ['shell', 'admin', 'resources'] }), [])
   const navigation = useSyncExternalStore(presentation.subscribe, presentation.getSnapshot)
   const tokenRef = useRef<string | null>(null)
   const [state, setState] = useState<AuthState>(emptyAuthState)
@@ -241,11 +237,6 @@ export function AuthProvider({
     getAccessToken: async () => tokenRef.current,
     refreshAfterUnauthorized: refreshOperationsToken,
   })), [config.operationsApiBaseUrl, injectedOperationsApi, refreshOperationsToken])
-  const unitNotificationsApi = useMemo(() => injectedUnitNotificationsApi ?? new UnitNotificationsApi({
-    getAccessToken: () => tokenRef.current,
-    refreshAfterUnauthorized: refreshOperationsToken,
-  }), [injectedUnitNotificationsApi, refreshOperationsToken])
-
   const refreshProfile = useCallback(async () => {
     const revision = authRevisionRef.current
     const nextProfile = await api.me()
@@ -674,7 +665,6 @@ export function AuthProvider({
       isBootstrapping: state.status === 'loading',
       api,
       operationsApi,
-      unitNotificationsApi,
       login,
       completeLogin,
       verifyMfa,
@@ -686,7 +676,7 @@ export function AuthProvider({
       clearLocalSession,
       navigateExternal,
     }),
-    [navigation, presentation, api, beginAuthorization, clearLocalSession, completeLogin, completeOAuthCallback, login, logout, navigateExternal, operationsApi, refreshProfile, revalidateSession, state, unitNotificationsApi, verifyMfa],
+    [navigation, presentation, api, beginAuthorization, clearLocalSession, completeLogin, completeOAuthCallback, login, logout, navigateExternal, operationsApi, refreshProfile, revalidateSession, state, verifyMfa],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
