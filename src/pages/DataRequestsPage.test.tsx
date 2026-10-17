@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import { useState } from 'react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -120,4 +120,26 @@ it.each(Object.keys(emailCorrectionMessages) as Array<keyof typeof emailCorrecti
   expect(screen.getByRole('status')).toHaveTextContent(emailCorrectionMessages[locale].ineligible)
   expect(screen.queryByText(emailCorrectionMessages[locale].noReviewer)).not.toBeInTheDocument()
   expect(screen.queryByRole('button', { name: emailCorrectionMessages[locale].next })).not.toBeInTheDocument()
+})
+
+
+it('groups the selected request explanation and fields under its own accessible heading', () => {
+  render(<DataRequestsPage {...props} />)
+  const item = screen.getByRole('region', { name: 'Change email' })
+  expect(within(item).getByLabelText('Current email')).toHaveAttribute('readonly')
+  expect(within(item).getByLabelText('New email')).toHaveValue('new@example.test')
+  expect(within(item).getByText('Your account email changes only after you verify the new email and an administrator approves.')).toBeVisible()
+  expect(within(item).getByRole('button', { name: 'Next: verify your identity' })).toBeVisible()
+})
+
+it.each([
+  ['pending_verification', 'Verify new email'],
+  ['link_expired', 'Verify new email'],
+  ['pending_approval', 'Awaiting administrator approval'],
+  ['completed', 'Complete'],
+] as const)('identifies the selected request progress and its current step in %s', (view, current) => {
+  render(<DataRequestsPage {...props} view={view} />)
+  const progress = screen.getByRole('list', { name: 'Change email' })
+  expect(within(progress).getAllByRole('listitem').filter(step => step.getAttribute('aria-current') === 'step')).toHaveLength(1)
+  expect(within(progress).getByText(current)).toHaveAttribute('aria-current', 'step')
 })
