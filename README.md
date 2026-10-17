@@ -78,7 +78,7 @@ and analytics consent remain available in Account.
 
 Management now lives at the public site's localized `/organizations` routes.
 Account removes its management UI, avatar/navigation/search entries and clients;
-recognized legacy unit/member links redirect to the configured trusted WWW origin,
-preserving locale and IDs while dropping query and fragment. Resources, reservations
-and member-details eligibility keep their existing Operations access.
-Release Gateway's WWW allowlist and WWW before this Account redirect removal.
+no legacy management redirect is provided. Removed URLs follow the existing
+Account unknown-route behavior. Resources, reservations and member-details
+eligibility keep their existing Operations access.
+Release Gateway's WWW allowlist and WWW before this Account UI removal.

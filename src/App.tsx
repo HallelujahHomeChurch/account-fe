@@ -1,4 +1,3 @@
-import { LegacyOrganizationRedirect } from './components/LegacyOrganizationRedirect'
 import { CorrectionRoute } from './features/email-correction/CorrectionRoute'
 import { emailCorrectionMessages } from './features/email-correction/messages'
 import { AccountMenu, BrandLoadingScreen, Button, Menu, Skeleton, Toast, ToastProvider } from '@hallelujahhomechurch/ui'
@@ -293,8 +292,6 @@ export function PostLoginContinuation() {
 
 export default function Layout() {
   const { messages: t } = useLocale()
-  const {pathname} = useLocation()
-  if (pathname === '/organizations' || pathname.startsWith('/organizations/')) return <LegacyOrganizationRedirect />
   return (
     <ToastProvider dismissLabel={t.site.dismissNotification} regionLabel={t.site.notifications}>
       <AnalyticsBoundary><LayoutContent /></AnalyticsBoundary>

@@ -8,12 +8,9 @@ import App, { PostLoginContinuation } from './App'
 import { AuthProvider, type AuthApi } from './auth/auth-context'
 import { LocaleProvider } from './i18n/locale-context'
 import { MemberDetailsClient } from './lib/member-details'
-import {replaceOrganizationLocation} from './lib/organization-redirect'
 import { ApiError } from './lib/api'
 import { clearLineLinkAutoContinue, markLineLinkAutoContinue } from './lib/line-link-intent'
 import { clearPostLoginReturnTo, hasPostLoginReturnTo, savePostLoginReturnTo } from './auth/auth-routes'
-
-vi.mock('./lib/organization-redirect', async importOriginal => ({...await importOriginal<typeof import('./lib/organization-redirect')>(), replaceOrganizationLocation: vi.fn()}))
 
 const viewNonce = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
 const lineConfirmationNonce = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
@@ -42,17 +39,11 @@ afterEach(() => {
 })
 
 describe('App layout', () => {
-  it('redirects a legacy member deep link before mounting profile or management requests', async () => {
-    const unit = '00000000-0000-4000-8000-000000000001'
-    const member = '00000000-0000-4000-8000-000000000100'
-    const me = vi.fn()
-    const operationsApi = {getMyAccess: vi.fn(), listManagedRoots: vi.fn(), listManagedMembers: vi.fn()}
-    const pendingApi = {...signedInApi, getSession: () => new Promise<never>(() => {}), me}
-    render(<MemoryRouter initialEntries={[`/organizations/${unit}/members/${member}?token=private#secret`]}><LocaleProvider><AuthProvider api={pendingApi} operationsApi={operationsApi as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
-    await waitFor(() => expect(replaceOrganizationLocation).toHaveBeenCalledWith(`https://www.alive.org.tw/en/organizations/${unit}/members/${member}`))
-    expect(me).not.toHaveBeenCalled()
-    for (const request of Object.values(operationsApi)) expect(request).not.toHaveBeenCalled()
-    expect(document.querySelector('.account-layout')).not.toBeInTheDocument()
+  it('uses the existing Account unknown-route fallback for removed management URLs', async () => {
+    const operationsApi = {getMyAccess: vi.fn().mockResolvedValue({memberDetailsEligible:false, responsibilities:[]}), listMyResources:vi.fn().mockResolvedValue([]), listManagedRoots:vi.fn()}
+    render(<MemoryRouter initialEntries={['/organizations']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+    await waitFor(() => expect(screen.getByTestId('route-path')).toHaveTextContent('/profile'))
+    expect(operationsApi.listManagedRoots).not.toHaveBeenCalled()
   })
 
   it('restores the account shell without mounting profile or Operations requests before authentication', () => {
