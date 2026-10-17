@@ -19,6 +19,7 @@ import { LineBindingPage } from './pages/LineBindingPage'
 import { OAuthCallbackPage } from './pages/OAuthCallbackPage'
 import { OAuthLinkPage } from './pages/OAuthLinkPage'
 import { OAuthOnboardingPage } from './pages/OAuthOnboardingPage'
+import { AccountSectionFocus } from './components/AccountSectionFocus'
 import { AnalyticsBoundary } from './components/AnalyticsBoundary'
 import { LegalReviewPage } from './pages/LegalReviewPage'
 import { ProfilePage } from './pages/ProfilePage'
@@ -27,8 +28,6 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { RegistrationPendingPage } from './pages/RegistrationPendingPage'
 import { SecurityPage } from './pages/SecurityPage'
-import { DevicesPage } from './pages/DevicesPage'
-import { NotificationsPage } from './pages/NotificationsPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { NativeAuthCompletePage } from './pages/NativeAuthCompletePage'
 import { PolicyAcceptancePage } from './pages/PolicyAcceptancePage'
@@ -36,7 +35,6 @@ import { MyResourceReservationsPage } from './pages/MyResourceReservationsPage'
 import { ResourceListPage } from './pages/ResourceListPage'
 import { ResourceReservationPage } from './pages/ResourceReservationPage'
 import { useAuthCapabilitiesState } from './components/SocialAuthOptions'
-import { StatementStrip } from './components/StatementStrip'
 import { LineBrowserNotice } from './components/LineBrowserNotice'
 import { OrganizationMemberPage } from './pages/organizations/OrganizationMemberPage'
 import { OrganizationRootsPage } from './pages/organizations/OrganizationRootsPage'
@@ -266,7 +264,6 @@ function LayoutContent() {
               </div>
             ) : null}
           </header>
-          <StatementStrip />
       </div>
       <div className="account-layout">
         <aside className="account-sidebar" aria-label={t.nav.accountSections}>
@@ -303,6 +300,7 @@ function LayoutContent() {
         <div className="account-content">
           <LineBrowserNotice />
           <main className="main-panel">
+            <AccountSectionFocus />
             {resourceLookupFailed && !isResourceRoute ? <p className="form-error" role="alert">
               {t.resources.loadFailed} <Link to="/resources">{t.nav.resourceReservations}</Link>
             </p> : null}
@@ -313,8 +311,8 @@ function LayoutContent() {
               <Route element={memberAllowed ? <MemberDetailsPage key={auth.profile?.id} /> : managedAccess === 'loading' || memberAuthorizationPending || !capabilities && !capabilitiesError ? <Skeleton className="account-page-skeleton" label={t.profile.loading} /> : <Navigate replace to="/profile" />} path="/profile/member-details" />
               <Route element={<LegalReviewPage key={`${auth.profile?.id}:${locale}`} />} path="/legal" />
               <Route element={<SecurityPage />} path="/security" />
-              <Route element={<DevicesPage />} path="/devices" />
-              <Route element={<NotificationsPage />} path="/notifications" />
+              <Route element={<Navigate replace to="/security#devices" />} path="/devices" />
+              <Route element={<Navigate replace to="/profile#email-notifications" />} path="/notifications" />
               <Route element={<CorrectionRoute key={auth.profile?.id} />} path="/data-requests" />
               <Route element={<ResourceListPage />} path="/resources" />
               <Route element={<MyResourceReservationsPage />} path="/resources/reservations" />

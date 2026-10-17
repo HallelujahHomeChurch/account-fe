@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
-import { DevicesPage } from './DevicesPage'
+import { DevicesCard } from '../components/DevicesCard'
 import { LocaleProvider } from '../i18n/locale-context'
 
 function deviceApi(overrides: Partial<AuthApi> = {}): AuthApi {
@@ -17,13 +17,13 @@ function deviceApi(overrides: Partial<AuthApi> = {}): AuthApi {
   }
 }
 
-describe('DevicesPage', () => {
+describe('DevicesCard', () => {
   it.each([
     ['ja', 'デバイス', '認識済みのデバイスはまだありません。'],
     ['ko', '기기', '아직 확인된 기기가 없어요.'],
   ])('renders device state in %s', async (locale, heading, empty) => {
     document.cookie = `hhc_locale=${locale}; Path=/`
-    render(<MemoryRouter><LocaleProvider><AuthProvider api={deviceApi({ listDevices: async () => [] })}><DevicesPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+    render(<MemoryRouter><LocaleProvider><AuthProvider api={deviceApi({ listDevices: async () => [] })}><DevicesCard /></AuthProvider></LocaleProvider></MemoryRouter>)
 
     expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument()
     expect(await screen.findByText(empty)).toBeInTheDocument()
@@ -33,7 +33,7 @@ describe('DevicesPage', () => {
     render(
       <MemoryRouter>
         <AuthProvider api={deviceApi({ listDevices: async () => { throw new Error('offline') } })}>
-          <DevicesPage />
+          <DevicesCard />
         </AuthProvider>
       </MemoryRouter>,
     )
@@ -90,7 +90,7 @@ describe('DevicesPage', () => {
             ],
           })}
         >
-          <DevicesPage />
+          <DevicesCard />
         </AuthProvider>
       </MemoryRouter>,
     )
@@ -129,7 +129,7 @@ describe('DevicesPage', () => {
             }],
           })}
         >
-          <DevicesPage />
+          <DevicesCard />
         </AuthProvider>
       </MemoryRouter>,
     )
@@ -159,7 +159,7 @@ describe('DevicesPage', () => {
             }],
           })}
         >
-          <DevicesPage />
+          <DevicesCard />
         </AuthProvider>
       </MemoryRouter>,
     )
@@ -191,7 +191,7 @@ describe('DevicesPage', () => {
             logoutDevice: async (id) => { calls.push(id) },
           })}
         >
-          <DevicesPage />
+          <DevicesCard />
         </AuthProvider>
       </MemoryRouter>,
     )
@@ -227,7 +227,7 @@ describe('DevicesPage', () => {
             logoutDevice: async () => { throw new Error('current device must use account menu logout') },
           })}
         >
-          <DevicesPage />
+          <DevicesCard />
         </AuthProvider>
       </MemoryRouter>,
     )

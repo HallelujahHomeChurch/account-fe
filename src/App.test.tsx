@@ -56,33 +56,23 @@ describe('App layout', () => {
     expect(operationsApi.getMyAccess).not.toHaveBeenCalled()
   })
 
-  it('keeps the statement below the shared header when navigating account pages', async () => {
-    vi.stubGlobal('fetch', vi.fn<typeof fetch>(async request => (request as Request).url.includes('/me/') ? Response.json({data: {dismissed: false}}) : new Response(JSON.stringify({ data: {
-      serverNow: '2026-09-29T02:00:00Z', nextChangeAt: null,
-      statement: { id: '00000000-0000-4000-8000-000000000011', publishedVersion: 7, title: '正式聲明', body: '聲明內文', resolvedLocale: 'zh-Hant', href: '/zh-Hant/statements/00000000-0000-4000-8000-000000000011', popupStartsAt: '2026-09-28T00:00:00Z', popupEndsAt: '2026-10-01T00:00:00Z' },
-    } }))))
-    render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={signedInApi}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
-
-    expect(await screen.findByRole('link', { name: /正式聲明/ })).toHaveAttribute('href', 'https://www.alive.org.tw/zh-Hant/statements/00000000-0000-4000-8000-000000000011')
-    const dialog = await screen.findByRole('dialog', { name: '正式聲明' })
-    await userEvent.click(within(dialog).getAllByRole('button', { name: 'Close' })[0])
-    for (const name of ['Security', 'Devices', 'Notifications', 'Personal info']) {
-      await userEvent.click(screen.getByRole('link', { name }))
-      expect(screen.getByRole('link', { name: /正式聲明/ }).closest('.account-topbar')).not.toBeNull()
-      expect(screen.queryByRole('dialog', { name: '正式聲明' })).not.toBeInTheDocument()
-    }
-    expect(vi.mocked(fetch).mock.calls.filter(([request]) => (request as Request).url.includes('/api/statements/active'))).toHaveLength(1)
+  it.each(['/profile', '/security', '/devices', '/notifications'])('does not load church statements on %s', async path => {
+    const transport = vi.fn<typeof fetch>(async () => new Response(null, { status: 404 }))
+    vi.stubGlobal('fetch', transport)
+    render(<MemoryRouter initialEntries={[path]}><LocaleProvider><AuthProvider api={signedInApi}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+    await screen.findByRole('heading', { level: 1 })
+    expect(document.querySelector('.account-statement')).not.toBeInTheDocument()
+    expect(transport.mock.calls.filter(([request]) => String(request instanceof Request ? request.url : request).includes('statements'))).toHaveLength(0)
   })
 
-  it.each(['/security', '/devices', '/notifications'])('opens the statement on first entry through %s', async (path) => {
-    vi.stubGlobal('fetch', vi.fn<typeof fetch>(async request => (request as Request).url.includes('/me/') ? Response.json({data: {dismissed: false}}) : new Response(JSON.stringify({ data: {
-      serverNow: '2026-09-29T02:00:00Z', nextChangeAt: null,
-      statement: { id: `00000000-0000-4000-8000-${String(['/security','/devices','/notifications'].indexOf(path)+20).padStart(12, '0')}`, publishedVersion: 7, title: '首次進入聲明', body: '聲明內文', resolvedLocale: 'zh-Hant', href: '/zh-Hant/statements/00000000-0000-4000-8000-000000000011', popupStartsAt: '2026-09-28T00:00:00Z', popupEndsAt: '2026-10-01T00:00:00Z' },
-    } }))))
-    render(<MemoryRouter initialEntries={[path]}><LocaleProvider><AuthProvider api={signedInApi}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+  it.each([['/devices', '/security'], ['/notifications', '/profile']])('redirects the legacy %s settings route', async (path, destination) => {
+    render(<MemoryRouter initialEntries={[path]}><LocaleProvider><AuthProvider api={signedInApi}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+    await waitFor(() => expect(screen.getByTestId('route-path')).toHaveTextContent(destination))
+  })
 
-    expect(await screen.findByRole('dialog', { name: '首次進入聲明' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /首次進入聲明/ }).closest('.account-topbar')).not.toBeNull()
+  it.each([['/devices', 'devices'], ['/notifications', 'email-notifications']])('focuses the destination after the legacy %s redirect', async (path, id) => {
+    render(<MemoryRouter initialEntries={[path]}><LocaleProvider><AuthProvider api={signedInApi}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+    await waitFor(() => expect(document.getElementById(id)).toHaveFocus())
   })
 
   it.each(['/organizations', '/organizations/unit', '/organizations/unit/members/member'])('redirects an ordinary member away from %s without loading management data', async (path) => {

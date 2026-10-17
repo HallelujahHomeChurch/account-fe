@@ -6,7 +6,7 @@ import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import type { Device } from '../lib/api'
 
-export function DevicesPage() {
+export function DevicesCard() {
   const auth = useAuth()
   const { locale, messages: t } = useLocale()
   const [devices, setDevices] = useState<Device[] | null>(null)
@@ -20,6 +20,7 @@ export function DevicesPage() {
     }
     let active = true
     setError('')
+    setDevices(null)
     auth.api.listDevices()
       .then((result) => { if (active) setDevices(result) })
       .catch(() => { if (active) setError(t.security.devicesLoadFailed) })
@@ -48,8 +49,9 @@ export function DevicesPage() {
           item.id === device.id ? { ...item, is_signed_in: false } : item,
         ),
       )
-    } catch {
+    } catch (error) {
       setError(t.security.deviceSignOutFailed)
+      throw error
     }
   }
 
@@ -127,43 +129,16 @@ export function DevicesPage() {
   }
 
   return (
-    <section className="account-document">
-      <div className="page-heading">
-        <h1>{t.nav.devices}</h1>
-      </div>
-      {error ? <p className="form-error" role="alert">{error}</p> : null}
-      {devices === null ? (
-        error ? null : (
-          <Card className="panel-card settings-card">
-            <Card.Content><Skeleton className="settings-list-skeleton" label={t.security.loading} /></Card.Content>
-          </Card>
-        )
-      ) : sortedDevices.length ? (
-        <div className="device-sections">
-          {currentDevice ? (
-            <Card className="panel-card settings-card device-section-card device-current-section">
-              <Card.Header><Card.Title>{t.security.currentDevice}</Card.Title></Card.Header>
-              <Card.Content isFlush className="settings-list device-section-list">{renderDevice(currentDevice)}</Card.Content>
-            </Card>
-          ) : null}
-          {otherDevices.length ? (
-            <Card className="panel-card settings-card device-section-card device-other-section">
-              <Card.Header>
-                <Card.Title>{t.security.otherDevices}</Card.Title>
-                <span className="device-count" aria-hidden="true">{otherDevices.length}</span>
-              </Card.Header>
-              <Card.Content isFlush className="settings-list device-section-list">
-                {otherDevices.map(renderDevice)}
-              </Card.Content>
-            </Card>
-          ) : null}
-        </div>
-      ) : (
-        <Card className="panel-card settings-card">
-          <Card.Content><p className="muted-copy">{t.security.noDevices}</p></Card.Content>
-        </Card>
-      )}
-    </section>
+    <Card id="devices" tabIndex={-1} aria-label={t.nav.devices} className="panel-card settings-card device-section-card">
+      <Card.Header><Card.Title>{t.nav.devices}</Card.Title></Card.Header>
+      <Card.Content className="settings-list device-section-list">
+        {error ? <p className="form-error" role="alert">{error}</p> : null}
+        {devices === null ? (error ? null : <Skeleton className="settings-list-skeleton" label={t.security.loading} />) : sortedDevices.length ? <>
+          {currentDevice ? <section className="device-group"><h3>{t.security.currentDevice}</h3>{renderDevice(currentDevice)}</section> : null}
+          {otherDevices.length ? <section className="device-group"><h3>{t.security.otherDevices} <span className="device-count" aria-hidden="true">{otherDevices.length}</span></h3>{otherDevices.map(renderDevice)}</section> : null}
+        </> : <p className="muted-copy">{t.security.noDevices}</p>}
+      </Card.Content>
+    </Card>
   )
 }
 

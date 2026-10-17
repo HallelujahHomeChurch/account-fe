@@ -8,6 +8,7 @@ import { memberDetailsMessages } from '../i18n/member-details'
 import { useAuth } from '../auth/auth-context'
 import { ProfileAvatarEditor } from '../components/ProfileAvatarEditor'
 import { LanguageSelector } from '../components/LanguageSelector'
+import { NewsletterPreferenceRow } from '../components/NewsletterPreferenceRow'
 import { ThemeSelector } from '../components/ThemeSelector'
 import { useLocale } from '../i18n/locale-context'
 import { useAuthCapabilitiesState } from '../components/SocialAuthOptions'
@@ -73,15 +74,15 @@ export function ProfilePage({ memberDetailsAvailable = false }: { memberDetailsA
           <Card.Title>{t.profile.personalDetails}</Card.Title>
         </Card.Header>
         <Card.Content className="settings-list">
-          <div className="settings-row profile-avatar-row">
+          <div id="avatar" tabIndex={-1} aria-describedby="avatar-label" className="settings-row profile-avatar-row">
             <div className="settings-row-copy">
-              <span className="settings-row-label">{t.profile.avatar}</span>
+              <span id="avatar-label" className="settings-row-label">{t.profile.avatar}</span>
               <ProfileAvatarEditor profile={profile} />
             </div>
           </div>
-          <div className="settings-row">
+          <div id="nickname" tabIndex={-1} aria-describedby="nickname-label" className="settings-row">
             <div className="settings-row-copy">
-              <span className="settings-row-label">{t.nickname.label}</span>
+              <span id="nickname-label" className="settings-row-label">{t.nickname.label}</span>
               <strong>{name}</strong>
             </div>
             <Button variant="secondary" isDisabled={!capabilities} onPress={() => setNameDialogOpen(true)}>
@@ -98,18 +99,19 @@ export function ProfilePage({ memberDetailsAvailable = false }: { memberDetailsA
               {profile.is_email_verified ? t.profile.emailVerified : t.profile.emailNotVerified}
             </span>
           </div>
-          <div className="settings-row">
+          <div id="language" tabIndex={-1} aria-describedby="language-label" className="settings-row">
             <div className="settings-row-copy">
-              <span className="settings-row-label">{t.profile.language}</span>
+              <span id="language-label" className="settings-row-label">{t.profile.language}</span>
             </div>
             <LanguageSelector />
           </div>
-          <div className="settings-row">
+          <div id="appearance" tabIndex={-1} aria-describedby="appearance-label" className="settings-row">
             <div className="settings-row-copy">
-              <span className="settings-row-label">{t.profile.appearance}</span>
+              <span id="appearance-label" className="settings-row-label">{t.profile.appearance}</span>
             </div>
             <ThemeSelector />
           </div>
+          <NewsletterPreferenceRow key={profile.id} />
           {memberDetailsAvailable ? (
             <div className="settings-row">
               <div className="settings-row-copy">

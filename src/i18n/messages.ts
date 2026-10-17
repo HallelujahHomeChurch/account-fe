@@ -130,7 +130,6 @@ const messageCatalog = {
       language: '語言',
       notifications: '通知',
       dismissNotification: '關閉通知',
-      statement: { notice: '教會聲明', readFull: '閱讀全文', close: '關閉', doNotShowAgain: '不再顯示', syncError: '無法同步不再顯示設定，請稍後再試。', openImage: '放大圖片', closeImage: '關閉圖片' },
     },
     lineBrowser: { region: '瀏覽器開啟提示', title: '改用預設瀏覽器瀏覽', description: '目前透過 LINE 開啟；建議使用預設瀏覽器。', open: '開啟預設瀏覽器', stay: '留在這裡', close: '關閉瀏覽器提示並留在此頁', manual: '若未自動開啟，請從 LINE 選單選擇「在瀏覽器中開啟」。', restartAuth: '這次登入已在 LINE 中開始。請在預設瀏覽器重新開啟最初的網站連結，以重新開始登入。' },
     authErrors: {
@@ -165,6 +164,7 @@ const messageCatalog = {
       terms: '使用條款',
     },
     notificationSettings: {
+      pending: '待確認',
       loading: '正在載入通知設定', emailTitle: 'Email 通知', newsletter: '教會電子報',
       newsletterDescription: '接收教會近況、活動與週報通知。', updated: '通知設定已更新。',
       loadFailed: '目前無法載入通知設定。', updateFailed: '目前無法更新通知設定。', retry: '重試',
@@ -430,7 +430,6 @@ const messageCatalog = {
       language: '语言',
       notifications: '通知',
       dismissNotification: '关闭通知',
-      statement: { notice: '教会声明', readFull: '阅读全文', close: '关闭', doNotShowAgain: '不再显示', syncError: '无法同步不再显示设置，请稍后再试。', openImage: '放大图片', closeImage: '关闭图片' },
     },
     lineBrowser: { region: '浏览器打开提示', title: '改用默认浏览器浏览', description: '当前通过 LINE 打开；建议使用默认浏览器。', open: '使用默认浏览器打开', stay: '留在这里', close: '关闭浏览器提示并留在此页', manual: '如果没有自动打开，请从 LINE 菜单选择「在浏览器中打开」。', restartAuth: '本次登录已在 LINE 中开始。请在默认浏览器重新打开最初的网站链接，以重新开始登录。' },
     authErrors: {
@@ -465,6 +464,7 @@ const messageCatalog = {
       terms: '使用条款',
     },
     notificationSettings: {
+      pending: '待确认',
       loading: '正在载入通知设置', emailTitle: 'Email 通知', newsletter: '教会电子报',
       newsletterDescription: '接收教会近况、活动与周报通知。', updated: '通知设置已更新。',
       loadFailed: '目前无法载入通知设置。', updateFailed: '目前无法更新通知设置。', retry: '重试',
@@ -730,7 +730,6 @@ const messageCatalog = {
       language: 'Language',
       notifications: 'Notifications',
       dismissNotification: 'Dismiss notification',
-      statement: { notice: 'Church statement', readFull: 'Read full statement', close: 'Close', doNotShowAgain: 'Do not show again', syncError: 'Unable to save this preference. Please try again later.', openImage: 'Enlarge image', closeImage: 'Close image' },
     },
     lineBrowser: { region: 'Browser opening notice', title: 'Browse in your default browser', description: "You're viewing this page in LINE. We recommend your default browser.", open: 'Open in default browser', stay: 'Stay here', close: 'Close browser notice and stay on this page', manual: "If it doesn't open, use LINE's menu to open this page in a browser.", restartAuth: 'This sign-in started in LINE. Reopen the original website link in your default browser to start a new sign-in.' },
     authErrors: {
@@ -765,6 +764,7 @@ const messageCatalog = {
       terms: 'Terms of Use',
     },
     notificationSettings: {
+      pending: 'Pending confirmation',
       loading: 'Loading notification settings', emailTitle: 'Email notifications', newsletter: 'Email newsletter',
       newsletterDescription: 'Receive church news, events, and weekly bulletin updates.', updated: 'Notification preference updated.',
       loadFailed: 'Unable to load notification settings.', updateFailed: 'Unable to update notification settings.', retry: 'Retry',
@@ -1030,7 +1030,6 @@ const messageCatalog = {
       language: '言語',
       notifications: '通知',
       dismissNotification: '通知を閉じる',
-      statement: { notice: '教会からの声明', readFull: '全文を読む', close: '閉じる', doNotShowAgain: '再表示しない', syncError: '設定を保存できませんでした。後でもう一度お試しください。', openImage: '画像を拡大', closeImage: '画像を閉じる' },
     },
     lineBrowser: { region: 'ブラウザで開くための案内', title: '既定のブラウザで閲覧する', description: 'LINE 内で表示しています。既定のブラウザで開くことをおすすめします。', open: '既定のブラウザで開く', stay: 'このまま利用する', close: '案内を閉じてこのページを利用する', manual: '開かない場合は、LINE のメニューからブラウザで開いてください。', restartAuth: 'このログインは LINE 内で開始されました。既定のブラウザで最初のサイトリンクを開き直し、ログインをやり直してください。' },
     authErrors: {
@@ -1065,6 +1064,7 @@ const messageCatalog = {
       terms: '利用規約',
     },
     notificationSettings: {
+      pending: '確認待ち',
       loading: '通知設定を読み込んでいます', emailTitle: 'メール通知', newsletter: '教会ニュースレター',
       newsletterDescription: '教会からのお知らせ、イベント、週報の更新を受け取ります。', updated: '通知設定を更新しました。',
       loadFailed: '通知設定を読み込めませんでした。', updateFailed: '通知設定を更新できませんでした。', retry: '再試行',
@@ -1330,7 +1330,6 @@ const messageCatalog = {
       language: '언어',
       notifications: '알림',
       dismissNotification: '알림 닫기',
-      statement: { notice: '교회 성명', readFull: '전체 보기', close: '닫기', doNotShowAgain: '다시 표시하지 않기', syncError: '설정을 저장할 수 없습니다. 나중에 다시 시도해 주세요.', openImage: '이미지 확대', closeImage: '이미지 닫기' },
     },
     lineBrowser: { region: '브라우저 열기 안내', title: '기본 브라우저에서 보기', description: '현재 LINE에서 보고 있습니다. 기본 브라우저 사용을 권장합니다.', open: '기본 브라우저에서 열기', stay: '여기에서 계속', close: '안내를 닫고 이 페이지에 머무르기', manual: '열리지 않으면 LINE 메뉴에서 브라우저로 열기를 선택해 주세요.', restartAuth: '이 로그인은 LINE에서 시작되었습니다. 기본 브라우저에서 원래 사이트 링크를 다시 열어 로그인을 새로 시작해 주세요.' },
     authErrors: {
@@ -1365,6 +1364,7 @@ const messageCatalog = {
       terms: '이용약관',
     },
     notificationSettings: {
+      pending: '확인 대기 중',
       loading: '알림 설정을 불러오는 중이에요', emailTitle: '이메일 알림', newsletter: '교회 소식지',
       newsletterDescription: '교회 소식, 행사, 주보 업데이트를 받아보세요.', updated: '알림 설정을 업데이트했어요.',
       loadFailed: '알림 설정을 불러올 수 없어요.', updateFailed: '알림 설정을 업데이트할 수 없어요.', retry: '다시 시도',
