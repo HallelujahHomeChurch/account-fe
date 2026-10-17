@@ -361,11 +361,10 @@ describe('App layout', () => {
     const productLinks = await screen.findAllByRole('menuitem')
     expect(productLinks.map((item) => item.textContent)).toEqual([
       'Official site',
-      'Projection system',
       'Sign out',
     ])
     expect(productLinks[0]).toHaveAttribute('href', 'https://www.alive.org.tw/en')
-    expect(productLinks[1]).toHaveAccessibleName('Projection system（Open in a new window）')
+    expect(screen.queryByRole('menuitem', { name: /Projection system/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: 'Admin' })).not.toBeInTheDocument()
     expect(
       document.querySelector('.hhc-account-menu__identity-text[title="ray@example.com"]'),
@@ -421,7 +420,6 @@ describe('App layout', () => {
     const productLinks = await screen.findAllByRole('menuitem')
     expect(productLinks.map((item) => item.textContent)).toEqual([
       'Official site',
-      'Projection system',
       'Admin',
       'Sign out',
     ])
@@ -579,7 +577,7 @@ it('includes authorized small groups before Admin without an Account self-link',
  const adminApi={...signedInApi,me:async()=>({id:'u1',email:'ray@example.com',permissions:['*']})};
  render(<MemoryRouter initialEntries={['/profile']}><AuthProvider api={adminApi} operationsApi={operationsApi as never}><App/></AuthProvider></MemoryRouter>);
  await userEvent.click(await screen.findByLabelText(/account menu/i));
- await waitFor(()=>expect(screen.getAllByRole('menuitem').map(item=>item.textContent)).toEqual(['Official site','Projection system','Admin','Sign out']));
+ await waitFor(()=>expect(screen.getAllByRole('menuitem').map(item=>item.textContent)).toEqual(['Official site','Admin','Sign out']));
 });
 
 it('does not show cached small group avatar access while the current lookup fails',async()=>{
