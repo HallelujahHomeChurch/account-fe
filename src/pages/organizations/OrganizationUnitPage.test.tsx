@@ -242,3 +242,10 @@ it('uses the controlled header query without rendering a second roster search or
   expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
   expect(screen.queryByRole('checkbox', { name: 'Archived units' })).not.toBeInTheDocument()
 })
+
+it('keeps unit editing beside breadcrumbs above the business actions', async () => {
+ operationsApi.getManagedUnit.mockResolvedValue({ unit: { id: "church", kind: "church", name: "Church", status: "active", version: 1 }, breadcrumb: [], children: [], actions: { editUnit: true } });
+ mount();
+ const edit = await screen.findByRole('button', { name: messages.en.organizations.settings });
+ expect(edit.closest('.organization-location')?.querySelector('.organization-breadcrumb')).toBeInTheDocument();
+});

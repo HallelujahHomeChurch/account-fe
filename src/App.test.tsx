@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import App, { PostLoginContinuation } from './App'
 import { AuthProvider, type AuthApi } from './auth/auth-context'
-import { LocaleProvider } from './i18n/locale-context'
+import { LocaleProvider, useLocale } from './i18n/locale-context'
 import { MemberDetailsClient } from './lib/member-details'
 import { ApiError } from './lib/api'
 import { clearLineLinkAutoContinue, markLineLinkAutoContinue } from './lib/line-link-intent'
@@ -489,7 +489,8 @@ describe('App layout', () => {
       getManagedUnit: vi.fn().mockResolvedValue({ unit: { id: 'unit', kind: 'family', name: 'Family', status: 'active' }, breadcrumb: [], children: [], actions: {} }),
       listManagedMembers: vi.fn().mockResolvedValue({ items: [], page: 1 }),
     }
-    render(<MemoryRouter initialEntries={['/organizations/unit']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+    function ChangeLocale() { const { setLocale } = useLocale(); return <button onClick={() => setLocale('zh-Hant')}>Change test locale</button> }
+    render(<MemoryRouter initialEntries={['/organizations/unit']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><NavigationProbe /><ChangeLocale /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
     const search = await screen.findByRole('button', { name: 'Search members' })
     await waitFor(() => expect(search).not.toBeDisabled())
     await userEvent.click(search)
@@ -497,6 +498,10 @@ describe('App layout', () => {
     await waitFor(() => expect(operationsApi.listManagedMembers).toHaveBeenLastCalledWith('unit', 'Alice', 1, expect.any(AbortSignal), false))
     expect(screen.getByTestId('route-path')).toHaveTextContent('/organizations/unit')
     expect(screen.getAllByRole('searchbox')).toHaveLength(1)
+    const signal = operationsApi.listManagedMembers.mock.calls.at(-1)![3] as AbortSignal
+    expect(signal.aborted).toBe(false)
+    await userEvent.click(screen.getByRole('button', { name: 'Change test locale' }))
+    expect(signal.aborted).toBe(true)
   })
 
   it('localizes the account brand and legal links using canonical public routes', async () => {

@@ -26,6 +26,7 @@ it('keeps an applied member query visible and clearable after collapsing', async
   await user.click(screen.getByRole('button', { name: 'Search members' }))
   await user.type(screen.getByRole('searchbox'), 'Alice{Enter}')
   expect(screen.getByText('Alice')).toBeVisible()
+  expect(screen.getByText('Alice')).not.toHaveAttribute('title')
   await user.click(within(screen.getByText('Alice').parentElement!).getByRole('button', { name: 'Clear search' }))
   expect(screen.queryByText('Alice')).not.toBeInTheDocument()
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()

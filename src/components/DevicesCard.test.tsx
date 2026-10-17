@@ -1,5 +1,5 @@
 import { MemoryRouter } from 'react-router-dom'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 
@@ -236,3 +236,13 @@ describe('DevicesCard', () => {
     expect(screen.queryByRole('button', { name: /sign out this mac/i })).not.toBeInTheDocument()
   })
 })
+
+it('exposes logout failures after closing confirmation and preserves the signed-in device for retry', async () => {
+ render(<MemoryRouter><AuthProvider api={deviceApi({listDevices: async () => [{id:'remote',display_name:'Remote Mac',device_type:'desktop',browser:'Chrome',os:'macOS',ip_address:'203.0.113.10',first_seen_at:'2026-07-01T00:00:00Z',last_login_at:'2026-07-11T00:00:00Z',last_active_at:'2026-07-12T00:00:00Z',is_current:false,is_signed_in:true}],logoutDevice: async () => {throw new Error('offline')}})}><DevicesCard/></AuthProvider></MemoryRouter>);
+ await userEvent.click(await screen.findByRole('button',{name:/sign out remote mac/i}));
+ await userEvent.click(screen.getByRole('button',{name:/^sign out$/i}));
+ await waitFor(()=>expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
+ expect(screen.getByRole('alert')).toHaveTextContent('Unable to sign out this device');
+ expect(screen.getByRole('button',{name:/sign out remote mac/i})).toBeEnabled();
+ expect(screen.queryByText('Signed out')).not.toBeInTheDocument();
+});

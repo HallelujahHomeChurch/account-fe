@@ -49,9 +49,8 @@ export function DevicesCard() {
           item.id === device.id ? { ...item, is_signed_in: false } : item,
         ),
       )
-    } catch (error) {
+    } catch {
       setError(t.security.deviceSignOutFailed)
-      throw error
     }
   }
 

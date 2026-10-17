@@ -135,4 +135,4 @@
 
 ## 計劃審查紀錄
 
-審查報告：[2026-10-17-plan-review.md](../../reviews/account-profile-layout/2026-10-17-plan-review.md)。兩輪各兩位Codex＋一位Gemini均已完成；修正詳見報告。Codex boundary兩項P2已由原reviewer定向複核；Gemini條件式發現由主代理查證並補入本文，未再做一輪Gemini全文覆核。這是已審查、待使用者決定是否實作的計劃，不代表產品驗收或發布已通過。
+審查報告：[2026-10-17-plan-review.md](../../reviews/account-profile-layout/2026-10-17-plan-review.md)。兩輪各兩位Codex＋一位Gemini均已完成；修正詳見報告。Codex boundary兩項P2已由原reviewer定向複核；Gemini條件式發現由主代理查證並補入本文，未再做一輪Gemini全文覆核。使用者已於2026-10-17授權實作；實作與驗證紀錄見 [implementation review](../../reviews/account-profile-layout/2026-10-17-implementation-review.md)，不代表生產發布已完成。

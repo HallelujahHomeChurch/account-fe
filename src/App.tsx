@@ -276,7 +276,7 @@ function LayoutContent() {
               <Route element={<ResourceReservationPage />} path="/resources/:resourceKey" />
               <Route element={managedAccess === 'allowed' ? <Outlet /> : managedAccess === 'denied' ? <Navigate replace to="/profile" /> : managedAccess === 'failed' ? <section className="account-document"><p className="form-error" role="alert">{t.organizations.loadFailed}</p><Button onPress={() => setAccessRevision(value => value + 1)}>{t.organizations.retry}</Button></section> : <Skeleton className="account-page-skeleton" label={t.organizations.loading} />}>
                 <Route element={<OrganizationRootsPage />} path="/organizations" />
-                <Route element={<OrganizationUnitPage key={`${owner}:${unitId}`} searchQuery={searchQuery} onSearchAvailabilityChange={onSearchAvailabilityChange} />} path="/organizations/:unitId" />
+                <Route element={<OrganizationUnitPage key={scopeKey} searchQuery={searchQuery} onSearchAvailabilityChange={onSearchAvailabilityChange} />} path="/organizations/:unitId" />
                 <Route element={<OrganizationMemberPage />} path="/organizations/:unitId/members/:memberId" />
               </Route>
               <Route element={<Navigate replace to="/profile" />} path="*" />

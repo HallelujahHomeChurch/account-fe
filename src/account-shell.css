@@ -34,10 +34,17 @@
 .main-panel [tabindex="-1"] { scroll-margin-block: 96px 24px; }
 .main-panel [tabindex="-1"]:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 4px; }
 .organization-folder-header { flex-wrap: nowrap; }
-.organization-folder-header > .organization-breadcrumb { flex: 1; flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; }
-.organization-folder-header > .organization-breadcrumb > span { flex-wrap: nowrap; flex-shrink: 0; }
+.organization-location { display: flex; flex: 1; min-width: 0; align-items: center; gap: 8px; }
+.organization-location > .organization-breadcrumb { flex: 1; flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; }
+.organization-location > .organization-breadcrumb > span { flex-wrap: nowrap; flex-shrink: 0; }
 .organization-folder-header > .organization-actions { flex: none; flex-wrap: nowrap; gap: 8px; }
-.organization-folder-header .hhc-select__trigger { min-width: 100px; }
+.organization-location .hhc-select { flex: none; width: 100px; }
+.organization-location .hhc-select__trigger { min-width: 0; width: 100%; }
+@media (min-width: 768px) and (max-width: 1100px) {
+  .organization-folder-header .organization-action-label { display: none; }
+  .organization-folder-header > .organization-actions > button { width: 44px; padding-inline: 0; }
+  .organization-location .hhc-select { width: 84px; }
+}
 
 @media (max-width: 767px) {
   body:has(.account-app) { min-height: 100dvh; padding-bottom: calc(62px + env(safe-area-inset-bottom)); }
@@ -58,7 +65,8 @@
   .account-document.organization-folder-page, .organization-folder-page .organization-directory { display: block; min-height: 0; }
   .organization-directory > .hhc-data-table-frame { min-height: 0; height: auto; }
   .organization-folder-header { flex-direction: column; align-items: stretch; margin-bottom: 16px; gap: 12px; }
-  .organization-folder-header > .organization-actions { flex-wrap: wrap; }
+  .organization-folder-header > .organization-actions { flex-wrap: nowrap; overflow-x: auto; min-width: 0; padding-bottom: 2px; }
+  .organization-folder-header > .organization-actions > button { padding-inline: 8px; }
   .organization-folder-header .organization-breadcrumb { font-size: 16px; }
   .account-footer { padding: 12px 0 20px; }
   .account-footer-copy { width: calc(100% - 28px); display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }

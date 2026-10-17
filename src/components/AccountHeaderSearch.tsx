@@ -19,7 +19,7 @@ export function AccountHeaderSearch({ mode, value, onChange, items, isDisabled =
   const label = mode === 'members' ? t.members : t.functions
   return <div className="account-search" data-expanded={expanded}>
     {mode === 'members' && value.trim() && !expanded ? <div className="account-search-applied">
-      <span title={value}>{value}</span>
+      <span>{value}</span>
       <Button size="sm" variant="ghost" aria-label={t.clear} onPress={() => onChange('')}>×</Button>
     </div> : null}
     <ExpandableSearchField label={label} placeholder={label} submitLabel={t.submit} clearLabel={t.clear} closeLabel={t.close}

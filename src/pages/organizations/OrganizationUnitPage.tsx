@@ -1,5 +1,5 @@
 import { Button, DataTableFrame, Dialog, Select, Skeleton, Switch } from '@hallelujahhomechurch/ui'
-import { ChevronRight, Pencil, Plus, Send } from 'lucide-react'
+import { ChevronRight, FolderPlus, Pencil, Send, UserRoundPlus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 
@@ -148,17 +148,19 @@ function UnitFolder({ unitId, query, onSearchAvailabilityChange }: {
 
   return <section className="account-document organization-page organization-folder-page">
     <header className="organization-folder-header">
+    <div className="organization-location">
     <nav aria-label={t.title} className="organization-breadcrumb">
       <Link to="/organizations">{t.title}</Link>
       {folder.breadcrumb.map(item => <span key={item.id}><ChevronRight size={14} aria-hidden="true" /><Link to={'/organizations/' + item.id}>{item.name}</Link></span>)}
       <span aria-current="page"><ChevronRight size={14} aria-hidden="true" />{folder.unit.name}</span>
     </nav>
-      <div className="organization-actions">
         <Select hideLabel label={t.type} items={folderTypes.map(value => ({ id: value, label: value === 'all' ? t.all : value === 'unit' ? t.unitButton : value === 'member' ? t.memberButton : t.responsibility }))} selectedKey={typeFilter} onSelectionChange={key => selectType(String(key) as FolderType)} />
         {folder.actions.editUnit ? <Button className="organization-settings" aria-label={t.settings} variant="outline" isDisabled={loading} onPress={() => setDialog('settings')}><Pencil size={18} aria-hidden="true" /></Button> : null}
-        {folder.actions.manageMembers ? <Button variant="outline" aria-label={t.addMember} isDisabled={loading || pending} onPress={() => { setCandidateQuery(''); setCandidateLookup(null); setAdmissionCodes([]); setDialog('add') }}><Plus size={18} aria-hidden="true" />{t.memberButton}</Button> : null}
-        {folder.actions.createChild && childKinds.length ? <Button variant="outline" aria-label={t.createChild} isDisabled={loading || pending} onPress={() => setDialog('child')}><Plus size={18} aria-hidden="true" />{t.unitButton}</Button> : null}
-        {folder.actions.sendNotifications ? <Button isDisabled={loading} onPress={() => setDialog('notification')}><Send size={17} aria-hidden="true" />{site.notifications}</Button> : null}
+    </div>
+      <div className="organization-actions">
+        {folder.actions.manageMembers ? <Button variant="outline" aria-label={t.addMember} isDisabled={loading || pending} onPress={() => { setCandidateQuery(''); setCandidateLookup(null); setAdmissionCodes([]); setDialog('add') }}><UserRoundPlus size={18} aria-hidden="true" /><span className="organization-action-label">{t.memberButton}</span></Button> : null}
+        {folder.actions.createChild && childKinds.length ? <Button variant="outline" aria-label={t.createChild} isDisabled={loading || pending} onPress={() => setDialog('child')}><FolderPlus size={18} aria-hidden="true" /><span className="organization-action-label">{t.unitButton}</span></Button> : null}
+        {folder.actions.sendNotifications ? <Button aria-label={site.notifications} isDisabled={loading} onPress={() => setDialog('notification')}><Send size={17} aria-hidden="true" /><span className="organization-action-label">{site.notifications}</span></Button> : null}
       </div>
     </header>
     <h1 className="sr-only">{folder.unit.name}</h1>
