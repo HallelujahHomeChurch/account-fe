@@ -1,5 +1,5 @@
 import { Button, DataTableFrame, Dialog, Select, Skeleton, Switch } from '@hallelujahhomechurch/ui'
-import { ChevronRight, Pencil, Plus, Search, Send } from 'lucide-react'
+import { ChevronRight, Pencil, Plus, Send } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 
@@ -12,12 +12,21 @@ import { managedEntitlementCodes, managedEntitlementLabels, useManagedMutation }
 type FolderType = 'all' | 'unit' | 'member' | 'responsibility'
 const folderTypes: FolderType[] = ['all', 'unit', 'member', 'responsibility']
 
-export function OrganizationUnitPage() {
+export type OrganizationSearchStatus = { unitId: string; available: boolean }
+
+export function OrganizationUnitPage({ searchQuery = '', onSearchAvailabilityChange }: {
+  searchQuery?: string
+  onSearchAvailabilityChange?: (status: OrganizationSearchStatus) => void
+} = {}) {
   const { unitId = '' } = useParams()
-  return <UnitFolder key={unitId} unitId={unitId} />
+  return <UnitFolder key={unitId} unitId={unitId} query={searchQuery} onSearchAvailabilityChange={onSearchAvailabilityChange} />
 }
 
-function UnitFolder({ unitId }: { unitId: string }) {
+function UnitFolder({ unitId, query, onSearchAvailabilityChange }: {
+  unitId: string
+  query: string
+  onSearchAvailabilityChange?: (status: OrganizationSearchStatus) => void
+}) {
   const { operationsApi } = useAuth()
   const { messages: { organizations: t, site } } = useLocale()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -27,14 +36,12 @@ function UnitFolder({ unitId }: { unitId: string }) {
   const unitVisible = typeFilter === 'all' || typeFilter === 'unit'
   const [folder, setFolder] = useState<ManagedUnitFolder | null>(null)
   const [members, setMembers] = useState<ManagedMemberPage | null>(null)
-  const [includeArchived, setIncludeArchived] = useState(false)
-  const [query, setQuery] = useState('')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [revision, setRevision] = useState(0)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<'forbidden' | 'failed' | null>(null)
-  const [dialog, setDialog] = useState<'add' | 'child' | 'settings' | 'archive' | 'notification' | null>(null)
+  const [dialog, setDialog] = useState<'add' | 'child' | 'settings' | 'notification' | null>(null)
   const [candidateQuery, setCandidateQuery] = useState('')
   const [admissionCodes, setAdmissionCodes] = useState<EntitlementCode[]>([])
   const [candidateLookup, setCandidateLookup] = useState<{ email: string } | null>(null)
@@ -61,7 +68,7 @@ function UnitFolder({ unitId }: { unitId: string }) {
     setLoading(true); setLoadError(null); setMembers(null)
     void (async () => {
       try {
-        const nextFolder = await operationsApi.getManagedUnit(unitId, includeArchived, controller.signal)
+        const nextFolder = await operationsApi.getManagedUnit(unitId, controller.signal)
         const nextMembers = nextFolder.unit.status === 'archived' || !memberVisible ? { items: [], page: 1 } : await operationsApi.listManagedMembers(unitId, search, page, controller.signal, typeFilter === 'responsibility')
         if (!controller.signal.aborted) { setFolder(nextFolder); setMembers(nextMembers) }
       } catch (reason) {
@@ -72,7 +79,11 @@ function UnitFolder({ unitId }: { unitId: string }) {
       } finally { if (!controller.signal.aborted) setLoading(false) }
     })()
     return () => controller.abort()
-  }, [includeArchived, operationsApi, page, search, unitId, revision, memberVisible, typeFilter])
+  }, [operationsApi, page, search, unitId, revision, memberVisible, typeFilter])
+
+  useEffect(() => {
+    onSearchAvailabilityChange?.({ unitId, available: Boolean(folder && folder.unit.status === 'active' && !loadError) })
+  }, [folder, loadError, onSearchAvailabilityChange, unitId])
 
   useEffect(() => {
     setCandidates([]); setCandidateError(false)
@@ -132,7 +143,6 @@ function UnitFolder({ unitId }: { unitId: string }) {
   if (!folder) return <section className="account-document"><p className="form-error" role="alert">{loadError === 'forbidden' ? t.forbidden : t.loadFailed}</p><Button onPress={refresh}>{t.retry}</Button></section>
   const unitRows = unitVisible ? folder.children.filter(child => !search || child.name.toLocaleLowerCase().includes(search.toLocaleLowerCase())) : []
   const memberRows = memberVisible ? members?.items ?? [] : []
-  const archived = folder.unit.status === 'archived'
   const childKinds = folder.unit.kind === 'church' ? ['family', 'fellowship'] as const : folder.unit.kind === 'family' ? ['small_group'] as const : []
   const close = (open: boolean) => { if (!open && !pending) { setDialog(null); setAdmissionCodes([]) } }
 
@@ -143,21 +153,15 @@ function UnitFolder({ unitId }: { unitId: string }) {
       {folder.breadcrumb.map(item => <span key={item.id}><ChevronRight size={14} aria-hidden="true" /><Link to={'/organizations/' + item.id}>{item.name}</Link></span>)}
       <span aria-current="page"><ChevronRight size={14} aria-hidden="true" />{folder.unit.name}</span>
     </nav>
-    <label className="organization-checkbox"><input checked={includeArchived} type="checkbox" onChange={event => setIncludeArchived(event.target.checked)} />{t.archiveFilter}</label>
-    </header>
-    <h1 className="sr-only">{folder.unit.name}</h1>
-    {archived ? <span className="organization-badge">{t.archived}</span> : null}
-    <div className="organization-toolbar">
-      <div className="organization-search"><Search size={18} aria-hidden="true" /><input className="organization-input" type="search" aria-label={t.searchMembers} placeholder={t.searchMembers} value={query} disabled={archived} onChange={event => setQuery(event.target.value)} /></div>
       <div className="organization-actions">
         <Select hideLabel label={t.type} items={folderTypes.map(value => ({ id: value, label: value === 'all' ? t.all : value === 'unit' ? t.unitButton : value === 'member' ? t.memberButton : t.responsibility }))} selectedKey={typeFilter} onSelectionChange={key => selectType(String(key) as FolderType)} />
         {folder.actions.editUnit ? <Button className="organization-settings" aria-label={t.settings} variant="outline" isDisabled={loading} onPress={() => setDialog('settings')}><Pencil size={18} aria-hidden="true" /></Button> : null}
         {folder.actions.manageMembers ? <Button variant="outline" aria-label={t.addMember} isDisabled={loading || pending} onPress={() => { setCandidateQuery(''); setCandidateLookup(null); setAdmissionCodes([]); setDialog('add') }}><Plus size={18} aria-hidden="true" />{t.memberButton}</Button> : null}
         {folder.actions.createChild && childKinds.length ? <Button variant="outline" aria-label={t.createChild} isDisabled={loading || pending} onPress={() => setDialog('child')}><Plus size={18} aria-hidden="true" />{t.unitButton}</Button> : null}
-        {folder.actions.restore ? <Button isDisabled={pending || loading} onPress={() => void run(['restore', folder.unit.version], key => operationsApi.setManagedUnitStatus(unitId, folder.unit.version, 'restore', key))}>{t.restore}</Button> : null}
         {folder.actions.sendNotifications ? <Button isDisabled={loading} onPress={() => setDialog('notification')}><Send size={17} aria-hidden="true" />{site.notifications}</Button> : null}
       </div>
-    </div>
+    </header>
+    <h1 className="sr-only">{folder.unit.name}</h1>
     {!dialog ? mutationError : null}
     <div className="organization-directory">
         <DataTableFrame footer={<div className="organization-section-heading organization-pagination">
@@ -168,7 +172,7 @@ function UnitFolder({ unitId }: { unitId: string }) {
             <thead><tr><th>{t.name}</th><th>{t.email}</th><th>{t.type}</th><th>{t.unitKind}</th><th className="organization-row-action"><span className="sr-only">{t.settings}</span></th></tr></thead>
             <tbody>
               {unitRows.map(child => <tr className="organization-folder-row" key={child.id}>
-                <td><Link className="organization-row-link" to={'/organizations/' + child.id}><span>{child.name}{child.status === 'archived' ? <small className="organization-badge">{t.archived}</small> : null}</span></Link></td>
+                <td><Link className="organization-row-link" to={'/organizations/' + child.id}><span>{child.name}</span></Link></td>
                 <td className="organization-email">{child.email || '—'}</td><td>{t.unitButton}</td><td>{t[child.kind]}</td>
                 <td className="organization-row-action"><Link className="organization-icon-action" aria-label={t.view + ' ' + child.name} to={'/organizations/' + child.id}><Pencil size={16} aria-hidden="true" /></Link></td>
               </tr>)}
@@ -220,11 +224,7 @@ function UnitFolder({ unitId }: { unitId: string }) {
             {responsibilities.map(value => <li key={value.id}><span>{value.displayName}{value.memberId === selfMemberId ? ` (${t.you})` : ''}<small>{value.email}</small></span>{value.memberId !== selfMemberId ? <Button size="sm" variant="secondary" isDisabled={pending} onPress={() => void run(['revoke', value.id, value.version], key => operationsApi.revokeManagedResponsibility(unitId, value.id, value.version, key))}>{t.revoke}</Button> : null}</li>)}
           </ul>
         </section> : null}
-        {folder.actions.archive ? <div className="organization-danger-zone"><Button variant="secondary" isDisabled={pending} onPress={() => setDialog('archive')}>{t.archive}</Button></div> : null}
       </div>
-    </Dialog>
-    <Dialog isOpen={dialog === 'archive'} onOpenChange={close} title={t.archive} closeLabel={t.cancel}>
-      <div className="organization-dialog-stack">{mutationError}<p>{t.archiveConfirm}</p><div className="organization-actions"><Button variant="secondary" isDisabled={pending} onPress={() => setDialog('settings')}>{t.cancel}</Button><Button isDisabled={pending} onPress={() => void run(['archive', folder.unit.version], key => operationsApi.setManagedUnitStatus(unitId, folder.unit.version, 'archive', key), () => setDialog(null))}>{t.archive}</Button></div></div>
     </Dialog>
     {dialog === 'notification' ? <OrganizationNotificationDialog isOpen unitId={unitId} onOpenChange={open => { if (!open) setDialog(null) }} /> : null}
   </section>

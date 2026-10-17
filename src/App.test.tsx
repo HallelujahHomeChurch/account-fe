@@ -161,11 +161,10 @@ describe('App layout', () => {
     }
     render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
     expect(await screen.findByRole('link', { name: 'Small group management' })).toHaveAttribute('href', '/organizations')
-    await userEvent.click(screen.getByRole('button', { name: 'Open navigation' }))
-    expect(within(await screen.findByRole('dialog')).getByRole('link', { name: 'Small group management' })).toHaveAttribute('href', '/organizations')
+    expect(screen.queryByRole('button', { name: 'Open navigation' })).not.toBeInTheDocument()
   })
 
-  it('places small group management between security and devices', async () => {
+  it('keeps the focused desktop navigation after consolidating settings', async () => {
     const operationsApi = {
       listMyResources: vi.fn().mockResolvedValue([]),
       getMyAccess: vi.fn().mockResolvedValue({ churchMembership: { id: 'church-member' }, responsibilities: [{ responsibilityId: 'r1' }] }),
@@ -173,7 +172,7 @@ describe('App layout', () => {
     render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={{ ...signedInApi, getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, dsr: { enabled: true } }) }} operationsApi={operationsApi as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
     const navigation = await screen.findByRole('navigation', { name: 'Account navigation' })
     await within(navigation).findByRole('link', { name: 'Small group management' })
-    expect(within(navigation).getAllByRole('link').slice(1, 4).map(link => link.textContent)).toEqual(['Security', 'Small group management', 'Devices'])
+    expect(within(navigation).getAllByRole('link').map(link => link.textContent)).toEqual(['Personal info', 'Security', 'Small group management'])
   })
 
   it('surfaces resource lookup failures instead of treating them as no eligible resources', async () => {
@@ -372,7 +371,7 @@ describe('App layout', () => {
     expect(screen.getByLabelText(/account menu/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/account menu/i).closest('.hhc-account-menu')).toBeInTheDocument()
     expect(document.querySelector('.account-header')).toHaveClass('account-header')
-    expect(screen.getByRole('link', { name: 'Devices' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Devices' })).not.toBeInTheDocument()
     expect(document.title).toBe('Account | Hallelujah Home Church')
   })
 
@@ -461,46 +460,43 @@ describe('App layout', () => {
     )
   })
 
-  it('opens and dismisses the mobile account navigation drawer', async () => {
-    const user = userEvent.setup()
-
-    render(
-      <MemoryRouter initialEntries={['/profile']}>
-        <AuthProvider api={signedInApi}>
-          <App />
-        </AuthProvider>
-      </MemoryRouter>,
-    )
-
-    await user.click(await screen.findByRole('button', { name: /open navigation/i }))
-    const dialog = await screen.findByRole('dialog', { name: /account navigation/i })
-    expect(dialog.closest('.hhc-modal--drawer-left')).toBeInTheDocument()
-    expect(within(dialog).getByRole('link', { name: 'Devices' })).toBeInTheDocument()
-
-    await user.keyboard('{Escape}')
-    expect(screen.queryByRole('dialog', { name: /account navigation/i })).not.toBeInTheDocument()
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: /open navigation/i })).toHaveFocus(),
-    )
+  it.each([false, true])('uses four or five mobile destinations with organization permission %s', async allowed => {
+    vi.stubGlobal('matchMedia', vi.fn((query: string) => ({ matches: query === '(max-width: 767px)', media: query, addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn() })))
+    const operationsApi = { listMyResources: vi.fn().mockResolvedValue([]), getMyAccess: vi.fn().mockResolvedValue({ churchMembership: {}, responsibilities: allowed ? [{ responsibilityId: 'r1' }] : [] }) }
+    render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+    await screen.findByRole('heading', { level: 1 })
+    await waitFor(() => expect(operationsApi.getMyAccess).toHaveBeenCalled())
+    const nav = screen.getByRole('navigation', { name: 'Account navigation' })
+    await waitFor(() => expect(within(nav).getAllByRole('link').length + within(nav).getAllByRole('button').length).toBe(allowed ? 5 : 4))
+    expect(screen.queryByRole('button', { name: /open navigation/i })).not.toBeInTheDocument()
+    expect(document.querySelector('.account-header .hhc-account-menu')).not.toBeInTheDocument()
   })
 
-  it('closes the mobile navigation after navigating', async () => {
-    const user = userEvent.setup()
+  it('opens More without changing the current page and navigates to the first available data request item', async () => {
+    vi.stubGlobal('matchMedia', vi.fn((query: string) => ({ matches: query === '(max-width: 767px)', media: query, addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn() })))
+    const account = { ...signedInApi, getAuthCapabilities: async () => ({ providers: [], registrationEnabled: false, emailCorrectionEnabled: true }) }
+    render(<MemoryRouter initialEntries={['/profile']}><LocaleProvider><AuthProvider api={account}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+    await userEvent.click(await screen.findByRole('button', { name: 'More' }))
+    expect(screen.getByTestId('route-path')).toHaveTextContent('/profile')
+    expect(screen.getAllByRole('menuitem')[0]).toHaveTextContent('Data requests')
+    expect(within(screen.getByRole('navigation', { name: 'Account navigation' })).getByRole('link', { name: 'Personal info' })).toHaveAttribute('aria-current', 'page')
+  })
 
-    render(
-      <MemoryRouter initialEntries={['/profile']}>
-        <AuthProvider api={signedInApi}>
-          <App />
-        </AuthProvider>
-      </MemoryRouter>,
-    )
-
-    await user.click(await screen.findByRole('button', { name: /open navigation/i }))
-    const dialog = await screen.findByRole('dialog', { name: /account navigation/i })
-    await user.click(within(dialog).getByRole('link', { name: /security/i }))
-
-    expect(screen.queryByRole('dialog', { name: /account navigation/i })).not.toBeInTheDocument()
-    expect(await screen.findByRole('heading', { name: /security/i })).toBeInTheDocument()
+  it('feeds only the current authorized unit roster from header search without changing the URL', async () => {
+    const operationsApi = {
+      listMyResources: vi.fn().mockResolvedValue([]),
+      getMyAccess: vi.fn().mockResolvedValue({ churchMembership: {}, responsibilities: [{ responsibilityId: 'r1' }] }),
+      getManagedUnit: vi.fn().mockResolvedValue({ unit: { id: 'unit', kind: 'family', name: 'Family', status: 'active' }, breadcrumb: [], children: [], actions: {} }),
+      listManagedMembers: vi.fn().mockResolvedValue({ items: [], page: 1 }),
+    }
+    render(<MemoryRouter initialEntries={['/organizations/unit']}><LocaleProvider><AuthProvider api={signedInApi} operationsApi={operationsApi as never}><NavigationProbe /><App /></AuthProvider></LocaleProvider></MemoryRouter>)
+    const search = await screen.findByRole('button', { name: 'Search members' })
+    await waitFor(() => expect(search).not.toBeDisabled())
+    await userEvent.click(search)
+    await userEvent.type(screen.getByRole('searchbox'), 'Alice')
+    await waitFor(() => expect(operationsApi.listManagedMembers).toHaveBeenLastCalledWith('unit', 'Alice', 1, expect.any(AbortSignal), false))
+    expect(screen.getByTestId('route-path')).toHaveTextContent('/organizations/unit')
+    expect(screen.getAllByRole('searchbox')).toHaveLength(1)
   })
 
   it('localizes the account brand and legal links using canonical public routes', async () => {

@@ -163,6 +163,7 @@ const messageCatalog = {
       privacy: '隱私權',
       terms: '使用條款',
     },
+    search: {"functions": "搜尋帳號功能", "members": "搜尋會員", "submit": "搜尋", "clear": "清除搜尋", "close": "關閉搜尋", "results": "搜尋結果", "empty": "找不到符合的帳號功能。", "more": "其他", "emptyMore": "目前沒有其他可用功能"},
     notificationSettings: {
       pending: '待確認',
       loading: '正在載入通知設定', emailTitle: 'Email 通知', newsletter: '教會電子報',
@@ -463,6 +464,7 @@ const messageCatalog = {
       privacy: '隐私权',
       terms: '使用条款',
     },
+    search: {"functions": "搜索帐号功能", "members": "搜索会员", "submit": "搜索", "clear": "清除搜索", "close": "关闭搜索", "results": "搜索结果", "empty": "找不到符合的帐号功能。", "more": "其他", "emptyMore": "目前没有其他可用功能"},
     notificationSettings: {
       pending: '待确认',
       loading: '正在载入通知设置', emailTitle: 'Email 通知', newsletter: '教会电子报',
@@ -763,6 +765,7 @@ const messageCatalog = {
       privacy: 'Privacy',
       terms: 'Terms of Use',
     },
+    search: {"functions": "Search account settings", "members": "Search members", "submit": "Search", "clear": "Clear search", "close": "Close search", "results": "Search results", "empty": "No matching account settings.", "more": "More", "emptyMore": "No other features available"},
     notificationSettings: {
       pending: 'Pending confirmation',
       loading: 'Loading notification settings', emailTitle: 'Email notifications', newsletter: 'Email newsletter',
@@ -1063,6 +1066,7 @@ const messageCatalog = {
       privacy: 'プライバシー',
       terms: '利用規約',
     },
+    search: {"functions": "アカウント機能を検索", "members": "会員を検索", "submit": "検索", "clear": "検索をクリア", "close": "検索を閉じる", "results": "検索結果", "empty": "一致するアカウント機能がありません。", "more": "その他", "emptyMore": "他に利用できる機能はありません"},
     notificationSettings: {
       pending: '確認待ち',
       loading: '通知設定を読み込んでいます', emailTitle: 'メール通知', newsletter: '教会ニュースレター',
@@ -1363,6 +1367,7 @@ const messageCatalog = {
       privacy: '개인정보 처리방침',
       terms: '이용약관',
     },
+    search: {"functions": "계정 기능 검색", "members": "회원 검색", "submit": "검색", "clear": "검색 지우기", "close": "검색 닫기", "results": "검색 결과", "empty": "일치하는 계정 기능이 없어요.", "more": "기타", "emptyMore": "다른 사용 가능한 기능이 없어요"},
     notificationSettings: {
       pending: '확인 대기 중',
       loading: '알림 설정을 불러오는 중이에요', emailTitle: '이메일 알림', newsletter: '교회 소식지',

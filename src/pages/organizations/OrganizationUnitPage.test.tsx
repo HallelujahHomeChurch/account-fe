@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { AccountHeaderSearch } from '../../components/AccountHeaderSearch'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -93,7 +95,7 @@ it('keeps names icon-free and provides a last-column action for units and member
   for (const link of [unit, member]) expect(link.closest('td')).toBe(link.closest('tr')?.lastElementChild)
   expect(screen.getByRole('link', { name: 'Family' }).querySelector('svg')).toBeNull()
   expect(screen.getByRole('link', { name: 'Alice' }).querySelector('svg')).toBeNull()
-  expect(screen.getByRole('checkbox', { name: 'Archived units' }).closest('.organization-folder-header')).not.toBeNull()
+  expect(screen.queryByRole('checkbox', { name: 'Archived units' })).not.toBeInTheDocument()
 })
 
 it('does not offer child creation when server actions deny it', async () => {
@@ -216,7 +218,11 @@ it.each([
 
 it('resets responsible-person filtering to the first page and preserves search', async () => {
   operationsApi.listManagedMembers.mockImplementation((_unit, query, page, _signal, responsibilityOnly) => Promise.resolve({ items: [{ memberId: 'leader', displayName: 'Alice', email: `alice-${responsibilityOnly ? 'leader' : page}@example.test`, isResponsible: responsibilityOnly }], page, nextPage: !responsibilityOnly && !query ? 2 : undefined }))
-  mount()
+  function FolderWithHeader() {
+    const [value, setValue] = useState('')
+    return <><AccountHeaderSearch mode="members" value={value} onChange={setValue} items={[]} /><OrganizationUnitPage searchQuery={value} /></>
+  }
+  render(<MemoryRouter initialEntries={['/organizations/church']}><Routes><Route path="/organizations/:unitId" element={<FolderWithHeader />} /></Routes></MemoryRouter>)
   await screen.findByText('alice-1@example.test')
   await userEvent.click(screen.getByRole('button', { name: 'Next' }))
   await screen.findByText('alice-2@example.test')
@@ -224,6 +230,15 @@ it('resets responsible-person filtering to the first page and preserves search',
   await userEvent.click(await screen.findByRole('option', { name: 'Responsible person' }))
   expect(await screen.findByText('alice-leader@example.test')).toBeInTheDocument()
   expect(operationsApi.listManagedMembers).toHaveBeenLastCalledWith('church', '', 1, expect.any(AbortSignal), true)
+  await userEvent.click(screen.getByRole('button', { name: 'Search members' }))
   await userEvent.type(screen.getByRole('searchbox', { name: 'Search members' }), 'Alice')
   await waitFor(() => expect(operationsApi.listManagedMembers).toHaveBeenLastCalledWith('church', 'Alice', 1, expect.any(AbortSignal), true))
+})
+
+it('uses the controlled header query without rendering a second roster search or archive controls', async () => {
+  render(<MemoryRouter initialEntries={['/organizations/church']}><Routes><Route path="/organizations/:unitId" element={<OrganizationUnitPage searchQuery="Alice" />} /></Routes></MemoryRouter>)
+  await screen.findByRole('table')
+  await waitFor(() => expect(operationsApi.listManagedMembers).toHaveBeenCalledWith('church', 'Alice', 1, expect.any(AbortSignal), false))
+  expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
+  expect(screen.queryByRole('checkbox', { name: 'Archived units' })).not.toBeInTheDocument()
 })

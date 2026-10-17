@@ -39,13 +39,11 @@
 }
 
 .account-document.organization-page { display: grid; gap: 1.5rem; min-width: 0; width: min(100%, 1040px); }
-.account-content:has(.organization-folder-page) { height: 100dvh; grid-template-rows: auto auto minmax(0, 1fr); }
 .main-panel:has(.organization-folder-page) { display: flex; min-height: 0; overflow: auto; padding-bottom: 24px; }
 .account-document.organization-folder-page { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .organization-folder-page > :not(.organization-directory) { flex-shrink: 0; }
 .organization-folder-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .organization-folder-header .organization-breadcrumb { min-width: 0; }
-.organization-folder-header .organization-checkbox { flex-shrink: 0; font-size: .875rem; color: var(--color-muted); }
 .organization-folder-page .organization-directory { display: flex; flex-direction: column; flex: 1; min-height: 280px; }
 .organization-directory > .hhc-data-table-frame { flex: 1; min-height: 280px; }
 .organization-heading { display: flex; align-items: start; justify-content: space-between; gap: 1.25rem; flex-wrap: wrap; }
@@ -119,7 +117,6 @@
 @media (max-width: 640px) {
   .account-document.organization-page { gap: 1rem; }
   .organization-breadcrumb { font-size: 1rem; gap: .35rem; }
-  .organization-search { flex-basis: 100%; max-width: none; }
   .organization-toolbar > .organization-actions { width: 100%; gap: .5rem; }
   .organization-toolbar > .organization-actions > button:not(.organization-settings) { flex: 1; padding-inline: .6rem; }
   .organization-table { min-width: 30rem; }
@@ -219,31 +216,6 @@ textarea::selection {
   background: var(--color-canvas);
 }
 
-.account-layout {
-  display: grid;
-  grid-template-columns: 244px minmax(0, 1fr);
-  min-height: 100vh;
-}
-
-.account-content {
-  display: grid;
-  min-width: 0;
-  grid-template-rows: auto auto 1fr;
-}
-
-.account-content > .main-panel { grid-row: 3; }
-
-.account-sidebar {
-  position: sticky;
-  top: 0;
-  display: flex;
-  height: 100vh;
-  flex-direction: column;
-  gap: 28px;
-  background: var(--color-canvas);
-  padding: 24px;
-}
-
 .brand,
 .mobile-shell-brand {
   display: inline-flex;
@@ -289,31 +261,6 @@ textarea::selection {
   color: var(--color-primary);
 }
 
-.sidebar-legal-links {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-top: auto;
-  color: var(--color-muted);
-  font-size: 12px;
-}
-
-.sidebar-legal-links a:hover {
-  color: var(--color-primary);
-}
-
-.account-header {
-  position: sticky;
-  z-index: 30;
-  top: 0;
-  display: flex;
-  min-height: 72px;
-  align-items: center;
-  justify-content: flex-end;
-  background: var(--color-canvas);
-  padding: 14px 24px;
-}
-
 .line-browser-notice {
   border-bottom: 1px solid var(--color-primary-soft-hover);
   border-left: 4px solid var(--color-primary);
@@ -344,44 +291,6 @@ textarea::selection {
 .line-browser-notice__manual { grid-column: 2; color: var(--color-muted); font-size: 12px; line-height: 1.5; }
 .line-browser-notice__manual--restart { color: var(--color-ink); }
 .line-browser-notice :is(a, button):focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
-
-.mobile-navigation-trigger,
-.mobile-shell-brand {
-  display: none;
-}
-
-.mobile-navigation-body {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 28px;
-  padding: 24px;
-}
-
-.mobile-navigation-links {
-  width: 100%;
-}
-
-.mobile-navigation-legal {
-  display: flex;
-  margin-top: auto;
-}
-
-.hhc-modal--drawer-left {
-  width: min(82vw, 292px);
-}
-
-.hhc-modal--drawer-left .hhc-dialog {
-  display: flex;
-  height: 100%;
-  flex-direction: column;
-}
-
-.hhc-modal--drawer-left .hhc-dialog__body {
-  display: flex;
-  flex: 1;
-  padding: 0;
-}
 
 .account-header .hhc-menu__popover {
   width: min(260px, calc(100vw - 32px));
@@ -1388,68 +1297,6 @@ textarea::selection {
 }
 
 @media (max-width: 960px) {
-  .account-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .account-sidebar {
-    display: none;
-  }
-
-  .brand {
-    min-height: 40px;
-    font-size: 17px;
-  }
-
-  .brand-mark {
-    width: 36px;
-    height: 36px;
-  }
-
-  .account-header {
-    min-height: 60px;
-    justify-content: space-between;
-    padding: 10px 16px;
-  }
-
-  .mobile-navigation-trigger {
-    display: grid;
-    width: 40px;
-    height: 40px;
-    place-items: center;
-    border: 0;
-    border-radius: 50%;
-    background: transparent;
-    color: var(--color-ink);
-    padding: 0;
-    cursor: pointer;
-  }
-
-  .mobile-navigation-trigger:hover,
-  .mobile-navigation-trigger[data-hovered] {
-    background: var(--color-primary-soft);
-    color: var(--color-primary);
-  }
-
-  .mobile-shell-brand {
-    display: inline-flex;
-    min-width: 0;
-    align-items: center;
-    gap: 8px;
-    margin-right: auto;
-    margin-left: 8px;
-    color: var(--color-ink);
-    font-size: 17px;
-    font-weight: 650;
-  }
-
-  .mobile-shell-brand span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .main-panel,
   .auth-main-panel {
     width: min(100% - 28px, 1110px);
   }
@@ -1559,18 +1406,6 @@ textarea::selection {
     font-size: 20px;
   }
 }
-
-/* Header and statement share the public site's full-width top rows. The body
-   owns scrolling, so wrapped statements need no measured sticky offset. */
-.app-shell:has(> .account-topbar) { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
-.account-topbar { flex: none; }
-.account-topbar + .account-layout { flex: 1; min-height: 0; grid-template-rows: minmax(0, 1fr); overflow: hidden; }
-.account-topbar .account-header { position: relative; }
-.account-topbar .mobile-shell-brand { display: inline-flex; margin-right: auto; align-items: center; gap: 10px; }
-.account-topbar + .account-layout .account-sidebar { height: 100%; min-height: 0; overflow: auto; }
-.account-topbar + .account-layout .account-content { min-height: 0; overflow: auto; grid-template-rows: auto minmax(0, 1fr); }
-.account-topbar + .account-layout .account-content > .main-panel { grid-row: 2; }
-.account-topbar + .account-layout .account-content:has(.organization-folder-page) { height: 100%; }
 
 .analytics-preferences {margin: 24px auto; padding: 16px; width: min(100% - 32px, 800px); border-top: 1px solid var(--color-border, #ddd); font-size: 14px;}
 .analytics-preferences summary {cursor: pointer;}
