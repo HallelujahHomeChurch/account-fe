@@ -20,6 +20,7 @@ import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import type { LinkedAccount, MfaSetup } from '../lib/api'
 import { authErrorMessage, isStrongPassword } from '../auth/auth-form'
+import { DevicesCard } from '../components/DevicesCard'
 import { SocialIcon } from '../components/SocialIcon'
 
 type MfaDialog = 'setup' | 'manage' | null
@@ -253,12 +254,12 @@ export function SecurityPage() {
       {message ? <p className="form-notice" role="status">{message}</p> : null}
       {error ? <p className="form-error" role="alert">{error}</p> : null}
 
-      <Card className="panel-card settings-card">
+      <Card id="linked-accounts" tabIndex={-1} aria-label={t.security.signInMethods} className="panel-card settings-card">
         <Card.Header>
           <Card.Title>{t.security.signInMethods}</Card.Title>
         </Card.Header>
         <Card.Content className="settings-list">
-          <div className="settings-row">
+          <div id="password" tabIndex={-1} aria-label={t.security.password} className="settings-row">
             <span className="settings-icon" aria-hidden="true"><KeyRound /></span>
             <div className="settings-row-copy">
               <strong>{t.security.password}</strong>
@@ -323,7 +324,7 @@ export function SecurityPage() {
         </Card.Content>
       </Card>
 
-      <Card className="panel-card settings-card">
+      <Card id="mfa" tabIndex={-1} aria-label={t.security.mfa} className="panel-card settings-card">
         <Card.Header>
           <Card.Title>{t.security.mfa}</Card.Title>
         </Card.Header>
@@ -346,6 +347,8 @@ export function SecurityPage() {
           </div>
         </Card.Content>
       </Card>
+
+      <DevicesCard key={auth.profile.id} />
 
       <PasswordDialog
         isOpen={isPasswordDialogOpen}

@@ -8,9 +8,9 @@ describe('OperationsApi organization workspace', () => {
   it('uses the exact scoped read routes and bounded queries', async () => {
     const raw = { GET: vi.fn().mockImplementation((path: string) => ok(path.endsWith('/roots') ? { items: [] } : path.endsWith('/members') ? { items: [], page: 2 } : path.endsWith('/account-candidates') ? { items: [] } : path.endsWith('/responsibility-candidates') ? { items: [] } : path.endsWith('/responsibilities') ? { items: [] } : {})) }
     const api = new OperationsApi({ raw: { ...raw, use: vi.fn() } } as never)
-    await api.getMyAccess(); await api.listManagedRoots(); await api.getManagedUnit('unit', true); await api.listManagedMembers('unit', '王', 2); await api.getManagedMember('unit', 'member'); await api.searchManagedCandidates('unit', '王小'); await api.listResponsibilityCandidates('unit', '王小'); await api.listManagedResponsibilities('unit')
+    await api.getMyAccess(); await api.listManagedRoots(); await api.getManagedUnit('unit'); await api.listManagedMembers('unit', '王', 2); await api.getManagedMember('unit', 'member'); await api.searchManagedCandidates('unit', '王小'); await api.listResponsibilityCandidates('unit', '王小'); await api.listManagedResponsibilities('unit')
     expect(raw.GET).toHaveBeenCalledWith('/api/operations/me/access', { signal: undefined })
-    expect(raw.GET).toHaveBeenCalledWith('/api/operations/manage/org-units/{unitId}', expect.objectContaining({ params: { path: { unitId: 'unit' }, query: { includeArchived: true } } }))
+    expect(raw.GET).toHaveBeenCalledWith('/api/operations/manage/org-units/{unitId}', expect.objectContaining({ params: { path: { unitId: 'unit' } } }))
     expect(raw.GET).toHaveBeenCalledWith('/api/operations/manage/org-units/{unitId}/members', expect.objectContaining({ params: { path: { unitId: 'unit' }, query: { q: '王', page: 2, limit: 50 } } }))
     expect(raw.GET).toHaveBeenCalledWith('/api/operations/manage/org-units/{unitId}/account-candidates', expect.objectContaining({ params: { path: { unitId: 'unit' }, query: { q: '王小' } } }))
   })

@@ -67,13 +67,9 @@ Sensitive routes reload before mounting when GA has started. Only successful
 interactive login and ordinary profile saves emit fixed events; hydration and
 session refresh do not. No account identity or form data is sent to analytics.
 
-## Church statement preferences
+## Account settings
 
-The profile statement shares the signed-in Website API dismissal with WWW and
-all account devices. Anonymous dismissal uses the shared preferences package in
-one browser. A newly published version prompts again, while the publication
-window still controls availability. Auth bootstrap, stale account/version
-responses and failed preference requests are handled before showing a popup.
-
-Website client and browser preferences use the exact published
-frontend-platform v1.0.47 packages and registry lockfile.
+Devices are managed within Security; email newsletter preferences are part of
+Personalization. Legacy device and notification URLs redirect to those sections.
+Church statements are shown only on the public website; required legal review
+and analytics consent remain available in Account.

@@ -12,7 +12,6 @@ export default defineConfig(({ command }) => {
       enforce: 'pre',
       resolveId(source) {
         if (source.endsWith('/auth/auth-context')) return fixture('auth.ts')
-        if (source.endsWith('/components/StatementStrip') || source.endsWith('/components/AnalyticsBoundary')) return fixture('boundaries.tsx')
         if (source.endsWith('/pages/ProfilePage') || source.endsWith('/pages/VerifyEmailPage')) return fixture('pages.tsx')
       },
       transform(code, id) {

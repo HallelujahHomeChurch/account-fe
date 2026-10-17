@@ -10,6 +10,7 @@ import { OperationsApi } from '../src/lib/operations-api'
 import { UnitNotificationsApi } from '../src/lib/unit-notifications-api'
 import { ThemeProvider } from '../src/theme/theme-context'
 import '../src/index.css'
+import '../src/account-shell.css'
 import '@hallelujahhomechurch/ui/styles.css'
 
 if (!import.meta.env.DEV) throw new Error('Review fixture is development-only')
@@ -39,7 +40,7 @@ const responsibilities: Record<string, unknown>[] = demoParams.has('self') ? [
 const receipts = new Map<string, unknown>()
 function actions(unit: typeof units[number]) {
   const active = unit.status === 'active'
-  return { editUnit: active, createChild: active && ['church', 'family'].includes(unit.kind), archive: active && unit.id !== id(1), restore: !active, manageMembers: active, manageResponsibilities: active && unit.id !== id(1), manageEntitlements: active, sendNotifications: active }
+  return { editUnit: active, createChild: active && ['church', 'family'].includes(unit.kind), archive: false, restore: false, manageMembers: active, manageResponsibilities: active && unit.id !== id(1), manageEntitlements: active, sendNotifications: active }
 }
 function reply(data: unknown, engagement = false, status = 200) { return new Response(JSON.stringify(engagement ? { data } : data), { status, headers: { 'Content-Type': 'application/json' } }) }
 const fixtureFetch: typeof fetch = async (input, init) => {
@@ -75,11 +76,11 @@ const fixtureFetch: typeof fetch = async (input, init) => {
     const breadcrumb = []
     let parent = units.find(value => value.id === unit.parentId)
     while (parent) { breadcrumb.unshift(parent); parent = units.find(value => value.id === parent?.parentId) }
-    return reply({ unit, breadcrumb, children: units.filter(value => value.parentId === unit.id && (value.status === 'active' || url.searchParams.get('includeArchived') === 'true')), actions: actions(unit) })
+    return reply({ unit, breadcrumb, children: units.filter(value => value.parentId === unit.id && value.status === 'active'), actions: actions(unit) })
   }
   if (!suffix && method === 'PUT') { Object.assign(unit, body, { version: unit.version + 1 }); return finish(unit) }
   if (suffix === '/children') { const child = { ...body, id: crypto.randomUUID(), parentId: unit.id, status: 'active', version: 1, updatedAt: new Date().toISOString() }; units.push(child); return finish(child) }
-  if (suffix === '/archive' || suffix === '/restore') { unit.status = suffix === '/archive' ? 'archived' : 'active'; unit.version++; return finish(unit) }
+  if (suffix === '/archive' || suffix === '/restore') return reply({}, false, 404)
   if (suffix === '/account-candidates') return reply({ items: query.trim().length >= 2 ? [{ state: 'available', account: { accountUserId: id(999), displayName: '新會員', email: 'new@example.test' } }] : [] })
   if (suffix === '/members' && method === 'POST') { const member = { memberId: id(999), displayName: '新會員', email: 'new@example.test', affiliations: [], entitlementCodes: [] }; if (!members.some(value => value.memberId === member.memberId)) members.push(member); return finish({ ...member, actions: actions(unit) }) }
   if (suffix === '/members') {

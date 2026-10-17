@@ -9,6 +9,7 @@ import { captureLineLinkFragment } from './lib/line-link-intent'
 import { initObservability, reportReactError } from './observability'
 import { ThemeProvider } from './theme/theme-context'
 import './index.css'
+import './account-shell.css'
 import '@hallelujahhomechurch/ui/styles.css'
 
 captureLineLinkFragment()

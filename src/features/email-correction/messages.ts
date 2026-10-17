@@ -2,8 +2,8 @@
 export const emailCorrectionMessages = {
   "zh-Hant": {
     "retryAvailableAt": "可於 {time} 後重試。",
-    "title": "個人資料請求",
-    "intro": "在此提出個人資料請求，並查看目前申請進度。",
+    "title": "資料請求",
+    "intro": "在此提出資料請求，並查看目前申請進度。",
     "emailChangeHint": "驗證新 Email 並經管理員核准後，才會更新帳號 Email。",
     "requestEmailChange": "申請更換 Email",
     "item": "申請項目",
@@ -89,8 +89,8 @@ export const emailCorrectionMessages = {
   },
   "zh-Hans": {
     "retryAvailableAt": "可于 {time} 后重试。",
-    "title": "个人资料请求",
-    "intro": "在此提交个人资料请求，并查看当前申请进度。",
+    "title": "资料请求",
+    "intro": "在此提交资料请求，并查看当前申请进度。",
     "emailChangeHint": "验证新 Email 并经管理员核准后，才会更新账号 Email。",
     "requestEmailChange": "申请更换 Email",
     "item": "申请项目",
@@ -176,8 +176,8 @@ export const emailCorrectionMessages = {
   },
   "en": {
     "retryAvailableAt": "Try again after {time}.",
-    "title": "Personal data requests",
-    "intro": "Submit a personal data request and check its progress here.",
+    "title": "Data requests",
+    "intro": "Submit a data request and check its progress here.",
     "emailChangeHint": "Your account email changes only after you verify the new email and an administrator approves.",
     "requestEmailChange": "Request email change",
     "item": "Request type",
@@ -263,8 +263,8 @@ export const emailCorrectionMessages = {
   },
   "ja": {
     "retryAvailableAt": "{time} 以降に再試行できます。",
-    "title": "個人データに関する申請",
-    "intro": "個人データに関する申請と、現在の申請状況の確認ができます。",
+    "title": "データ申請",
+    "intro": "データ申請と、現在の申請状況の確認ができます。",
     "emailChangeHint": "新しいメールアドレスの確認と管理者の承認後に、アカウントのメールアドレスが変更されます。",
     "requestEmailChange": "メールアドレスの変更を申請",
     "item": "申請項目",
@@ -350,8 +350,8 @@ export const emailCorrectionMessages = {
   },
   "ko": {
     "retryAvailableAt": "{time} 이후에 다시 시도할 수 있습니다.",
-    "title": "개인정보 요청",
-    "intro": "개인정보 관련 요청을 제출하고 현재 진행 상황을 확인할 수 있습니다.",
+    "title": "데이터 요청",
+    "intro": "데이터 요청을 제출하고 현재 진행 상황을 확인할 수 있습니다.",
     "emailChangeHint": "새 이메일 인증과 관리자 승인 후 계정 이메일이 변경됩니다.",
     "requestEmailChange": "이메일 변경 요청",
     "item": "요청 항목",

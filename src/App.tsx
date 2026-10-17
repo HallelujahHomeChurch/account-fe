@@ -1,9 +1,9 @@
 import { CorrectionRoute } from './features/email-correction/CorrectionRoute'
 import { emailCorrectionMessages } from './features/email-correction/messages'
-import { AccountMenu, BrandLoadingScreen, Button, Drawer, Skeleton, Toast, ToastProvider } from '@hallelujahhomechurch/ui'
-import { Bell, CalendarDays, Menu, MonitorSmartphone, ShieldCheck, UserRound, UsersRound } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
-import { Link, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { AccountMenu, BrandLoadingScreen, Button, Menu, Skeleton, Toast, ToastProvider } from '@hallelujahhomechurch/ui'
+import { CalendarDays, Ellipsis, ShieldCheck, UserRound, UsersRound } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link, matchPath, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 
 import { canAccessAdmin } from '@hallelujahhomechurch/account-client/admin-access'
 
@@ -19,6 +19,12 @@ import { LineBindingPage } from './pages/LineBindingPage'
 import { OAuthCallbackPage } from './pages/OAuthCallbackPage'
 import { OAuthLinkPage } from './pages/OAuthLinkPage'
 import { OAuthOnboardingPage } from './pages/OAuthOnboardingPage'
+import { AccountHeaderSearch } from './components/AccountHeaderSearch'
+import { useMobileLayout } from './components/useMobileLayout'
+import { useScrollChrome } from './components/useScrollChrome'
+import { memberDetailsMessages } from './i18n/member-details'
+import type { AccountFeatureSearchItem } from './lib/account-feature-search'
+import { AccountSectionFocus } from './components/AccountSectionFocus'
 import { AnalyticsBoundary } from './components/AnalyticsBoundary'
 import { LegalReviewPage } from './pages/LegalReviewPage'
 import { ProfilePage } from './pages/ProfilePage'
@@ -27,8 +33,6 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { RegistrationPendingPage } from './pages/RegistrationPendingPage'
 import { SecurityPage } from './pages/SecurityPage'
-import { DevicesPage } from './pages/DevicesPage'
-import { NotificationsPage } from './pages/NotificationsPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { NativeAuthCompletePage } from './pages/NativeAuthCompletePage'
 import { PolicyAcceptancePage } from './pages/PolicyAcceptancePage'
@@ -36,11 +40,10 @@ import { MyResourceReservationsPage } from './pages/MyResourceReservationsPage'
 import { ResourceListPage } from './pages/ResourceListPage'
 import { ResourceReservationPage } from './pages/ResourceReservationPage'
 import { useAuthCapabilitiesState } from './components/SocialAuthOptions'
-import { StatementStrip } from './components/StatementStrip'
 import { LineBrowserNotice } from './components/LineBrowserNotice'
 import { OrganizationMemberPage } from './pages/organizations/OrganizationMemberPage'
 import { OrganizationRootsPage } from './pages/organizations/OrganizationRootsPage'
-import { OrganizationUnitPage } from './pages/organizations/OrganizationUnitPage'
+import { OrganizationUnitPage, type OrganizationSearchStatus } from './pages/organizations/OrganizationUnitPage'
 
 function LayoutContent() {
   const auth = useAuth()
@@ -112,11 +115,40 @@ function LayoutContent() {
     { icon: UserRound, label: t.nav.personalInfo, path: '/profile' },
     { icon: ShieldCheck, label: t.nav.security, path: '/security' },
     ...(auth.navigation?.sources.operations?.ids.includes('organizations') ? [{ icon: UsersRound, label: t.nav.organizationManagement, path: '/organizations' }] : []),
-    { icon: MonitorSmartphone, label: t.nav.devices, path: '/devices' },
-    { icon: Bell, label: t.nav.notificationSettings, path: '/notifications' },
     ...(capabilities?.emailCorrectionEnabled ? [{ icon: UserRound, label: emailCorrectionMessages[locale].title, path: '/data-requests' }] : []),
     ...(auth.navigation?.sources.resources?.ids.includes('resources') ? [{ icon: CalendarDays, label: t.nav.resourceReservations, path: '/resources' }] : []),
   ]
+
+  const mobile = useMobileLayout()
+  const scopeKey = `${owner ?? ''}:${verified}:${location.pathname}:${locale}`
+  const currentScope = useRef(scopeKey)
+  currentScope.current = scopeKey
+  const [searchState, setSearchState] = useState({ key: '', value: '' })
+  const searchQuery = searchState.key === scopeKey ? searchState.value : ''
+  const [searchExpanded, setSearchExpanded] = useState({ key: '', open: false })
+  const searchOpen = searchExpanded.key === scopeKey && searchExpanded.open
+  const [availability, setAvailability] = useState({ key: '', unitId: '', available: false })
+  const unitId = matchPath({ path: '/organizations/:unitId', end: true }, location.pathname)?.params.unitId
+  const onSearchAvailabilityChange = useCallback((status: OrganizationSearchStatus) => {
+    if (currentScope.current === scopeKey) setAvailability({ key: scopeKey, ...status })
+  }, [scopeKey])
+  const { visible: chromeVisible } = useScrollChrome({ blocked: searchOpen, resetKey: scopeKey })
+  const [standalone] = useState(() => /iPhone|iPod/i.test(navigator.userAgent) && (window.matchMedia?.('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true))
+  const featureItems: AccountFeatureSearchItem[] = verified ? [
+    ...[
+      ['avatar', t.profile.avatar], ['nickname', t.nickname.label], ['language', t.profile.language],
+      ['appearance', t.profile.appearance], ['email-notifications', t.notificationSettings.emailTitle],
+    ].map(([id, label]) => ({ id, label, category: t.nav.personalInfo, keywords: [], to: `/profile#${id}` })),
+    ...[
+      ['password', t.security.password], ['linked-accounts', t.security.signInMethods], ['mfa', t.security.authenticatorApp], ['devices', t.nav.devices],
+    ].map(([id, label]) => ({ id, label, category: t.nav.security, keywords: id === 'mfa' ? ['MFA', '2FA'] : [], to: `/security#${id}` })),
+    ...(capabilities?.emailCorrectionEnabled ? [{ id: 'data-requests', label: emailCorrectionMessages[locale].title, category: t.search.more, keywords: [emailCorrectionMessages[locale].requestEmailChange], to: '/data-requests' }] : []),
+    ...(managedAccess === 'allowed' ? [{ id: 'organizations', label: t.nav.organizationManagement, category: t.nav.organizationManagement, keywords: [], to: '/organizations' }] : []),
+    ...(auth.navigation?.sources.resources?.ids.includes('resources') ? [{ id: 'resources', label: t.nav.resourceReservations, category: t.search.more, keywords: [], to: '/resources' }] : []),
+    ...(memberAllowed ? [{ id: 'member-details', label: memberDetailsMessages[locale].title, category: t.nav.personalInfo, keywords: [], to: '/profile/member-details' }] : []),
+  ] : []
+  const active = (path: string) => location.pathname === path || location.pathname.startsWith(`${path}/`)
+  const moreItems = navigation.filter(item => item.path === '/data-requests' || item.path === '/resources')
 
   if (isAuthRoute) {
     return (
@@ -171,75 +203,8 @@ function LayoutContent() {
     return <Navigate replace to="/line/bind" />
   }
 
-  return (
-    <div className="app-shell">
-      <div className="account-topbar">
-          <header className="account-header">
-            <Drawer
-              closeLabel={t.nav.closeNavigation}
-              placement="left"
-              title={t.nav.accountNavigation}
-              trigger={
-                <Button
-                  aria-label={t.nav.openNavigation}
-                  className="mobile-navigation-trigger"
-                  variant="ghost"
-                >
-                  <Menu size={21} aria-hidden="true" />
-                </Button>
-              }
-            >
-              {(close) => (
-                <div className="mobile-navigation-body">
-                  <Link
-                    className="brand mobile-navigation-brand"
-                    to="/profile"
-                    onClick={close}
-                  >
-                    <img className="brand-mark" src="/assets/brand/logo.png" alt="" />
-                    <span>{t.site.accountName}</span>
-                  </Link>
-                  <nav
-                    className="nav-links mobile-navigation-links"
-                    aria-label={t.nav.accountNavigation}
-                  >
-                    {navigation.map(({ icon: Icon, label, path }) => (
-                      <Link
-                        key={path}
-                        aria-current={location.pathname === path || location.pathname.startsWith(`${path}/`) ? 'page' : undefined}
-                        to={path}
-                        onClick={close}
-                      >
-                        <Icon size={17} />
-                        {label}
-                      </Link>
-                    ))}
-                  </nav>
-                  <div className="sidebar-legal-links mobile-navigation-legal">
-                    <a
-                      href={`${publicSiteUrl}/${locale}/privacy-policy`}
-                      rel="noopener noreferrer"
-                      target="_blank"
-                    >
-                      {t.nav.privacy}
-                    </a>
-                    <span aria-hidden="true">/</span>
-                    <a
-                      href={`${publicSiteUrl}/${locale}/terms-of-use`}
-                      rel="noopener noreferrer"
-                      target="_blank"
-                    >
-                      {t.nav.terms}
-                    </a>
-                  </div>
-                </div>
-              )}
-            </Drawer>
-            <Link className="mobile-shell-brand" to="/profile">
-              <img className="brand-mark" src="/assets/brand/logo.png" alt="" />
-              <span>{t.site.accountName}</span>
-            </Link>
-            <AccountMenu
+  const accountMenu = (
+    <AccountMenu
               labels={{
                 greeting: verified && auth.profile ? `Hi ${accountGreetingName(auth.profile, t.profile.fallbackName)}` : t.nav.accountMenu,
                 menu: t.nav.accountMenu,
@@ -260,75 +225,78 @@ function LayoutContent() {
               }}
               onSignOut={() => void auth.logout()}
             />
-            {auth.logoutError ? (
-              <div className="auth-error-toast">
-                <Toast tone="danger">{auth.logoutError}</Toast>
-              </div>
-            ) : null}
-          </header>
-          <StatementStrip />
+  )
+  const legalLinks = <nav className="account-legal-links" aria-label={`${t.nav.privacy} / ${t.nav.terms}`}>
+    <a href={`${publicSiteUrl}/${locale}/privacy-policy`} rel="noopener noreferrer" target="_blank">{t.nav.privacy}</a>
+    <span aria-hidden="true">/</span>
+    <a href={`${publicSiteUrl}/${locale}/terms-of-use`} rel="noopener noreferrer" target="_blank">{t.nav.terms}</a>
+  </nav>
+
+  return (
+    <div className="app-shell account-app" data-iphone-standalone={standalone || undefined}>
+      <div className="account-topbar" data-mobile-hidden={!chromeVisible}>
+        <header className="account-header" data-search-open={searchOpen}>
+          <Link className="mobile-shell-brand" to="/profile">
+            <img className="brand-mark" src="/assets/brand/logo.png" alt="" />
+            <span>{t.site.accountName}</span>
+          </Link>
+          <AccountHeaderSearch key={scopeKey} mode={unitId ? 'members' : 'features'} value={searchQuery}
+            items={featureItems} onChange={value => setSearchState({ key: scopeKey, value })}
+            onExpandedChange={open => setSearchExpanded({ key: scopeKey, open })}
+            isDisabled={!verified || Boolean(unitId && (availability.key !== scopeKey || availability.unitId !== unitId || !availability.available))} />
+          {!mobile ? accountMenu : null}
+          {auth.logoutError ? <div className="auth-error-toast"><Toast tone="danger">{auth.logoutError}</Toast></div> : null}
+        </header>
       </div>
       <div className="account-layout">
-        <aside className="account-sidebar" aria-label={t.nav.accountSections}>
+        {!mobile ? <aside className="account-sidebar" aria-label={t.nav.accountSections}>
           <nav className="nav-links" aria-label={t.nav.accountNavigation}>
-            {navigation.map(({ icon: Icon, label, path }) => (
-              <Link
-                key={path}
-                aria-current={location.pathname === path || location.pathname.startsWith(`${path}/`) ? 'page' : undefined}
-                to={path}
-              >
-                <Icon size={17} />
-                {label}
-              </Link>
-            ))}
+            {navigation.map(({ icon: Icon, label, path }) => <Link key={path} aria-current={active(path) ? 'page' : undefined} to={path}><Icon size={17} />{label}</Link>)}
           </nav>
-          <div className="sidebar-legal-links">
-            <a
-              href={`${publicSiteUrl}/${locale}/privacy-policy`}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              {t.nav.privacy}
-            </a>
-            <span aria-hidden="true">/</span>
-            <a
-              href={`${publicSiteUrl}/${locale}/terms-of-use`}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              {t.nav.terms}
-            </a>
-          </div>
-        </aside>
+        </aside> : null}
         <div className="account-content">
           <LineBrowserNotice />
           <main className="main-panel">
+            <AccountSectionFocus />
             {resourceLookupFailed && !isResourceRoute ? <p className="form-error" role="alert">
               {t.resources.loadFailed} <Link to="/resources">{t.nav.resourceReservations}</Link>
             </p> : null}
             {!verified ? <><Skeleton className="account-page-skeleton" label={t.profile.loading} />
               {auth.status === 'unavailable' ? <div role="alert"><p className="form-error">{auth.bootstrapError}</p><Button onPress={() => void auth.retrySession()}>{t.security.retry}</Button></div> : null}
             </> : hasPostLoginReturnTo() ? <PostLoginContinuation /> : <Routes>
-              <Route element={<ProfilePage memberDetailsAvailable={memberAllowed} />} path="/profile" />
+              <Route element={<ProfilePage key={owner} memberDetailsAvailable={memberAllowed} />} path="/profile" />
               <Route element={memberAllowed ? <MemberDetailsPage key={auth.profile?.id} /> : managedAccess === 'loading' || memberAuthorizationPending || !capabilities && !capabilitiesError ? <Skeleton className="account-page-skeleton" label={t.profile.loading} /> : <Navigate replace to="/profile" />} path="/profile/member-details" />
               <Route element={<LegalReviewPage key={`${auth.profile?.id}:${locale}`} />} path="/legal" />
-              <Route element={<SecurityPage />} path="/security" />
-              <Route element={<DevicesPage />} path="/devices" />
-              <Route element={<NotificationsPage />} path="/notifications" />
+              <Route element={<SecurityPage key={owner} />} path="/security" />
+              <Route element={<Navigate replace to="/security#devices" />} path="/devices" />
+              <Route element={<Navigate replace to="/profile#email-notifications" />} path="/notifications" />
               <Route element={<CorrectionRoute key={auth.profile?.id} />} path="/data-requests" />
               <Route element={<ResourceListPage />} path="/resources" />
               <Route element={<MyResourceReservationsPage />} path="/resources/reservations" />
               <Route element={<ResourceReservationPage />} path="/resources/:resourceKey" />
               <Route element={managedAccess === 'allowed' ? <Outlet /> : managedAccess === 'denied' ? <Navigate replace to="/profile" /> : managedAccess === 'failed' ? <section className="account-document"><p className="form-error" role="alert">{t.organizations.loadFailed}</p><Button onPress={() => setAccessRevision(value => value + 1)}>{t.organizations.retry}</Button></section> : <Skeleton className="account-page-skeleton" label={t.organizations.loading} />}>
                 <Route element={<OrganizationRootsPage />} path="/organizations" />
-                <Route element={<OrganizationUnitPage />} path="/organizations/:unitId" />
+                <Route element={<OrganizationUnitPage key={scopeKey} searchQuery={searchQuery} onSearchAvailabilityChange={onSearchAvailabilityChange} />} path="/organizations/:unitId" />
                 <Route element={<OrganizationMemberPage />} path="/organizations/:unitId/members/:memberId" />
               </Route>
               <Route element={<Navigate replace to="/profile" />} path="*" />
             </Routes>}
+
           </main>
         </div>
+        {!mobile ? <div className="account-sidebar-footer">{legalLinks}</div> : null}
+        <footer className="account-footer">
+          <div className="account-footer-copy"><span>© 2026 哈利路亞家教會. All rights reserved.</span>{mobile ? legalLinks : null}</div>
+        </footer>
       </div>
+      {mobile ? <nav className="account-mobile-tabs" aria-label={t.nav.accountNavigation} data-mobile-hidden={!chromeVisible}>
+        {navigation.filter(item => ['/profile', '/security', '/organizations'].includes(item.path)).map(({ icon: Icon, label, path }) => <Link key={path} to={path} aria-current={active(path) ? 'page' : undefined} className="account-mobile-tab" data-active={active(path) || undefined}><Icon aria-hidden="true" /><span>{label}</span></Link>)}
+        {moreItems.length ? <Menu label={t.search.more} items={moreItems.map(item => ({ id: item.path, label: item.label }))}
+          onAction={id => { if (moreItems.some(item => item.path === id)) navigate(id) }}
+          trigger={<Button variant="ghost" className="account-mobile-tab" aria-label={t.search.more} data-active={moreItems.some(item => active(item.path)) || undefined}><Ellipsis aria-hidden="true" /><span>{t.search.more}</span></Button>} /> :
+          <Button variant="ghost" className="account-mobile-tab" aria-label={t.search.more} aria-describedby="account-more-unavailable" isDisabled><Ellipsis aria-hidden="true" /><span>{t.search.more}</span><span className="sr-only" id="account-more-unavailable">{t.search.emptyMore}</span></Button>}
+        <div className="account-mobile-avatar">{accountMenu}</div>
+      </nav> : null}
     </div>
   )
 }

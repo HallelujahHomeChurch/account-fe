@@ -33,14 +33,13 @@ export type OperationsApiClient = {
   cancelReservation: (reservationId: string, version: number) => Promise<ResourceReservation>
   getMyAccess: (signal?: AbortSignal) => Promise<OperationsAccess>
   listManagedRoots: (signal?: AbortSignal) => Promise<ManagedUnit[]>
-  getManagedUnit: (unitId: string, includeArchived?: boolean, signal?: AbortSignal) => Promise<ManagedUnitFolder>
+  getManagedUnit: (unitId: string, signal?: AbortSignal) => Promise<ManagedUnitFolder>
   listManagedMembers: (unitId: string, query?: string, page?: number, signal?: AbortSignal, responsibilityOnly?: boolean) => Promise<ManagedMemberPage>
   getManagedMember: (unitId: string, memberId: string, signal?: AbortSignal) => Promise<ManagedMemberView>
   searchManagedCandidates: (unitId: string, query: string, signal?: AbortSignal) => Promise<ManagedJoinCandidate[]>
   admitManagedMember: (unitId: string, accountUserId: string, key: string, entitlementCodes?: EntitlementCode[]) => Promise<ManagedMemberView>
   createManagedChild: (unitId: string, input: Schemas['ManagedChildInput'], key: string) => Promise<ManagedUnit>
   updateManagedUnit: (unitId: string, version: number, input: Schemas['ManagedUnitUpdate'], key: string) => Promise<ManagedUnit>
-  setManagedUnitStatus: (unitId: string, version: number, action: 'archive' | 'restore', key: string) => Promise<ManagedUnit>
   listResponsibilityCandidates: (unitId: string, query: string, signal?: AbortSignal) => Promise<ManagedResponsibilityCandidate[]>
   listManagedResponsibilities: (unitId: string, signal?: AbortSignal) => Promise<ManagedResponsibility[]>
   assignManagedResponsibility: (unitId: string, memberId: string, key: string) => Promise<ManagedResponsibility>
@@ -111,9 +110,9 @@ export class OperationsApi implements OperationsApiClient {
     return (await unwrap<Schemas['ManagedUnitList']>(this.client.raw.GET('/api/operations/manage/roots', { signal }))).items
   }
 
-  getManagedUnit(unitId: string, includeArchived = false, signal?: AbortSignal) {
+  getManagedUnit(unitId: string, signal?: AbortSignal) {
     return unwrap<ManagedUnitFolder>(this.client.raw.GET('/api/operations/manage/org-units/{unitId}', {
-      params: { path: { unitId }, query: { includeArchived } }, signal,
+      params: { path: { unitId } }, signal,
     }))
   }
 
@@ -155,12 +154,6 @@ export class OperationsApi implements OperationsApiClient {
     }))
   }
 
-  setManagedUnitStatus(unitId: string, version: number, action: 'archive' | 'restore', key: string) {
-    const request = action === 'archive'
-      ? this.client.raw.POST('/api/operations/manage/org-units/{unitId}/archive', { params: { path: { unitId }, header: versioned(version, key) } })
-      : this.client.raw.POST('/api/operations/manage/org-units/{unitId}/restore', { params: { path: { unitId }, header: versioned(version, key) } })
-    return unwrap<ManagedUnit>(request)
-  }
 
   async listResponsibilityCandidates(unitId: string, q: string, signal?: AbortSignal) {
     return (await unwrap<Schemas['ManagedResponsibilityCandidateList']>(this.client.raw.GET('/api/operations/manage/org-units/{unitId}/responsibility-candidates', {

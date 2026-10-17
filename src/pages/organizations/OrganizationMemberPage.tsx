@@ -32,7 +32,7 @@ function MemberDetail({ unitId, memberId }: { unitId: string; memberId: string }
     setLoadError(null)
     void Promise.all([
       operationsApi.getManagedMember(unitId, memberId, controller.signal),
-      operationsApi.getManagedUnit(unitId, false, controller.signal),
+      operationsApi.getManagedUnit(unitId, controller.signal),
     ]).then(([nextMember, nextFolder]) => {
       if (!controller.signal.aborted) { setMember(nextMember); setFolder(nextFolder); setRefreshRequired(false) }
     }).catch(reason => {

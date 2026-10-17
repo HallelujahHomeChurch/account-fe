@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react'
+import { ToastProvider } from '@hallelujahhomechurch/ui'
 import { MemoryRouter } from 'react-router-dom'
-import { render, screen } from '@testing-library/react'
+import { render as renderView, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -12,6 +14,8 @@ import { ProfilePage } from './ProfilePage'
 vi.mock('react-easy-crop', () => ({
   default: () => <div data-testid="avatar-cropper" />,
 }))
+
+function render(ui: ReactNode) { return renderView(<ToastProvider dismissLabel="Dismiss">{ui}</ToastProvider>) }
 
 describe('ProfilePage', () => {
   it.each([
