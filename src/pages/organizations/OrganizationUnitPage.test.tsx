@@ -20,7 +20,7 @@ beforeEach(() => {
   vi.mocked(useAuth).mockReturnValue({ operationsApi } as never)
 })
 
-function mount() { return render(<MemoryRouter initialEntries={['/organizations/church']}><Routes><Route path="/organizations/:unitId" element={<OrganizationUnitPage />} /></Routes></MemoryRouter>) }
+function mount(path = '/organizations/church') { return render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/organizations/:unitId" element={<OrganizationUnitPage />} /></Routes></MemoryRouter>) }
 
 it('shows the current manager read-only and still allows revoking another manager', async () => {
   operationsApi.getManagedUnit.mockResolvedValue({ unit: { id: 'church', kind: 'family', name: 'Family', status: 'active' }, breadcrumb: [], children: [], actions: { editUnit: true, manageResponsibilities: true } })
@@ -67,7 +67,7 @@ it('requires a complete email and an explicit lookup before showing add-member c
 it('offers individual member access without selection or batch entitlement controls', async () => {
   mount()
   const table = await screen.findByRole('table')
-  expect(within(table).getAllByRole('columnheader')).toHaveLength(4)
+  expect(within(table).getAllByRole('columnheader')).toHaveLength(5)
   expect(within(table).queryByRole('checkbox')).not.toBeInTheDocument()
   expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Grant' })).not.toBeInTheDocument()
@@ -175,4 +175,55 @@ it('submits default-off admission switches atomically and resets them on reopeni
  expect(operationsApi.admitManagedMember).toHaveBeenCalledWith('church','new',expect.any(String),['bulletin.general.zh-Hant.access'])
  await userEvent.click(await screen.findByRole('button',{name:'Add member'}))
  expect(await screen.findByRole('switch',{name:'繁體週報下載'})).not.toBeChecked()
+})
+
+it('shows responsible people with existing read access without requesting delegation access', async () => {
+  operationsApi.listManagedMembers.mockResolvedValue({ items: [{ memberId: 'leader', displayName: 'Alice', email: 'alice@example.test', isResponsible: true }], page: 1 })
+  mount()
+  const row = (await screen.findByText('alice@example.test')).closest('tr')!
+  expect(within(row).getByText('Responsible person')).toBeInTheDocument()
+  expect(within(row).getByRole('link', { name: 'Content access Alice' })).toBeInTheDocument()
+  expect(operationsApi.listManagedResponsibilities).not.toHaveBeenCalled()
+  expect(screen.queryByRole('button', { name: 'Unit settings' })).not.toBeInTheDocument()
+})
+
+it('filters responsible people before pagination and excludes child-unit rows', async () => {
+  operationsApi.getManagedUnit.mockResolvedValue({ unit: { id: 'church', kind: 'church', name: 'Church', status: 'active' }, breadcrumb: [], children: [{ id: 'family', kind: 'family', name: 'Family', status: 'active' }], actions: {} })
+  operationsApi.listManagedMembers.mockImplementation((_unit, _query, _page, _signal, responsibilityOnly) => Promise.resolve({ items: responsibilityOnly ? [{ memberId: 'leader', displayName: 'Leader from another page', email: 'leader@example.test', isResponsible: true }] : [{ memberId: 'ordinary', displayName: 'Ordinary', email: 'ordinary@example.test' }], page: 1 }))
+  mount()
+  await screen.findByText('ordinary@example.test')
+  await userEvent.click(screen.getByRole('button', { name: /Type/ }))
+  await userEvent.click(await screen.findByRole('option', { name: 'Responsible person' }))
+  expect(await screen.findByText('leader@example.test')).toBeInTheDocument()
+  expect(screen.queryByText('ordinary@example.test')).not.toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: 'Family' })).not.toBeInTheDocument()
+})
+
+it.each([
+  ['unit', true, false],
+  ['member', false, true],
+  ['invalid', true, true],
+])('keeps the unit/member filter inclusive and falls back for %s', async (type, showUnit, showMember) => {
+  operationsApi.getManagedUnit.mockResolvedValue({ unit: { id: 'church', kind: 'church', name: 'Church', status: 'active' }, breadcrumb: [], children: [{ id: 'family', kind: 'family', name: 'Family', status: 'active' }], actions: {} })
+  operationsApi.listManagedMembers.mockResolvedValue({ items: [{ memberId: 'leader', displayName: 'Alice', email: 'alice@example.test', isResponsible: true }], page: 1 })
+  mount('/organizations/church?type=' + type)
+  const table = await screen.findByRole('table')
+  expect(Boolean(within(table).queryByRole('link', { name: 'Family' }))).toBe(showUnit)
+  expect(Boolean(within(table).queryByText('alice@example.test'))).toBe(showMember)
+  if (showMember) expect(within(table).getByText('Responsible person')).toBeInTheDocument()
+  if (!showMember) expect(operationsApi.listManagedMembers).not.toHaveBeenCalled()
+})
+
+it('resets responsible-person filtering to the first page and preserves search', async () => {
+  operationsApi.listManagedMembers.mockImplementation((_unit, query, page, _signal, responsibilityOnly) => Promise.resolve({ items: [{ memberId: 'leader', displayName: 'Alice', email: `alice-${responsibilityOnly ? 'leader' : page}@example.test`, isResponsible: responsibilityOnly }], page, nextPage: !responsibilityOnly && !query ? 2 : undefined }))
+  mount()
+  await screen.findByText('alice-1@example.test')
+  await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+  await screen.findByText('alice-2@example.test')
+  await userEvent.click(screen.getByRole('button', { name: /Type/ }))
+  await userEvent.click(await screen.findByRole('option', { name: 'Responsible person' }))
+  expect(await screen.findByText('alice-leader@example.test')).toBeInTheDocument()
+  expect(operationsApi.listManagedMembers).toHaveBeenLastCalledWith('church', '', 1, expect.any(AbortSignal), true)
+  await userEvent.type(screen.getByRole('searchbox', { name: 'Search members' }), 'Alice')
+  await waitFor(() => expect(operationsApi.listManagedMembers).toHaveBeenLastCalledWith('church', 'Alice', 1, expect.any(AbortSignal), true))
 })
