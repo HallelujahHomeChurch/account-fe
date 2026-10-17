@@ -10,6 +10,7 @@ import { LocaleProvider } from '../i18n/locale-context'
 import { ApiError } from '../lib/api'
 import { ThemeProvider } from '../theme/theme-context'
 import { ProfilePage } from './ProfilePage'
+import { emailCorrectionMessages } from '../features/email-correction/messages'
 
 vi.mock('react-easy-crop', () => ({
   default: () => <div data-testid="avatar-cropper" />,
@@ -322,4 +323,21 @@ describe('ProfilePage', () => {
     expect(await screen.findByText(/jpeg, png, or webp/i)).toBeInTheDocument()
     expect(screen.queryByTestId('avatar-cropper')).not.toBeInTheDocument()
   })
+})
+
+
+it.each([false, true])('places email notifications last with member details available: %s', async memberDetailsAvailable => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  const getAuthCapabilities = vi.fn(async () => ({ providers: [], registrationEnabled: false, emailCorrectionEnabled: true }))
+  const api: AuthApi = {
+    login: async () => ({ access_token: 'token' }), refreshAccessToken: async () => 'token',
+    me: async () => ({ id: 'u1', email: 'member@example.test', is_email_verified: true }), logout: async () => ({}),
+    getAuthCapabilities, getNewsletterPreference: async () => ({ status: 'not_subscribed' }),
+  }
+  render(<MemoryRouter><LocaleProvider><AuthProvider api={api}><ProfilePage memberDetailsAvailable={memberDetailsAvailable} /></AuthProvider></LocaleProvider></MemoryRouter>)
+  await screen.findByRole('switch', { name: 'Email notifications' })
+  expect(getAuthCapabilities).toHaveBeenCalled()
+  expect(screen.queryByRole('link', { name: emailCorrectionMessages.en.requestEmailChange })).not.toBeInTheDocument()
+  const row = document.querySelector('#email-notifications')!
+  expect(row.parentElement?.lastElementChild).toBe(row)
 })

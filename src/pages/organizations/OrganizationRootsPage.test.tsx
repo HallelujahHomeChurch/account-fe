@@ -14,25 +14,21 @@ vi.mock('../../i18n/locale-context', () => ({ useLocale: () => ({ messages: mess
 
 beforeEach(() => vi.resetAllMocks())
 
-it('renders server-selected roots as icon-free table rows without dropping units with unmanaged parents', async () => {
+it('renders every server-selected root as one clear management link without email or type columns', async () => {
   const roots = [{ id: 'unit', parentId: 'unmanaged-church', name: 'Family', kind: 'family', status: 'active', version: 1 }, { id: 'other', name: 'Other', kind: 'fellowship', email: 'other@example.test', status: 'active', version: 1 }]
   vi.mocked(useAuth).mockReturnValue({ operationsApi: { listManagedRoots: vi.fn().mockResolvedValue(roots) } } as never)
   render(<MemoryRouter><OrganizationRootsPage /></MemoryRouter>)
-  const table = await screen.findByRole('table', { name: 'Small group management' })
-  expect(within(table).getAllByRole('row')).toHaveLength(3)
+  const list = await screen.findByRole('list', { name: messages.en.organizations.roots })
+  expect(within(list).getAllByRole('listitem')).toHaveLength(2)
+  expect(within(list).getAllByRole('link')).toHaveLength(2)
   for (const root of roots) {
-    const action = within(table).getByRole('link', { name: 'Open unit ' + root.name })
-    const name = within(table).getByRole('link', { name: root.name })
-    expect(action).toHaveAttribute('href', '/organizations/' + root.id)
-    expect(name).toHaveAttribute('href', action.getAttribute('href'))
-    expect(name.querySelector('svg')).toBeNull()
-    expect(action.querySelector('svg')).not.toBeNull()
-    expect(action.closest('td')).toBe(action.closest('tr')?.lastElementChild)
+    const link = within(list).getByRole('link', { name: 'Manage ' + root.name })
+    expect(link).toHaveAttribute('href', '/organizations/' + root.id)
+    expect(link).toHaveTextContent(root.name)
   }
-  expect(screen.getByRole('navigation').querySelector('[aria-current="page"]')).toHaveTextContent('Small group management')
-  expect(screen.queryByText(messages.en.organizations.description)).not.toBeInTheDocument()
+  expect(screen.queryByText('other@example.test')).not.toBeInTheDocument()
+  expect(screen.queryByRole('table')).not.toBeInTheDocument()
   expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
-  expect(screen.queryByRole('button')).not.toBeInTheDocument()
 })
 
 it('renders authorization state for a direct denied URL', async () => {
@@ -42,10 +38,11 @@ it('renders authorization state for a direct denied URL', async () => {
   expect(screen.queryByRole('table')).not.toBeInTheDocument()
 })
 
-it('keeps the table for an empty successful response', async () => {
+it('shows the empty state without a table for an empty successful response', async () => {
   vi.mocked(useAuth).mockReturnValue({ operationsApi: { listManagedRoots: vi.fn().mockResolvedValue([]) } } as never)
   render(<MemoryRouter><OrganizationRootsPage /></MemoryRouter>)
-  expect(within(await screen.findByRole('table')).getByText(messages.en.organizations.empty)).toBeInTheDocument()
+  expect(await screen.findByText(messages.en.organizations.empty)).toBeInTheDocument()
+  expect(screen.queryByRole('table')).not.toBeInTheDocument()
 })
 
 it('retries a failed lookup instead of displaying an empty successful table', async () => {
@@ -55,7 +52,7 @@ it('retries a failed lookup instead of displaying an empty successful table', as
   expect(await screen.findByRole('alert')).toHaveTextContent(messages.en.organizations.loadFailed)
   expect(screen.queryByRole('table')).not.toBeInTheDocument()
   await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
-  await screen.findByRole('table')
+  await screen.findByText(messages.en.organizations.empty)
   expect(listManagedRoots).toHaveBeenCalledTimes(2)
 })
 
@@ -69,12 +66,12 @@ it('navigates root to unit to member and back using the shared breadcrumb title'
     <Route path="/organizations/:unitId" element={<OrganizationUnitPage />} />
     <Route path="/organizations/:unitId/members/:memberId" element={<OrganizationMemberPage />} />
   </Routes></MemoryRouter>)
-  await userEvent.click(await screen.findByRole('link', { name: 'Open unit Family' }))
+  await userEvent.click(await screen.findByRole('link', { name: 'Manage Family' }))
   await screen.findByRole('table')
   expect(within(screen.getByRole('navigation')).getByRole('link', { name: 'Small group management' })).toHaveAttribute('href', '/organizations')
   await userEvent.click(screen.getByRole('link', { name: 'Content access Alice' }))
   await screen.findByRole('heading', { name: 'Alice' })
   await userEvent.click(within(screen.getByRole('navigation')).getByRole('link', { name: 'Small group management' }))
-  await screen.findByRole('table', { name: 'Small group management' })
+  await screen.findByRole('list', { name: messages.en.organizations.roots })
   expect(operationsApi.listManagedRoots).toHaveBeenCalledTimes(2)
 })

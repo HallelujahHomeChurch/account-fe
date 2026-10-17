@@ -1,15 +1,16 @@
 import type { Locale } from './locales'
 
 const organizationBaseMessages = {
-  'zh-Hant': { title: '小家管理', roots: '負責單位', loading: '正在載入單位', loadFailed: '目前無法載入單位資料。', forbidden: '你沒有管理此單位的權限。', retry: '重試', empty: '目前沒有可管理的單位。', members: '會員', children: '下屬單位', showArchived: '顯示已封存單位', searchMembers: '搜尋會員', previous: '上一頁', next: '下一頁', addMember: '加入會員', searchAccounts: '搜尋 Email', fullEmailHint: '請輸入完整 email', searchAction: '查詢', searchHint: '請至少輸入兩個字。', createChild: '新增下屬單位', edit: '編輯單位', archive: '封存', restore: '還原', name: '名稱', email: 'Email', kind: '類型', family: '家族', small_group: '小家', fellowship: '團契', save: '儲存', cancel: '取消', notifications: '發送通知', subject: '主旨', body: '內容', preview: '確認對象', send: '發送', audience: '帳號', emailRecipients: 'Email 收件者', webPushDevices: '推播裝置', history: '通知紀錄', responsibilities: '負責人', assign: '委派', revoke: '撤銷', entitlements: '內容授權', grant: '授權', remove: '移除', select: '選取會員', noMembers: '目前沒有會員。', back: '返回', affiliations: '所屬單位', move: '移動', removeAffiliation: '移除綁定', endMembership: '這是最後一個歸屬；同時結束此人的教會會員資格？', status: '狀態', sent: '已送出通知。', conflict: '資料已更新，請重新載入後再試。' },
-  'zh-Hans': { title: '小家管理', roots: '负责单位', loading: '正在加载单位', loadFailed: '目前无法加载单位资料。', forbidden: '你没有管理此单位的权限。', retry: '重试', empty: '目前没有可管理的单位。', members: '会员', children: '下属单位', showArchived: '显示已封存单位', searchMembers: '搜索会员', previous: '上一页', next: '下一页', addMember: '加入会员', searchAccounts: '搜索 Email', fullEmailHint: '请输入完整 email', searchAction: '查询', searchHint: '请至少输入两个字。', createChild: '新增下属单位', edit: '编辑单位', archive: '封存', restore: '还原', name: '名称', email: 'Email', kind: '类型', family: '家族', small_group: '小家', fellowship: '团契', save: '保存', cancel: '取消', notifications: '发送通知', subject: '主题', body: '内容', preview: '确认对象', send: '发送', audience: '账号', emailRecipients: 'Email 收件人', webPushDevices: '推送设备', history: '通知记录', responsibilities: '负责人', assign: '委派', revoke: '撤销', entitlements: '内容授权', grant: '授权', remove: '移除', select: '选择会员', noMembers: '目前没有会员。', back: '返回', affiliations: '所属单位', move: '移动', removeAffiliation: '移除绑定', endMembership: '这是最后一个归属；同时结束此人的教会会员资格？', status: '状态', sent: '通知已发送。', conflict: '资料已更新，请重新加载后再试。' },
-  en: { title: 'Small group management', roots: 'Managed units', loading: 'Loading units', loadFailed: 'Unable to load unit data.', forbidden: 'You do not have access to manage this unit.', retry: 'Retry', empty: 'You have no managed units.', members: 'Members', children: 'Child units', showArchived: 'Show archived units', searchMembers: 'Search members', previous: 'Previous', next: 'Next', addMember: 'Add member', searchAccounts: 'Search email', fullEmailHint: 'Enter the full email address.', searchAction: 'Search', searchHint: 'Enter at least two characters.', createChild: 'Create child unit', edit: 'Edit unit', archive: 'Archive', restore: 'Restore', name: 'Name', email: 'Email', kind: 'Type', family: 'Family', small_group: 'Small group', fellowship: 'Fellowship', save: 'Save', cancel: 'Cancel', notifications: 'Send notification', subject: 'Subject', body: 'Body', preview: 'Preview audience', send: 'Send', audience: 'Accounts', emailRecipients: 'Email recipients', webPushDevices: 'Web Push devices', history: 'Notification history', responsibilities: 'Responsible people', assign: 'Delegate', revoke: 'Revoke', entitlements: 'Content access', grant: 'Grant', remove: 'Remove', select: 'Select member', noMembers: 'No members in this unit.', back: 'Back', affiliations: 'Affiliations', move: 'Move', removeAffiliation: 'Remove affiliation', endMembership: 'This is the final affiliation. End this church membership too?', status: 'Status', sent: 'Notification sent.', conflict: 'The data changed. Reload and try again.' },
-  ja: { title: '小グループ管理', roots: '担当組織', loading: '組織を読み込み中', loadFailed: '組織データを読み込めません。', forbidden: 'この組織を管理する権限がありません。', retry: '再試行', empty: '管理できる組織はありません。', members: '会員', children: '下位組織', showArchived: 'アーカイブ済みを表示', searchMembers: '会員を検索', previous: '前へ', next: '次へ', addMember: '会員を追加', searchAccounts: 'メールを検索', fullEmailHint: 'メールアドレスをすべて入力してください。', searchAction: '検索', searchHint: '2文字以上入力してください。', createChild: '下位組織を追加', edit: '組織を編集', archive: 'アーカイブ', restore: '復元', name: '名前', email: 'Email', kind: '種類', family: '家族', small_group: '小グループ', fellowship: 'フェローシップ', save: '保存', cancel: 'キャンセル', notifications: '通知を送信', subject: '件名', body: '本文', preview: '対象を確認', send: '送信', audience: 'アカウント', emailRecipients: 'Email受信者', webPushDevices: 'プッシュ端末', history: '通知履歴', responsibilities: '担当者', assign: '委任', revoke: '解除', entitlements: 'コンテンツアクセス', grant: '付与', remove: '削除', select: '会員を選択', noMembers: '会員はいません。', back: '戻る', affiliations: '所属', move: '移動', removeAffiliation: '所属を削除', endMembership: '最後の所属です。教会会員資格も終了しますか？', status: '状態', sent: '通知を送信しました。', conflict: 'データが更新されました。再読み込みしてください。' },
-  ko: { title: '소그룹 관리', roots: '담당 조직', loading: '조직을 불러오는 중', loadFailed: '조직 데이터를 불러올 수 없어요.', forbidden: '이 조직을 관리할 권한이 없어요.', retry: '다시 시도', empty: '관리할 수 있는 조직이 없어요.', members: '회원', children: '하위 조직', showArchived: '보관된 조직 표시', searchMembers: '회원 검색', previous: '이전', next: '다음', addMember: '회원 추가', searchAccounts: '이메일 검색', fullEmailHint: '전체 이메일 주소를 입력하세요.', searchAction: '검색', searchHint: '두 글자 이상 입력하세요.', createChild: '하위 조직 추가', edit: '조직 편집', archive: '보관', restore: '복원', name: '이름', email: 'Email', kind: '유형', family: '가족', small_group: '소그룹', fellowship: '교제 모임', save: '저장', cancel: '취소', notifications: '알림 보내기', subject: '제목', body: '내용', preview: '대상 확인', send: '보내기', audience: '계정', emailRecipients: 'Email 수신자', webPushDevices: '푸시 기기', history: '알림 기록', responsibilities: '담당자', assign: '위임', revoke: '해제', entitlements: '콘텐츠 권한', grant: '권한 부여', remove: '제거', select: '회원 선택', noMembers: '회원이 없어요.', back: '뒤로', affiliations: '소속', move: '이동', removeAffiliation: '소속 제거', endMembership: '마지막 소속입니다. 교회 회원 자격도 종료할까요?', status: '상태', sent: '알림을 보냈어요.', conflict: '데이터가 변경되었어요. 다시 불러와 주세요.' },
+  'zh-Hant': { title: '小家管理', roots: '我管理的單位', loading: '正在載入單位', loadFailed: '目前無法載入單位資料。', forbidden: '你沒有管理此單位的權限。', retry: '重試', empty: '目前沒有可管理的單位。', members: '會員', children: '下屬單位', showArchived: '顯示已封存單位', searchMembers: '搜尋會員', previous: '上一頁', next: '下一頁', addMember: '加入會員', searchAccounts: '搜尋 Email', fullEmailHint: '請輸入完整 email', searchAction: '查詢', searchHint: '請至少輸入兩個字。', createChild: '新增下屬單位', edit: '編輯單位', archive: '封存', restore: '還原', name: '名稱', email: 'Email', kind: '類型', family: '家族', small_group: '小家', fellowship: '團契', save: '儲存', cancel: '取消', notifications: '發送通知', subject: '主旨', body: '內容', preview: '確認對象', send: '發送', audience: '帳號', emailRecipients: 'Email 收件者', webPushDevices: '推播裝置', history: '通知紀錄', responsibilities: '負責人', assign: '委派', revoke: '撤銷', entitlements: '內容授權', grant: '授權', remove: '移除', select: '選取會員', noMembers: '目前沒有會員。', back: '返回', affiliations: '所屬單位', move: '移動', removeAffiliation: '移除綁定', endMembership: '這是最後一個歸屬；同時結束此人的教會會員資格？', status: '狀態', sent: '已送出通知。', conflict: '資料已更新，請重新載入後再試。' },
+  'zh-Hans': { title: '小家管理', roots: '我管理的单位', loading: '正在加载单位', loadFailed: '目前无法加载单位资料。', forbidden: '你没有管理此单位的权限。', retry: '重试', empty: '目前没有可管理的单位。', members: '会员', children: '下属单位', showArchived: '显示已封存单位', searchMembers: '搜索会员', previous: '上一页', next: '下一页', addMember: '加入会员', searchAccounts: '搜索 Email', fullEmailHint: '请输入完整 email', searchAction: '查询', searchHint: '请至少输入两个字。', createChild: '新增下属单位', edit: '编辑单位', archive: '封存', restore: '还原', name: '名称', email: 'Email', kind: '类型', family: '家族', small_group: '小家', fellowship: '团契', save: '保存', cancel: '取消', notifications: '发送通知', subject: '主题', body: '内容', preview: '确认对象', send: '发送', audience: '账号', emailRecipients: 'Email 收件人', webPushDevices: '推送设备', history: '通知记录', responsibilities: '负责人', assign: '委派', revoke: '撤销', entitlements: '内容授权', grant: '授权', remove: '移除', select: '选择会员', noMembers: '目前没有会员。', back: '返回', affiliations: '所属单位', move: '移动', removeAffiliation: '移除绑定', endMembership: '这是最后一个归属；同时结束此人的教会会员资格？', status: '状态', sent: '通知已发送。', conflict: '资料已更新，请重新加载后再试。' },
+  en: { title: 'Small group management', roots: 'Units I manage', loading: 'Loading units', loadFailed: 'Unable to load unit data.', forbidden: 'You do not have access to manage this unit.', retry: 'Retry', empty: 'You have no managed units.', members: 'Members', children: 'Child units', showArchived: 'Show archived units', searchMembers: 'Search members', previous: 'Previous', next: 'Next', addMember: 'Add member', searchAccounts: 'Search email', fullEmailHint: 'Enter the full email address.', searchAction: 'Search', searchHint: 'Enter at least two characters.', createChild: 'Create child unit', edit: 'Edit unit', archive: 'Archive', restore: 'Restore', name: 'Name', email: 'Email', kind: 'Type', family: 'Family', small_group: 'Small group', fellowship: 'Fellowship', save: 'Save', cancel: 'Cancel', notifications: 'Send notification', subject: 'Subject', body: 'Body', preview: 'Preview audience', send: 'Send', audience: 'Accounts', emailRecipients: 'Email recipients', webPushDevices: 'Web Push devices', history: 'Notification history', responsibilities: 'Responsible people', assign: 'Delegate', revoke: 'Revoke', entitlements: 'Content access', grant: 'Grant', remove: 'Remove', select: 'Select member', noMembers: 'No members in this unit.', back: 'Back', affiliations: 'Affiliations', move: 'Move', removeAffiliation: 'Remove affiliation', endMembership: 'This is the final affiliation. End this church membership too?', status: 'Status', sent: 'Notification sent.', conflict: 'The data changed. Reload and try again.' },
+  ja: { title: '小グループ管理', roots: '管理する組織', loading: '組織を読み込み中', loadFailed: '組織データを読み込めません。', forbidden: 'この組織を管理する権限がありません。', retry: '再試行', empty: '管理できる組織はありません。', members: '会員', children: '下位組織', showArchived: 'アーカイブ済みを表示', searchMembers: '会員を検索', previous: '前へ', next: '次へ', addMember: '会員を追加', searchAccounts: 'メールを検索', fullEmailHint: 'メールアドレスをすべて入力してください。', searchAction: '検索', searchHint: '2文字以上入力してください。', createChild: '下位組織を追加', edit: '組織を編集', archive: 'アーカイブ', restore: '復元', name: '名前', email: 'Email', kind: '種類', family: '家族', small_group: '小グループ', fellowship: 'フェローシップ', save: '保存', cancel: 'キャンセル', notifications: '通知を送信', subject: '件名', body: '本文', preview: '対象を確認', send: '送信', audience: 'アカウント', emailRecipients: 'Email受信者', webPushDevices: 'プッシュ端末', history: '通知履歴', responsibilities: '担当者', assign: '委任', revoke: '解除', entitlements: 'コンテンツアクセス', grant: '付与', remove: '削除', select: '会員を選択', noMembers: '会員はいません。', back: '戻る', affiliations: '所属', move: '移動', removeAffiliation: '所属を削除', endMembership: '最後の所属です。教会会員資格も終了しますか？', status: '状態', sent: '通知を送信しました。', conflict: 'データが更新されました。再読み込みしてください。' },
+  ko: { title: '소그룹 관리', roots: '관리하는 조직', loading: '조직을 불러오는 중', loadFailed: '조직 데이터를 불러올 수 없어요.', forbidden: '이 조직을 관리할 권한이 없어요.', retry: '다시 시도', empty: '관리할 수 있는 조직이 없어요.', members: '회원', children: '하위 조직', showArchived: '보관된 조직 표시', searchMembers: '회원 검색', previous: '이전', next: '다음', addMember: '회원 추가', searchAccounts: '이메일 검색', fullEmailHint: '전체 이메일 주소를 입력하세요.', searchAction: '검색', searchHint: '두 글자 이상 입력하세요.', createChild: '하위 조직 추가', edit: '조직 편집', archive: '보관', restore: '복원', name: '이름', email: 'Email', kind: '유형', family: '가족', small_group: '소그룹', fellowship: '교제 모임', save: '저장', cancel: '취소', notifications: '알림 보내기', subject: '제목', body: '내용', preview: '대상 확인', send: '보내기', audience: '계정', emailRecipients: 'Email 수신자', webPushDevices: '푸시 기기', history: '알림 기록', responsibilities: '담당자', assign: '위임', revoke: '해제', entitlements: '콘텐츠 권한', grant: '권한 부여', remove: '제거', select: '회원 선택', noMembers: '회원이 없어요.', back: '뒤로', affiliations: '소속', move: '이동', removeAffiliation: '소속 제거', endMembership: '마지막 소속입니다. 교회 회원 자격도 종료할까요?', status: '상태', sent: '알림을 보냈어요.', conflict: '데이터가 변경되었어요. 다시 불러와 주세요.' },
 } as const
 
 const organizationDetails = {
   'zh-Hant': {
+    chooseUnit: '選擇要管理的單位。', manage: '管理',
     policyTitle: '可授予項目', admissionEntitlements: '加入時一併授權', admissionEntitlementsHint: '按下加入後，才會套用所選授權。', policyHelp: '未自訂的下級沿用上級；既有成員授權不會自動撤銷。', inheritPolicy: '沿用上級設定', video: '影音專區觀看', blocked: '此單位不可授予', effectivePolicy: '有效授予項目', noEntitlements: '目前沒有可授予項目。',
     type: '類型', all: '全部', responsibility: '負責人', unitKind: '單位種類', memberButton: '會員', unitButton: '單位', archiveFilter: '封存單位',
     you: '你', memberForbidden: '你無法在此管理這位會員；單位管理不允許操作自己的帳號。',
@@ -29,6 +30,7 @@ const organizationDetails = {
     sending: '正在送出…', view: '開啟單位', moveTarget: '移動至', chooseTarget: '選擇目標單位',
   },
   'zh-Hans': {
+    chooseUnit: '选择要管理的单位。', manage: '管理',
     policyTitle: '可授予项目', admissionEntitlements: '加入时一并授权', admissionEntitlementsHint: '点击加入后，才会应用所选授权。', policyHelp: '未自定义的下级沿用上级；现有成员授权不会自动撤销。', inheritPolicy: '沿用上级设置', video: '影音专区观看', blocked: '此单位不可授予', effectivePolicy: '有效授予项目', noEntitlements: '目前没有可授予项目。',
     type: '类型', all: '全部', responsibility: '负责人', unitKind: '单位种类', memberButton: '会员', unitButton: '单位', archiveFilter: '封存单位',
     you: '你', memberForbidden: '你无法在此管理这位会员；单位管理不允许操作自己的账号。',
@@ -48,6 +50,7 @@ const organizationDetails = {
     sending: '正在提交…', view: '打开单位', moveTarget: '移动至', chooseTarget: '选择目标单位',
   },
   en: {
+    chooseUnit: 'Choose a unit to manage.', manage: 'Manage',
     policyTitle: 'Grantable access', admissionEntitlements: 'Grant access when adding', admissionEntitlementsHint: 'Selected access is applied only after adding the member.', policyHelp: 'Unconfigured children inherit their parent; existing member access is not automatically revoked.', inheritPolicy: 'Inherit from parent', video: 'Member videos', blocked: 'Not grantable by this unit', effectivePolicy: 'Effective grantable access', noEntitlements: 'No access can currently be granted.',
     type: 'Type', all: 'All', responsibility: 'Responsible person', unitKind: 'Unit kind', memberButton: 'Member', unitButton: 'Unit', archiveFilter: 'Archived units',
     you: 'You', memberForbidden: 'You cannot manage this member here. Unit management does not allow managing your own account.',
@@ -67,6 +70,7 @@ const organizationDetails = {
     sending: 'Submitting…', view: 'Open unit', moveTarget: 'Move to', chooseTarget: 'Choose a target unit',
   },
   ja: {
+    chooseUnit: '管理する組織を選択してください。', manage: '管理',
     policyTitle: '付与できるアクセス', admissionEntitlements: '追加時に権限を付与', admissionEntitlementsHint: '会員を追加した後に、選択した権限が適用されます。', policyHelp: '未設定の下位組織は上位から継承します。既存のアクセスは自動解除されません。', inheritPolicy: '上位組織から継承', video: '会員向け動画', blocked: 'この組織から付与できません', effectivePolicy: '有効な付与範囲', noEntitlements: '現在付与できるアクセスはありません。',
     type: '種類', all: 'すべて', responsibility: '担当者', unitKind: '組織の種類', memberButton: '会員', unitButton: '組織', archiveFilter: 'アーカイブ済み組織',
     you: 'あなた', memberForbidden: 'この会員はここでは管理できません。組織管理では自分のアカウントを操作できません。',
@@ -86,6 +90,7 @@ const organizationDetails = {
     sending: '送信中…', view: '組織を開く', moveTarget: '移動先', chooseTarget: '移動先の組織を選択',
   },
   ko: {
+    chooseUnit: '관리할 조직을 선택하세요.', manage: '관리',
     policyTitle: '부여 가능한 접근 권한', admissionEntitlements: '회원 추가 시 권한 부여', admissionEntitlementsHint: '회원 추가 후 선택한 권한이 적용됩니다.', policyHelp: '설정하지 않은 하위 조직은 상위를 상속합니다. 기존 접근 권한은 자동 해제되지 않습니다.', inheritPolicy: '상위 설정 상속', video: '회원 영상', blocked: '이 조직에서는 부여할 수 없습니다', effectivePolicy: '유효한 부여 범위', noEntitlements: '현재 부여 가능한 권한이 없습니다.',
     type: '유형', all: '전체', responsibility: '담당자', unitKind: '조직 종류', memberButton: '회원', unitButton: '조직', archiveFilter: '보관된 조직',
     you: '나', memberForbidden: '여기에서는 이 회원을 관리할 수 없어요. 조직 관리에서는 본인 계정을 관리할 수 없어요.',
@@ -153,6 +158,7 @@ const messageCatalog = {
       signIn: '登入',
       signOut: '登出',
       accountMenu: '帳號選單',
+      my: '我的',
       churchSite: '官網',
       projectionSystem: '投影系統',
       projectionWindowLabel: '另開視窗',
@@ -454,6 +460,7 @@ const messageCatalog = {
       signIn: '登录',
       signOut: '退出登录',
       accountMenu: '帐号菜单',
+      my: '我的',
       churchSite: '官网',
       projectionSystem: '投影系统',
       projectionWindowLabel: '另开窗口',
@@ -755,6 +762,7 @@ const messageCatalog = {
       signIn: 'Sign in',
       signOut: 'Sign out',
       accountMenu: 'Account menu',
+      my: 'My account',
       churchSite: 'Official site',
       projectionSystem: 'Projection system',
       projectionWindowLabel: 'Open in a new window',
@@ -1056,6 +1064,7 @@ const messageCatalog = {
       signIn: 'ログイン',
       signOut: 'ログアウト',
       accountMenu: 'アカウントメニュー',
+      my: 'マイページ',
       churchSite: '公式サイト',
       projectionSystem: '投影システム',
       projectionWindowLabel: '新しいウィンドウで開く',
@@ -1357,6 +1366,7 @@ const messageCatalog = {
       signIn: '로그인',
       signOut: '로그아웃',
       accountMenu: '계정 메뉴',
+      my: '내 계정',
       churchSite: '공식 사이트',
       projectionSystem: '프로젝션 시스템',
       projectionWindowLabel: '새 창에서 열기',

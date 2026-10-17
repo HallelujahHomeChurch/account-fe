@@ -1,16 +1,13 @@
-import { Button, DataTableFrame, Dialog, Select, Skeleton, Switch } from '@hallelujahhomechurch/ui'
+import { Button, DataTableFrame, Dialog, Skeleton, Switch } from '@hallelujahhomechurch/ui'
 import { ChevronRight, FolderPlus, Pencil, Send, UserRoundPlus } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 
 import { useAuth } from '../../auth/auth-context'
 import { useLocale } from '../../i18n/locale-context'
 import type { EntitlementCode, ManagedJoinCandidate, ManagedMemberPage, ManagedResponsibility, ManagedResponsibilityCandidate, ManagedUnitFolder } from '../../lib/operations-api'
 import { OrganizationNotificationDialog } from './OrganizationNotificationDialog'
 import { managedEntitlementCodes, managedEntitlementLabels, useManagedMutation } from './organization-state'
-
-type FolderType = 'all' | 'unit' | 'member' | 'responsibility'
-const folderTypes: FolderType[] = ['all', 'unit', 'member', 'responsibility']
 
 export type OrganizationSearchStatus = { unitId: string; available: boolean }
 
@@ -29,11 +26,6 @@ function UnitFolder({ unitId, query, onSearchAvailabilityChange }: {
 }) {
   const { operationsApi } = useAuth()
   const { messages: { organizations: t, site } } = useLocale()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const requestedType = searchParams.get('type') as FolderType
-  const typeFilter = folderTypes.includes(requestedType) ? requestedType : 'all'
-  const memberVisible = typeFilter !== 'unit'
-  const unitVisible = typeFilter === 'all' || typeFilter === 'unit'
   const [folder, setFolder] = useState<ManagedUnitFolder | null>(null)
   const [members, setMembers] = useState<ManagedMemberPage | null>(null)
   const [search, setSearch] = useState('')
@@ -56,8 +48,6 @@ function UnitFolder({ unitId, query, onSearchAvailabilityChange }: {
   const { mutate, pending, error } = useManagedMutation()
   const refresh = () => setRevision(value => value + 1)
 
-  useEffect(() => { setPage(1) }, [typeFilter])
-
   useEffect(() => {
     if (query.trim() === search) return
     const timer = window.setTimeout(() => { setSearch(query.trim()); setPage(1) }, 250)
@@ -69,7 +59,7 @@ function UnitFolder({ unitId, query, onSearchAvailabilityChange }: {
     void (async () => {
       try {
         const nextFolder = await operationsApi.getManagedUnit(unitId, controller.signal)
-        const nextMembers = nextFolder.unit.status === 'archived' || !memberVisible ? { items: [], page: 1 } : await operationsApi.listManagedMembers(unitId, search, page, controller.signal, typeFilter === 'responsibility')
+        const nextMembers = nextFolder.unit.status === 'archived' ? { items: [], page: 1 } : await operationsApi.listManagedMembers(unitId, search, page, controller.signal, false)
         if (!controller.signal.aborted) { setFolder(nextFolder); setMembers(nextMembers) }
       } catch (reason) {
         if (!controller.signal.aborted) {
@@ -79,7 +69,7 @@ function UnitFolder({ unitId, query, onSearchAvailabilityChange }: {
       } finally { if (!controller.signal.aborted) setLoading(false) }
     })()
     return () => controller.abort()
-  }, [operationsApi, page, search, unitId, revision, memberVisible, typeFilter])
+  }, [operationsApi, page, search, unitId, revision])
 
   useEffect(() => {
     onSearchAvailabilityChange?.({ unitId, available: Boolean(folder && folder.unit.status === 'active' && !loadError) })
@@ -127,13 +117,6 @@ function UnitFolder({ unitId, query, onSearchAvailabilityChange }: {
     return () => { controller.abort(); window.clearTimeout(timer) }
   }, [dialog, folder?.actions.manageResponsibilities, operationsApi, responsibilityQuery, unitId])
 
-  function selectType(value: FolderType) {
-    const next = new URLSearchParams(searchParams)
-    if (value === 'all') next.delete('type'); else next.set('type', value)
-    setPage(1)
-    setSearchParams(next, { replace: true })
-  }
-
   async function run(signature: unknown, execute: (key: string) => Promise<unknown>, done?: () => void) {
     if (await mutate(JSON.stringify(signature), execute)) { done?.(); refresh() }
   }
@@ -141,8 +124,8 @@ function UnitFolder({ unitId, query, onSearchAvailabilityChange }: {
   const mutationError = error ? <p className="form-error" role="alert">{errorText}</p> : null
   if (!folder && loading) return <Skeleton className="account-page-skeleton" label={t.loading} />
   if (!folder) return <section className="account-document"><p className="form-error" role="alert">{loadError === 'forbidden' ? t.forbidden : t.loadFailed}</p><Button onPress={refresh}>{t.retry}</Button></section>
-  const unitRows = unitVisible ? folder.children.filter(child => !search || child.name.toLocaleLowerCase().includes(search.toLocaleLowerCase())) : []
-  const memberRows = memberVisible ? members?.items ?? [] : []
+  const unitRows = folder.children.filter(child => !search || child.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()))
+  const memberRows = members?.items ?? []
   const childKinds = folder.unit.kind === 'church' ? ['family', 'fellowship'] as const : folder.unit.kind === 'family' ? ['small_group'] as const : []
   const close = (open: boolean) => { if (!open && !pending) { setDialog(null); setAdmissionCodes([]) } }
 
@@ -154,11 +137,10 @@ function UnitFolder({ unitId, query, onSearchAvailabilityChange }: {
       {folder.breadcrumb.map(item => <span key={item.id}><ChevronRight size={14} aria-hidden="true" /><Link to={'/organizations/' + item.id}>{item.name}</Link></span>)}
       <span aria-current="page"><ChevronRight size={14} aria-hidden="true" />{folder.unit.name}</span>
     </nav>
-        <Select hideLabel label={t.type} items={folderTypes.map(value => ({ id: value, label: value === 'all' ? t.all : value === 'unit' ? t.unitButton : value === 'member' ? t.memberButton : t.responsibility }))} selectedKey={typeFilter} onSelectionChange={key => selectType(String(key) as FolderType)} />
-        {folder.actions.editUnit ? <Button className="organization-settings" aria-label={t.settings} variant="outline" isDisabled={loading} onPress={() => setDialog('settings')}><Pencil size={18} aria-hidden="true" /></Button> : null}
     </div>
       <div className="organization-actions">
-        {folder.actions.manageMembers ? <Button variant="outline" aria-label={t.addMember} isDisabled={loading || pending} onPress={() => { setCandidateQuery(''); setCandidateLookup(null); setAdmissionCodes([]); setDialog('add') }}><UserRoundPlus size={18} aria-hidden="true" /><span className="organization-action-label">{t.memberButton}</span></Button> : null}
+        {folder.actions.editUnit ? <Button className="organization-settings" aria-label={t.settings} variant="outline" isDisabled={loading} onPress={() => setDialog('settings')}><Pencil size={18} aria-hidden="true" /><span className="organization-action-label">{t.edit}</span></Button> : null}
+        {folder.actions.manageMembers ? <Button variant="outline" aria-label={t.addMember} isDisabled={loading || pending} onPress={() => { setCandidateQuery(''); setCandidateLookup(null); setAdmissionCodes([]); setDialog('add') }}><UserRoundPlus size={18} aria-hidden="true" /><span className="organization-action-label">{t.addMember}</span></Button> : null}
         {folder.actions.createChild && childKinds.length ? <Button variant="outline" aria-label={t.createChild} isDisabled={loading || pending} onPress={() => setDialog('child')}><FolderPlus size={18} aria-hidden="true" /><span className="organization-action-label">{t.unitButton}</span></Button> : null}
         {folder.actions.sendNotifications ? <Button aria-label={site.notifications} isDisabled={loading} onPress={() => setDialog('notification')}><Send size={17} aria-hidden="true" /><span className="organization-action-label">{site.notifications}</span></Button> : null}
       </div>
@@ -167,22 +149,22 @@ function UnitFolder({ unitId, query, onSearchAvailabilityChange }: {
     {!dialog ? mutationError : null}
     <div className="organization-directory">
         <DataTableFrame footer={<div className="organization-section-heading organization-pagination">
-          <span className="muted-copy" role="status">{loading ? t.refreshing : (typeFilter === 'responsibility' ? t.responsibility : memberVisible ? t.members : t.unitButton) + ' · ' + page}</span>
-          {memberVisible ? <div className="organization-actions"><Button size="sm" isDisabled={page === 1 || loading || pending} variant="ghost" onPress={() => setPage(value => value - 1)}>{t.previous}</Button><Button size="sm" isDisabled={!members?.nextPage || loading || pending} variant="ghost" onPress={() => setPage(value => value + 1)}>{t.next}</Button></div> : null}
+          <span className="muted-copy" role="status">{loading ? t.refreshing : t.members + ' · ' + page}</span>
+          <div className="organization-actions"><Button size="sm" isDisabled={page === 1 || loading || pending} variant="ghost" onPress={() => setPage(value => value - 1)}>{t.previous}</Button><Button size="sm" isDisabled={!members?.nextPage || loading || pending} variant="ghost" onPress={() => setPage(value => value + 1)}>{t.next}</Button></div>
         </div>}>
           <table className="organization-table" aria-label={t.directory} aria-busy={loading}>
-            <thead><tr><th>{t.name}</th><th>{t.email}</th><th>{t.type}</th><th>{t.unitKind}</th><th className="organization-row-action"><span className="sr-only">{t.settings}</span></th></tr></thead>
+            <thead><tr><th>{t.name}</th><th>{t.email}</th><th className="organization-type-cell">{t.type}</th>{childKinds.length ? <th className="organization-unit-kind-cell">{t.unitKind}</th> : null}<th className="organization-row-action"><span className="sr-only">{t.settings}</span></th></tr></thead>
             <tbody>
               {unitRows.map(child => <tr className="organization-folder-row" key={child.id}>
                 <td><Link className="organization-row-link" to={'/organizations/' + child.id}><span>{child.name}</span></Link></td>
-                <td className="organization-email">{child.email || '—'}</td><td>{t.unitButton}</td><td>{t[child.kind]}</td>
+                <td className="organization-email">{child.email || '—'}</td><td className="organization-type-cell">{t.unitButton}</td>{childKinds.length ? <td className="organization-unit-kind-cell">{t[child.kind]}</td> : null}
                 <td className="organization-row-action"><Link className="organization-icon-action" aria-label={t.view + ' ' + child.name} to={'/organizations/' + child.id}><Pencil size={16} aria-hidden="true" /></Link></td>
               </tr>)}
               {memberRows.map(member => <tr key={member.memberId}>
-                <td><Link className="organization-row-link" to={'/organizations/' + unitId + '/members/' + member.memberId}><span>{member.displayName || member.email}</span></Link></td><td className="organization-email">{member.email}</td><td>{member.isResponsible === true ? t.responsibility : t.memberButton}</td><td></td>
+                <td><Link className="organization-row-link" to={'/organizations/' + unitId + '/members/' + member.memberId}><span>{member.displayName || member.email}</span></Link></td><td className="organization-email">{member.email}</td><td className="organization-type-cell">{member.isResponsible === true ? t.responsibility : t.memberButton}</td>{childKinds.length ? <td className="organization-unit-kind-cell" /> : null}
                 <td className="organization-row-action"><Link className="organization-icon-action" aria-label={t.entitlements + ' ' + (member.displayName || member.email)} to={'/organizations/' + unitId + '/members/' + member.memberId}><Pencil size={16} aria-hidden="true" /></Link></td>
               </tr>)}
-              {!memberRows.length && !unitRows.length ? <tr><td colSpan={5} className="organization-empty">{search ? t.noResults : t.noMembers}</td></tr> : null}
+              {!memberRows.length && !unitRows.length ? <tr><td colSpan={childKinds.length ? 5 : 4} className="organization-empty">{search ? t.noResults : t.noMembers}</td></tr> : null}
             </tbody>
           </table>
         </DataTableFrame>

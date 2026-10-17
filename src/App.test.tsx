@@ -470,6 +470,8 @@ describe('App layout', () => {
     await waitFor(() => expect(within(nav).getAllByRole('link').length + within(nav).getAllByRole('button').length).toBe(allowed ? 5 : 4))
     expect(screen.queryByRole('button', { name: /open navigation/i })).not.toBeInTheDocument()
     expect(document.querySelector('.account-header .hhc-account-menu')).not.toBeInTheDocument()
+    expect(within(nav).getByRole('button', { name: 'My account' })).toBeInTheDocument()
+    expect(within(nav).getByText('My account')).toBeVisible()
   })
 
   it('opens More without changing the current page and navigates to the first available data request item', async () => {
