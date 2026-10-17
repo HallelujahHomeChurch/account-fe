@@ -18,7 +18,7 @@ export type OperationsAccess = Schemas['AccessSnapshot'] & { memberDetailsEligib
 export type ManagedActions = Schemas['ManagedActions']
 export type ManagedUnit = Schemas['ManagedUnit']
 export type ManagedUnitFolder = Schemas['ManagedUnitFolder']
-export type ManagedMemberPage = Schemas['ManagedMemberPage']
+export type ManagedMemberPage = Omit<Schemas['ManagedMemberPage'], 'items'> & { items: (Schemas['ManagedMemberSummary'] & { isResponsible?: boolean })[] }
 export type ManagedMemberView = Schemas['ManagedMemberView']
 export type ManagedJoinCandidate = Schemas['JoinCandidate']
 export type ManagedResponsibility = Schemas['UnitResponsibilityView']
@@ -34,7 +34,7 @@ export type OperationsApiClient = {
   getMyAccess: (signal?: AbortSignal) => Promise<OperationsAccess>
   listManagedRoots: (signal?: AbortSignal) => Promise<ManagedUnit[]>
   getManagedUnit: (unitId: string, includeArchived?: boolean, signal?: AbortSignal) => Promise<ManagedUnitFolder>
-  listManagedMembers: (unitId: string, query?: string, page?: number, signal?: AbortSignal) => Promise<ManagedMemberPage>
+  listManagedMembers: (unitId: string, query?: string, page?: number, signal?: AbortSignal, responsibilityOnly?: boolean) => Promise<ManagedMemberPage>
   getManagedMember: (unitId: string, memberId: string, signal?: AbortSignal) => Promise<ManagedMemberView>
   searchManagedCandidates: (unitId: string, query: string, signal?: AbortSignal) => Promise<ManagedJoinCandidate[]>
   admitManagedMember: (unitId: string, accountUserId: string, key: string, entitlementCodes?: EntitlementCode[]) => Promise<ManagedMemberView>
@@ -117,9 +117,10 @@ export class OperationsApi implements OperationsApiClient {
     }))
   }
 
-  listManagedMembers(unitId: string, q = '', page = 1, signal?: AbortSignal) {
+  listManagedMembers(unitId: string, q = '', page = 1, signal?: AbortSignal, responsibilityOnly = false) {
+    const query = { q: q || undefined, page, limit: 50, ...(responsibilityOnly ? { responsibilityOnly: true } : {}) }
     return unwrap<ManagedMemberPage>(this.client.raw.GET('/api/operations/manage/org-units/{unitId}/members', {
-      params: { path: { unitId }, query: { q: q || undefined, page, limit: 50 } }, signal,
+      params: { path: { unitId }, query }, signal,
     }))
   }
 

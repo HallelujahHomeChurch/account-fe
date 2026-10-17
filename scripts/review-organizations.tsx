@@ -52,7 +52,7 @@ const fixtureFetch: typeof fetch = async (input, init) => {
   if (key && receipts.has(key)) return reply(receipts.get(key), engagement)
   const finish = (data: unknown) => { if (key) receipts.set(key, data); return reply(data, engagement) }
   if (url.pathname.endsWith('/me/resources')) return reply([])
-  if (url.pathname.endsWith('/me/access')) return reply({ memberId: id(900), responsibilities: ordinaryMember ? [] : [{ orgUnitId: id(1) }], memberships: [], orgRoles: [], entitlements: [], version: '1' })
+  if (url.pathname.endsWith('/me/access')) return reply({ memberId: id(900), memberDetailsEligible: true, churchMembership: { membershipId: id(903), church: { id: id(1), kind: 'church', name: units[0].name, status: 'active' } }, responsibilities: ordinaryMember ? [] : [{ responsibilityId: id(904), orgUnit: { id: id(1), kind: 'church', name: units[0].name, status: 'active' } }], memberships: [], orgRoles: [], entitlements: [], version: '1' })
   if (ordinaryMember) return reply({ error: 'forbidden' }, false, 403)
   if (url.pathname.endsWith('/manage/roots')) return reply({ items: demoParams.get('roots') === 'empty' ? [] : units.filter(unit => !unit.parentId) })
   if (engagement) {
@@ -87,7 +87,8 @@ const fixtureFetch: typeof fetch = async (input, init) => {
       failMembersOnce = false
       return new Response('{}', { status: 503, headers: { 'Content-Type': 'application/json', 'X-HHC-Request-ID': 'review-account-unit-20260926' } })
     }
-    return reply({ items: members.filter(member => (member.displayName + member.email).includes(query)), page: Number(url.searchParams.get('page') || 1) })
+    const rows = members.map(member => ({ ...member, isResponsible: responsibilities.some(value => value.memberId === member.memberId) }))
+    return reply({ items: rows.filter(member => (member.displayName + member.email).includes(query) && (url.searchParams.get('responsibilityOnly') !== 'true' || member.isResponsible)), page: Number(url.searchParams.get('page') || 1) })
   }
   if (suffix === '/entitlements/batch') { for (const member of members.filter(value => body.memberIds.includes(value.memberId))) member.entitlementCodes = body.operation === 'grant' ? [...new Set([...member.entitlementCodes, body.entitlementCode])] : member.entitlementCodes.filter(code => code !== body.entitlementCode); return finish({ matched: body.memberIds.length, changed: body.memberIds.length }) }
   if (suffix === '/responsibility-candidates') return reply({ items: members.filter(member => (member.displayName + member.email).includes(query)) })

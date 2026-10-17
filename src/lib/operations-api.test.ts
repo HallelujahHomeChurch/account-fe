@@ -52,3 +52,10 @@ it('keeps the generic error fallback when no specific error code exists', async 
  const raw={DELETE:vi.fn().mockResolvedValue({error:{error:'forbidden'},response:new Response(null,{status:403})}),use:vi.fn()}
  await expect(new OperationsApi({raw} as never).removeManagedAffiliation('unit','member','affiliation',1,false,'key')).rejects.toMatchObject({status:403,code:'forbidden'})
 })
+
+it('sends responsible-person filtering with member search and pagination', async () => {
+  const raw = { GET: vi.fn().mockReturnValue(ok({ items: [], page: 2 })), use: vi.fn() }
+  const api = new OperationsApi({ raw } as never)
+  await api.listManagedMembers('unit', 'Alice', 2, undefined, true)
+  expect(raw.GET).toHaveBeenCalledWith('/api/operations/manage/org-units/{unitId}/members', expect.objectContaining({ params: { path: { unitId: 'unit' }, query: { q: 'Alice', page: 2, limit: 50, responsibilityOnly: true } } }))
+})
