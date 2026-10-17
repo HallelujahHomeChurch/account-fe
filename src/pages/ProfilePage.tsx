@@ -92,7 +92,7 @@ export function ProfilePage({ memberDetailsAvailable = false }: { memberDetailsA
             <div className="settings-row-copy">
               <span className="settings-row-label">{t.profile.email}</span>
               <strong>{profile.email}</strong>
-              {capabilities?.emailCorrectionEnabled ? <Link to="/data-requests">{emailCorrectionMessages[locale].title}</Link> : null}
+              {capabilities?.emailCorrectionEnabled ? <Link to="/data-requests">{emailCorrectionMessages[locale].requestEmailChange}</Link> : null}
             </div>
             <span className="status-pill">
               {profile.is_email_verified ? t.profile.emailVerified : t.profile.emailNotVerified}

@@ -10,6 +10,12 @@ export type CorrectionField = {
 export const correctionCatalog = [{
   kind: 'email_change',
   labelKey: 'emailChange',
+  descriptionKey: 'emailChangeHint',
+  progressSteps: [
+    { labelKey: 'verifyStep', views: ['pending_verification', 'link_expired'] },
+    { labelKey: 'approvalStep', views: ['pending_approval'] },
+    { labelKey: 'completeStep', views: ['completed'] },
+  ],
   fields: [
     { key: 'currentEmail', type: 'email', labelKey: 'currentEmail', readOnly: true, required: true },
     { key: 'newEmail', type: 'email', labelKey: 'newEmail', readOnly: false, required: true },
