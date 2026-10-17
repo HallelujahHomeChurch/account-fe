@@ -1,5 +1,8 @@
 # Account unit layout and caught API errors
 
+Historical review evidence. The organization UI and its client tests now live in WWW;
+the Account-only development fixture was retired during the 2026-10-17 migration.
+
 Reviewed 2026-09-26. Base: `117ce801dcfaced35605a1cfe561740dd651009d` (`origin/main`).
 Implementation/PR only; merge and production release require approval.
 

@@ -73,3 +73,12 @@ Devices are managed within Security; email newsletter preferences are part of
 Personalization. Legacy device and notification URLs redirect to those sections.
 Church statements are shown only on the public website; required legal review
 and analytics consent remain available in Account.
+
+## Small-group management migration
+
+Management now lives at the public site's localized `/organizations` routes.
+Account removes its management UI, avatar/navigation/search entries and clients;
+recognized legacy unit/member links redirect to the configured trusted WWW origin,
+preserving locale and IDs while dropping query and fragment. Resources, reservations
+and member-details eligibility keep their existing Operations access.
+Release Gateway's WWW allowlist and WWW before this Account redirect removal.

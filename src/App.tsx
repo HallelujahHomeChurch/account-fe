@@ -1,9 +1,10 @@
+import { LegacyOrganizationRedirect } from './components/LegacyOrganizationRedirect'
 import { CorrectionRoute } from './features/email-correction/CorrectionRoute'
 import { emailCorrectionMessages } from './features/email-correction/messages'
 import { AccountMenu, BrandLoadingScreen, Button, Menu, Skeleton, Toast, ToastProvider } from '@hallelujahhomechurch/ui'
-import { CalendarDays, Ellipsis, ShieldCheck, UserRound, UsersRound } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, matchPath, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { CalendarDays, Ellipsis, ShieldCheck, UserRound } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 
 import { canAccessAdmin } from '@hallelujahhomechurch/account-client/admin-access'
 
@@ -41,9 +42,6 @@ import { ResourceListPage } from './pages/ResourceListPage'
 import { ResourceReservationPage } from './pages/ResourceReservationPage'
 import { useAuthCapabilitiesState } from './components/SocialAuthOptions'
 import { LineBrowserNotice } from './components/LineBrowserNotice'
-import { OrganizationMemberPage } from './pages/organizations/OrganizationMemberPage'
-import { OrganizationRootsPage } from './pages/organizations/OrganizationRootsPage'
-import { OrganizationUnitPage, type OrganizationSearchStatus } from './pages/organizations/OrganizationUnitPage'
 
 function LayoutContent() {
   const auth = useAuth()
@@ -61,11 +59,8 @@ function LayoutContent() {
   const publicSiteUrl = readRuntimeConfig().publicSiteUrl
   const { capabilities, error: capabilitiesError } = useAuthCapabilitiesState(!isAuthRoute)
   const [resourceLookupFailed, setResourceLookupFailed] = useState(false)
-  const [managedAccessResult, setManagedAccess] = useState<{ owner?: string; status: 'loading' | 'allowed' | 'denied' | 'failed' }>({ status: 'loading' })
-  const [accessRevision, setAccessRevision] = useState(0)
   const [memberAccess, setMemberAccess] = useState<{ owner: string; allowed: boolean }>({ owner: '', allowed: false })
   const owner = verified ? auth.profile?.id : undefined
-  const managedAccess = owner && managedAccessResult.owner === owner ? managedAccessResult.status : 'loading'
   const [memberTransportAccess, setMemberTransportAccess] = useState<{ owner: string; allowed: boolean }>({ owner: '', allowed: false })
   const memberEligible = memberAccess.owner === owner && memberAccess.allowed
   const memberAllowed = capabilities?.memberDetailsEnabled === true && memberEligible && memberTransportAccess.owner === owner && memberTransportAccess.allowed
@@ -97,41 +92,31 @@ function LayoutContent() {
   }, [auth.operationsApi, auth.presentation, auth.profile, isAuthRoute, isResourceRoute, verified])
 
   useEffect(() => {
-    setManagedAccess({ owner, status: 'loading' })
     setMemberAccess({ owner: '', allowed: false })
     if (isAuthRoute || !owner || !auth.operationsApi.getMyAccess) return
     let active = true
     const controller = new AbortController()
-    const remember = auth.presentation.capture(owner)
     const check = () => auth.operationsApi.getMyAccess(controller.signal)
-      .then((access) => { if (active && remember('operations', access.churchMembership && access.responsibilities.length > 0 ? ['organizations'] : [])) { setManagedAccess({ owner, status: access.churchMembership && access.responsibilities.length > 0 ? 'allowed' : 'denied' }); setMemberAccess({ owner, allowed: access.memberDetailsEligible === true }) } })
-      .catch(() => { if (active) setManagedAccess({ owner, status: 'failed' }) })
+      .then((access) => { if (active) setMemberAccess({ owner, allowed: access.memberDetailsEligible === true }) })
+      .catch(() => { if (active) setMemberAccess({ owner, allowed: false }) })
     void check()
     window.addEventListener('focus', check)
     return () => { active = false; controller.abort(); window.removeEventListener('focus', check) }
-  }, [auth.operationsApi, auth.presentation, owner, isAuthRoute, accessRevision])
+  }, [auth.operationsApi, auth.presentation, owner, isAuthRoute])
 
   const navigation = [
     { icon: UserRound, label: t.nav.personalInfo, path: '/profile' },
     { icon: ShieldCheck, label: t.nav.security, path: '/security' },
-    ...(auth.navigation?.sources.operations?.ids.includes('organizations') ? [{ icon: UsersRound, label: t.nav.organizationManagement, path: '/organizations' }] : []),
     ...(capabilities?.emailCorrectionEnabled ? [{ icon: UserRound, label: emailCorrectionMessages[locale].title, path: '/data-requests' }] : []),
     ...(auth.navigation?.sources.resources?.ids.includes('resources') ? [{ icon: CalendarDays, label: t.nav.resourceReservations, path: '/resources' }] : []),
   ]
 
   const mobile = useMobileLayout()
   const scopeKey = `${owner ?? ''}:${verified}:${location.pathname}:${locale}`
-  const currentScope = useRef(scopeKey)
-  currentScope.current = scopeKey
   const [searchState, setSearchState] = useState({ key: '', value: '' })
   const searchQuery = searchState.key === scopeKey ? searchState.value : ''
   const [searchExpanded, setSearchExpanded] = useState({ key: '', open: false })
   const searchOpen = searchExpanded.key === scopeKey && searchExpanded.open
-  const [availability, setAvailability] = useState({ key: '', unitId: '', available: false })
-  const unitId = matchPath({ path: '/organizations/:unitId', end: true }, location.pathname)?.params.unitId
-  const onSearchAvailabilityChange = useCallback((status: OrganizationSearchStatus) => {
-    if (currentScope.current === scopeKey) setAvailability({ key: scopeKey, ...status })
-  }, [scopeKey])
   const { visible: chromeVisible } = useScrollChrome({ blocked: searchOpen, resetKey: scopeKey })
   const [standalone] = useState(() => /iPhone|iPod/i.test(navigator.userAgent) && (window.matchMedia?.('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true))
   const featureItems: AccountFeatureSearchItem[] = verified ? [
@@ -143,7 +128,6 @@ function LayoutContent() {
       ['password', t.security.password], ['linked-accounts', t.security.signInMethods], ['mfa', t.security.authenticatorApp], ['devices', t.nav.devices],
     ].map(([id, label]) => ({ id, label, category: t.nav.security, keywords: id === 'mfa' ? ['MFA', '2FA'] : [], to: `/security#${id}` })),
     ...(capabilities?.emailCorrectionEnabled ? [{ id: 'data-requests', label: emailCorrectionMessages[locale].title, category: t.search.more, keywords: [emailCorrectionMessages[locale].requestEmailChange], to: '/data-requests' }] : []),
-    ...(managedAccess === 'allowed' ? [{ id: 'organizations', label: t.nav.organizationManagement, category: t.nav.organizationManagement, keywords: [], to: '/organizations' }] : []),
     ...(auth.navigation?.sources.resources?.ids.includes('resources') ? [{ id: 'resources', label: t.nav.resourceReservations, category: t.search.more, keywords: [], to: '/resources' }] : []),
     ...(memberAllowed ? [{ id: 'member-details', label: memberDetailsMessages[locale].title, category: t.nav.personalInfo, keywords: [], to: '/profile/member-details' }] : []),
   ] : []
@@ -213,7 +197,6 @@ function LayoutContent() {
               links={[
                 { id: 'official-site', label: t.nav.churchSite, href: `${publicSiteUrl}/${locale}` },
                 { id: 'projection', label: t.nav.projectionSystem, href: 'https://client.alive.org.tw/', newWindow: { label: t.nav.projectionWindowLabel, blockedMessage: t.nav.projectionPopupBlocked } },
-                ...(verified && managedAccess === 'allowed' ? [{ id: 'organizations', label: t.nav.menuOrganizations, href: '/organizations' }] : []),
                 ...(verified && canAccessAdmin(auth.profile?.permissions ?? [])
                   ? [{ id: 'admin', label: t.nav.adminManagement, href: 'https://admin.alive.org.tw/' }]
                   : []),
@@ -240,10 +223,10 @@ function LayoutContent() {
             <img className="brand-mark" src="/assets/brand/logo.png" alt="" />
             <span>{t.site.accountName}</span>
           </Link>
-          <AccountHeaderSearch key={scopeKey} mode={unitId ? 'members' : 'features'} value={searchQuery}
+          <AccountHeaderSearch key={scopeKey} value={searchQuery}
             items={featureItems} onChange={value => setSearchState({ key: scopeKey, value })}
             onExpandedChange={open => setSearchExpanded({ key: scopeKey, open })}
-            isDisabled={!verified || Boolean(unitId && (availability.key !== scopeKey || availability.unitId !== unitId || !availability.available))} />
+            isDisabled={!verified} />
           {!mobile ? accountMenu : null}
           {auth.logoutError ? <div className="auth-error-toast"><Toast tone="danger">{auth.logoutError}</Toast></div> : null}
         </header>
@@ -265,7 +248,7 @@ function LayoutContent() {
               {auth.status === 'unavailable' ? <div role="alert"><p className="form-error">{auth.bootstrapError}</p><Button onPress={() => void auth.retrySession()}>{t.security.retry}</Button></div> : null}
             </> : hasPostLoginReturnTo() ? <PostLoginContinuation /> : <Routes>
               <Route element={<ProfilePage key={owner} memberDetailsAvailable={memberAllowed} />} path="/profile" />
-              <Route element={memberAllowed ? <MemberDetailsPage key={auth.profile?.id} /> : managedAccess === 'loading' || memberAuthorizationPending || !capabilities && !capabilitiesError ? <Skeleton className="account-page-skeleton" label={t.profile.loading} /> : <Navigate replace to="/profile" />} path="/profile/member-details" />
+              <Route element={memberAllowed ? <MemberDetailsPage key={auth.profile?.id} /> : memberAccess.owner !== owner || memberAuthorizationPending || !capabilities && !capabilitiesError ? <Skeleton className="account-page-skeleton" label={t.profile.loading} /> : <Navigate replace to="/profile" />} path="/profile/member-details" />
               <Route element={<LegalReviewPage key={`${auth.profile?.id}:${locale}`} />} path="/legal" />
               <Route element={<SecurityPage key={owner} />} path="/security" />
               <Route element={<Navigate replace to="/security#devices" />} path="/devices" />
@@ -274,11 +257,6 @@ function LayoutContent() {
               <Route element={<ResourceListPage />} path="/resources" />
               <Route element={<MyResourceReservationsPage />} path="/resources/reservations" />
               <Route element={<ResourceReservationPage />} path="/resources/:resourceKey" />
-              <Route element={managedAccess === 'allowed' ? <Outlet /> : managedAccess === 'denied' ? <Navigate replace to="/profile" /> : managedAccess === 'failed' ? <section className="account-document"><p className="form-error" role="alert">{t.organizations.loadFailed}</p><Button onPress={() => setAccessRevision(value => value + 1)}>{t.organizations.retry}</Button></section> : <Skeleton className="account-page-skeleton" label={t.organizations.loading} />}>
-                <Route element={<OrganizationRootsPage />} path="/organizations" />
-                <Route element={<OrganizationUnitPage key={scopeKey} searchQuery={searchQuery} onSearchAvailabilityChange={onSearchAvailabilityChange} />} path="/organizations/:unitId" />
-                <Route element={<OrganizationMemberPage />} path="/organizations/:unitId/members/:memberId" />
-              </Route>
               <Route element={<Navigate replace to="/profile" />} path="*" />
             </Routes>}
 
@@ -290,7 +268,7 @@ function LayoutContent() {
         </footer>
       </div>
       {mobile ? <nav className="account-mobile-tabs" aria-label={t.nav.accountNavigation} data-mobile-hidden={!chromeVisible}>
-        {navigation.filter(item => ['/profile', '/security', '/organizations'].includes(item.path)).map(({ icon: Icon, label, path }) => <Link key={path} to={path} aria-current={active(path) ? 'page' : undefined} className="account-mobile-tab" data-active={active(path) || undefined}><Icon aria-hidden="true" /><span>{label}</span></Link>)}
+        {navigation.filter(item => ['/profile', '/security'].includes(item.path)).map(({ icon: Icon, label, path }) => <Link key={path} to={path} aria-current={active(path) ? 'page' : undefined} className="account-mobile-tab" data-active={active(path) || undefined}><Icon aria-hidden="true" /><span>{label}</span></Link>)}
         {moreItems.length ? <Menu label={t.search.more} items={moreItems.map(item => ({ id: item.path, label: item.label }))}
           onAction={id => { if (moreItems.some(item => item.path === id)) navigate(id) }}
           trigger={<Button variant="ghost" className="account-mobile-tab" aria-label={t.search.more} data-active={moreItems.some(item => active(item.path)) || undefined}><Ellipsis aria-hidden="true" /><span>{t.search.more}</span></Button>} /> :
@@ -315,6 +293,8 @@ export function PostLoginContinuation() {
 
 export default function Layout() {
   const { messages: t } = useLocale()
+  const {pathname} = useLocation()
+  if (pathname === '/organizations' || pathname.startsWith('/organizations/')) return <LegacyOrganizationRedirect />
   return (
     <ToastProvider dismissLabel={t.site.dismissNotification} regionLabel={t.site.notifications}>
       <AnalyticsBoundary><LayoutContent /></AnalyticsBoundary>

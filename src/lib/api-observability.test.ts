@@ -3,7 +3,6 @@ import { createOperationsClient } from '@hallelujahhomechurch/operations-client'
 import { createAccountSessionClient, createBrowserAccountAuthRuntime } from '@hallelujahhomechurch/account-client'
 import { AccountApi } from './api'
 import { OperationsApi } from './operations-api'
-import { UnitNotificationsApi } from './unit-notifications-api'
 import { initObservability, observeApiFetch, recordAccountAuthEvent, sanitizeSentryEvent } from '../observability'
 
 const sentry = vi.hoisted(() => ({ captureException: vi.fn(), init: vi.fn(), addBreadcrumb: vi.fn(), browserTracingIntegration: vi.fn() }))
@@ -19,13 +18,12 @@ function clients(fetcher: typeof fetch) {
   return {
     account: () => new AccountApi({ baseUrl: '/api/account/v1', fetcher }).me(),
     operations: () => new OperationsApi(createOperationsClient({ baseUrl: '', getAccessToken: async () => 'token', refreshAfterUnauthorized: async () => null, fetcher })).listMyResources(),
-    notifications: () => new UnitNotificationsApi({ getAccessToken: () => 'token', fetch: fetcher }).list('private-unit'),
   }
 }
 
 async function flushSentry() { await initObservability(); await Promise.resolve() }
 
-describe.each(['account', 'operations', 'notifications'] as const)('%s caught API errors', client => {
+describe.each(['account', 'operations'] as const)('%s caught API errors', client => {
   it.each([500, 502, 503])('reports HTTP %s exactly once, with request correlation but no payload', async status => {
     const response = new Response(JSON.stringify({ message: 'private@example.test', secret: 'sensitive-body' }), { status, headers: { 'X-HHC-Request-ID': 'req-review' } })
     await expect(clients(async () => response)[client]()).rejects.toBeDefined()
@@ -68,9 +66,9 @@ describe.each(['account', 'operations', 'notifications'] as const)('%s caught AP
 
 it('uses the Operations route template, never a member ID or search query', async () => {
   const api = new OperationsApi(createOperationsClient({ baseUrl: '', getAccessToken: async () => null, refreshAfterUnauthorized: async () => null, fetcher: async () => Response.json({}, { status: 500 }) }))
-  await expect(api.listManagedMembers('private-unit', 'private@example.test')).rejects.toBeDefined()
+  await expect(api.getAvailability('private-resource', '2026-10-01', '2026-10-02')).rejects.toBeDefined()
   await flushSentry()
-  expect(sentry.captureException.mock.calls[0][1].tags.operation).toBe('/api/operations/manage/org-units/{unitId}/members')
+  expect(sentry.captureException.mock.calls[0][1].tags.operation).toBe('/api/operations/me/resources/{resourceKey}/availability')
   expect(JSON.stringify(sentry.captureException.mock.calls)).not.toContain('private')
 })
 
@@ -104,15 +102,6 @@ it.each([200, 503])('does not report recovered 401 and reports the final %s only
   expect(refresh).toHaveBeenCalledOnce()
   expect(fetcher).toHaveBeenCalledTimes(2)
   expect(sentry.captureException).toHaveBeenCalledTimes(status === 200 ? 0 : 1)
-})
-
-it('never resends a notification because telemetry capture throws', async () => {
-  sentry.captureException.mockImplementationOnce(() => { throw new Error('transport unavailable') })
-  const fetcher = vi.fn(async () => Response.json({}, { status: 503 }))
-  const api = new UnitNotificationsApi({ getAccessToken: () => 'token', fetch: fetcher })
-  await expect(api.submit('unit', 'subject', 'body', 'key')).rejects.toMatchObject({ status: 503 })
-  await flushSentry()
-  expect(fetcher).toHaveBeenCalledOnce()
 })
 
 it.each(['network', 'http', 'invalid_response'] as const)('reports runtime refresh %s failure once across client boundaries', async kind => {

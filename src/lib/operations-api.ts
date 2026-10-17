@@ -15,16 +15,6 @@ type OperationsClient = ReturnType<typeof createOperationsClient>
 export type ReservableResource = Schemas['ReservableResource']
 export type ResourceReservation = Schemas['ResourceReservation']
 export type OperationsAccess = Schemas['AccessSnapshot'] & { memberDetailsEligible?: boolean }
-export type ManagedActions = Schemas['ManagedActions']
-export type ManagedUnit = Schemas['ManagedUnit']
-export type ManagedUnitFolder = Schemas['ManagedUnitFolder']
-export type ManagedMemberPage = Omit<Schemas['ManagedMemberPage'], 'items'> & { items: (Schemas['ManagedMemberSummary'] & { isResponsible?: boolean })[] }
-export type ManagedMemberView = Schemas['ManagedMemberView']
-export type ManagedJoinCandidate = Schemas['JoinCandidate']
-export type ManagedResponsibility = Schemas['UnitResponsibilityView']
-export type ManagedResponsibilityCandidate = Schemas['ManagedResponsibilityCandidate']
-export type EntitlementCode = Schemas['ManagedEntitlementBatchInput']['entitlementCode']
-
 export type OperationsApiClient = {
   listMyResources: (signal?: AbortSignal) => Promise<ReservableResource[]>
   getAvailability: (resourceKey: string, from: string, to: string, signal?: AbortSignal) => Promise<Schemas['Availability']>
@@ -32,21 +22,7 @@ export type OperationsApiClient = {
   listMyReservations: (signal?: AbortSignal) => Promise<ResourceReservation[]>
   cancelReservation: (reservationId: string, version: number) => Promise<ResourceReservation>
   getMyAccess: (signal?: AbortSignal) => Promise<OperationsAccess>
-  listManagedRoots: (signal?: AbortSignal) => Promise<ManagedUnit[]>
-  getManagedUnit: (unitId: string, signal?: AbortSignal) => Promise<ManagedUnitFolder>
-  listManagedMembers: (unitId: string, query?: string, page?: number, signal?: AbortSignal, responsibilityOnly?: boolean) => Promise<ManagedMemberPage>
-  getManagedMember: (unitId: string, memberId: string, signal?: AbortSignal) => Promise<ManagedMemberView>
-  searchManagedCandidates: (unitId: string, query: string, signal?: AbortSignal) => Promise<ManagedJoinCandidate[]>
-  admitManagedMember: (unitId: string, accountUserId: string, key: string, entitlementCodes?: EntitlementCode[]) => Promise<ManagedMemberView>
-  createManagedChild: (unitId: string, input: Schemas['ManagedChildInput'], key: string) => Promise<ManagedUnit>
-  updateManagedUnit: (unitId: string, version: number, input: Schemas['ManagedUnitUpdate'], key: string) => Promise<ManagedUnit>
-  listResponsibilityCandidates: (unitId: string, query: string, signal?: AbortSignal) => Promise<ManagedResponsibilityCandidate[]>
-  listManagedResponsibilities: (unitId: string, signal?: AbortSignal) => Promise<ManagedResponsibility[]>
-  assignManagedResponsibility: (unitId: string, memberId: string, key: string) => Promise<ManagedResponsibility>
-  revokeManagedResponsibility: (unitId: string, responsibilityId: string, version: number, key: string) => Promise<ManagedResponsibility>
-  moveManagedAffiliation: (unitId: string, memberId: string, affiliationId: string, targetOrgUnitId: string, version: number, key: string) => Promise<ManagedMemberView>
-  removeManagedAffiliation: (unitId: string, memberId: string, affiliationId: string, version: number, endChurchMembership: boolean, key: string) => Promise<ManagedMemberView>
-  applyManagedEntitlements: (unitId: string, memberIds: string[], entitlementCode: EntitlementCode, operation: 'grant' | 'revoke', key: string) => Promise<Schemas['ManagedEntitlementBatchResult']>
+
 }
 
 export class OperationsApi implements OperationsApiClient {
@@ -67,7 +43,7 @@ export class OperationsApi implements OperationsApiClient {
         if (!response.ok) return
         try {
           const data: unknown = await response.clone().json()
-          validateManagedResponse(schemaPath, request.method, data, response.status)
+          validateManagedResponse(schemaPath, data, response.status)
         } catch (error) {
           if (!request.signal.aborted && !isAbortError(error)) reportApiFailure(context, 'invalid_response', response)
           throw error
@@ -106,120 +82,16 @@ export class OperationsApi implements OperationsApiClient {
     return unwrap<OperationsAccess>(this.client.raw.GET('/api/operations/me/access', { signal }))
   }
 
-  async listManagedRoots(signal?: AbortSignal) {
-    return (await unwrap<Schemas['ManagedUnitList']>(this.client.raw.GET('/api/operations/manage/roots', { signal }))).items
-  }
 
-  getManagedUnit(unitId: string, signal?: AbortSignal) {
-    return unwrap<ManagedUnitFolder>(this.client.raw.GET('/api/operations/manage/org-units/{unitId}', {
-      params: { path: { unitId } }, signal,
-    }))
-  }
-
-  listManagedMembers(unitId: string, q = '', page = 1, signal?: AbortSignal, responsibilityOnly = false) {
-    const query = { q: q || undefined, page, limit: 50, ...(responsibilityOnly ? { responsibilityOnly: true } : {}) }
-    return unwrap<ManagedMemberPage>(this.client.raw.GET('/api/operations/manage/org-units/{unitId}/members', {
-      params: { path: { unitId }, query }, signal,
-    }))
-  }
-
-  getManagedMember(unitId: string, memberId: string, signal?: AbortSignal) {
-    return unwrap<ManagedMemberView>(this.client.raw.GET('/api/operations/manage/org-units/{unitId}/members/{memberId}', {
-      params: { path: { unitId, memberId } }, signal,
-    }))
-  }
-
-  async searchManagedCandidates(unitId: string, q: string, signal?: AbortSignal) {
-    return (await unwrap<Schemas['ManagedJoinCandidateList']>(this.client.raw.GET('/api/operations/manage/org-units/{unitId}/account-candidates', {
-      params: { path: { unitId }, query: { q } }, signal,
-    }))).items
-  }
-
-  admitManagedMember(unitId: string, accountUserId: string, key: string, entitlementCodes?: EntitlementCode[]) {
-    const body = { accountUserId, ...(entitlementCodes?.length ? { entitlementCodes } : {}) }
-    return unwrap<ManagedMemberView>(this.client.raw.POST('/api/operations/manage/org-units/{unitId}/members', {
-      params: { path: { unitId }, header: idempotency(key) }, body,
-    }))
-  }
-
-  createManagedChild(unitId: string, input: Schemas['ManagedChildInput'], key: string) {
-    return unwrap<ManagedUnit>(this.client.raw.POST('/api/operations/manage/org-units/{unitId}/children', {
-      params: { path: { unitId }, header: idempotency(key) }, body: input,
-    }))
-  }
-
-  updateManagedUnit(unitId: string, version: number, input: Schemas['ManagedUnitUpdate'], key: string) {
-    return unwrap<ManagedUnit>(this.client.raw.PUT('/api/operations/manage/org-units/{unitId}', {
-      params: { path: { unitId }, header: versioned(version, key) }, body: input,
-    }))
-  }
-
-
-  async listResponsibilityCandidates(unitId: string, q: string, signal?: AbortSignal) {
-    return (await unwrap<Schemas['ManagedResponsibilityCandidateList']>(this.client.raw.GET('/api/operations/manage/org-units/{unitId}/responsibility-candidates', {
-      params: { path: { unitId }, query: { q } }, signal,
-    }))).items
-  }
-
-  async listManagedResponsibilities(unitId: string, signal?: AbortSignal) {
-    return (await unwrap<Schemas['UnitResponsibilityViewList']>(this.client.raw.GET('/api/operations/manage/org-units/{unitId}/responsibilities', {
-      params: { path: { unitId } }, signal,
-    }))).items
-  }
-
-  assignManagedResponsibility(unitId: string, memberId: string, key: string) {
-    return unwrap<ManagedResponsibility>(this.client.raw.POST('/api/operations/manage/org-units/{unitId}/responsibilities', {
-      params: { path: { unitId }, header: idempotency(key) }, body: { memberId },
-    }))
-  }
-
-  revokeManagedResponsibility(unitId: string, responsibilityId: string, version: number, key: string) {
-    return unwrap<ManagedResponsibility>(this.client.raw.DELETE('/api/operations/manage/org-units/{unitId}/responsibilities/{responsibilityId}', {
-      params: { path: { unitId, responsibilityId }, header: versioned(version, key) },
-    }))
-  }
-
-  moveManagedAffiliation(unitId: string, memberId: string, affiliationId: string, targetOrgUnitId: string, version: number, key: string) {
-    return unwrap<ManagedMemberView>(this.client.raw.POST('/api/operations/manage/org-units/{unitId}/members/{memberId}/affiliation-moves', {
-      params: { path: { unitId, memberId }, header: versioned(version, key) }, body: { affiliationId, targetOrgUnitId },
-    }))
-  }
-
-  removeManagedAffiliation(unitId: string, memberId: string, affiliationId: string, version: number, endChurchMembership: boolean, key: string) {
-    return unwrap<ManagedMemberView>(this.client.raw.DELETE('/api/operations/manage/org-units/{unitId}/members/{memberId}/affiliations/{affiliationId}', {
-      params: { path: { unitId, memberId, affiliationId }, query: { endChurchMembership }, header: versioned(version, key) },
-    }))
-  }
-
-  applyManagedEntitlements(unitId: string, memberIds: string[], entitlementCode: EntitlementCode, operation: 'grant' | 'revoke', key: string) {
-    if (memberIds.length === 0 || memberIds.length > 50) throw new RangeError('memberIds must contain 1 to 50 items')
-    return unwrap<Schemas['ManagedEntitlementBatchResult']>(this.client.raw.POST('/api/operations/manage/org-units/{unitId}/entitlements/batch', {
-      params: { path: { unitId }, header: idempotency(key) }, body: { memberIds, entitlementCode, operation },
-    }))
-  }
 }
 
-function idempotency(key: string) { return { 'Idempotency-Key': key } }
-
-function validateManagedResponse(path: string, method: string, data: unknown, status: number) {
+function validateManagedResponse(path: string, data: unknown, status: number) {
   const object = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value)
-  const unit = (value: unknown) => object(value) && typeof value.id === 'string' && typeof value.name === 'string' && ['church', 'family', 'small_group', 'fellowship'].includes(String(value.kind)) && ['active', 'paused', 'archived'].includes(String(value.status)) && Number.isInteger(value.version) && typeof value.updatedAt === 'string'
-  const actions = (value: unknown) => object(value) && ['editUnit', 'createChild', 'archive', 'restore', 'manageMembers', 'manageResponsibilities', 'manageEntitlements', 'sendNotifications'].every(key => typeof value[key] === 'boolean')
-  const member = (value: unknown) => object(value) && typeof value.memberId === 'string' && typeof value.email === 'string' && typeof value.displayName === 'string'
-  const memberView = (value: unknown) => object(value) && member(value) && Array.isArray(value.affiliations) && Array.isArray(value.entitlementCodes) && actions(value.actions)
   let valid = data !== null
   if (path === '/api/operations/me/resources') valid = Array.isArray(data) && data.every(value => object(value) && ['id', 'key', 'name', 'timezone'].every(key => typeof value[key] === 'string'))
   else if (path === '/api/operations/me/access') valid = object(data) && Array.isArray(data.responsibilities)
-  else if (path === '/api/operations/manage/roots') valid = object(data) && Array.isArray(data.items) && data.items.every(unit)
-  else if (path === '/api/operations/manage/org-units/{unitId}') {
-    // PUT returns a unit, GET returns its directory.
-    valid = method === 'PUT' ? unit(data) : object(data) && unit(data.unit) && Array.isArray(data.breadcrumb) && data.breadcrumb.every(unit) && Array.isArray(data.children) && data.children.every(unit) && actions(data.actions)
-  } else if (path.endsWith('/members/{memberId}')) valid = memberView(data)
-  else if (path.endsWith('/members')) valid = method === 'POST' ? memberView(data) : object(data) && Array.isArray(data.items) && data.items.every(member) && Number.isInteger(data.page)
-  else if (/\/(account-candidates|responsibility-candidates)$/.test(path)) valid = object(data) && Array.isArray(data.items)
   if (!valid) throw new OperationsApiError(status, 'invalid_response')
 }
-function versioned(version: number, key: string) { return { 'If-Match': `"${version}"`, 'Idempotency-Key': key } }
 
 async function unwrap<T>(request: Promise<{ data?: T; error?: unknown; response: Response }>): Promise<T> {
   const result = await request

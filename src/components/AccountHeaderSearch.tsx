@@ -1,11 +1,10 @@
-import { Button, Dialog, ExpandableSearchField } from '@hallelujahhomechurch/ui'
+import { Dialog, ExpandableSearchField } from '@hallelujahhomechurch/ui'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLocale } from '../i18n/locale-context'
 import { findAccountFeatures, type AccountFeatureSearchItem } from '../lib/account-feature-search'
 
-export function AccountHeaderSearch({ mode, value, onChange, items, isDisabled = false, onExpandedChange }: {
-  mode: 'features' | 'members'
+export function AccountHeaderSearch({ value, onChange, items, isDisabled = false, onExpandedChange }: {
   value: string
   onChange: (value: string) => void
   items: readonly AccountFeatureSearchItem[]
@@ -16,17 +15,13 @@ export function AccountHeaderSearch({ mode, value, onChange, items, isDisabled =
   const [expanded, setExpanded] = useState(false)
   const [submitted, setSubmitted] = useState<string | null>(null)
   const results = findAccountFeatures(items, submitted ?? '')
-  const label = mode === 'members' ? t.members : t.functions
+  const label = t.functions
   return <div className="account-search" data-expanded={expanded}>
-    {mode === 'members' && value.trim() && !expanded ? <div className="account-search-applied">
-      <span>{value}</span>
-      <Button size="sm" variant="ghost" aria-label={t.clear} onPress={() => onChange('')}>×</Button>
-    </div> : null}
     <ExpandableSearchField label={label} placeholder={label} submitLabel={t.submit} clearLabel={t.clear} closeLabel={t.close}
       value={value} isDisabled={isDisabled}
       onChange={next => { if (!isDisabled) onChange(next) }}
       onExpandedChange={next => { setExpanded(next); onExpandedChange?.(next) }}
-      onSubmit={query => { if (mode === 'features' && !isDisabled) setSubmitted(query) }} />
+      onSubmit={query => { if (!isDisabled) setSubmitted(query) }} />
     <Dialog isOpen={submitted !== null} title={t.results} closeLabel={t.close} onOpenChange={open => { if (!open) setSubmitted(null) }}>
       {results.length ? <ul className="account-search-results">{results.map(item => <li key={item.id}>
         <Link to={item.to} onClick={event => {
