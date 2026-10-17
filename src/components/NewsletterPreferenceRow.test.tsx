@@ -1,11 +1,11 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { expect, it, vi } from 'vitest'
 import { ToastProvider } from '@hallelujahhomechurch/ui'
 
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
-import { LocaleProvider } from '../i18n/locale-context'
+import { LocaleProvider, useLocale } from '../i18n/locale-context'
 import { NewsletterPreferenceRow } from '../components/NewsletterPreferenceRow'
 
 it.each([
@@ -106,4 +106,48 @@ it('shows pending as a requested subscription and allows cancellation without co
   await userEvent.click(toggle)
   expect(updateNewsletterPreference).toHaveBeenCalledWith(false)
   expect(toggle).not.toBeChecked()
+})
+
+
+it('keeps a successful preference update when the user changes language during the request', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  let finishUpdate!: (value: { status: 'subscribed' }) => void
+  let finishStaleRead!: (value: { status: 'not_subscribed' }) => void
+  const update = new Promise<{ status: 'subscribed' }>(resolve => { finishUpdate = resolve })
+  const staleRead = new Promise<{ status: 'not_subscribed' }>(resolve => { finishStaleRead = resolve })
+  const getNewsletterPreference = vi.fn().mockResolvedValueOnce({ status: 'not_subscribed' }).mockReturnValue(staleRead)
+  const api: AuthApi = {
+    login: async () => ({ access_token: 'token' }), refreshAccessToken: async () => 'token',
+    me: async () => ({ id: 'u1', email: 'user@example.test' }), logout: async () => ({}),
+    getNewsletterPreference, updateNewsletterPreference: async () => update,
+  }
+  function ChangeLanguage() {
+    const { setLocale } = useLocale()
+    return <button onClick={() => setLocale('zh-Hant')}>Change language</button>
+  }
+  render(<MemoryRouter><LocaleProvider><ToastProvider dismissLabel="Dismiss"><AuthProvider api={api}><ChangeLanguage /><NewsletterPreferenceRow /></AuthProvider></ToastProvider></LocaleProvider></MemoryRouter>)
+  await userEvent.click(await screen.findByRole('switch'))
+  await userEvent.click(screen.getByRole('button', { name: 'Change language' }))
+  await act(async () => { finishUpdate({ status: 'subscribed' }) })
+  await act(async () => { finishStaleRead({ status: 'not_subscribed' }) })
+  expect(await screen.findByRole('switch', { name: 'Email 通知' })).toBeChecked()
+  expect(getNewsletterPreference).toHaveBeenCalledTimes(1)
+})
+
+it('translates an existing load failure without retrying it on language changes', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  const getNewsletterPreference = vi.fn().mockRejectedValue(new Error('offline'))
+  const api: AuthApi = {
+    login: async () => ({ access_token: 'token' }), refreshAccessToken: async () => 'token',
+    me: async () => ({ id: 'u1', email: 'user@example.test' }), logout: async () => ({}), getNewsletterPreference,
+  }
+  function ChangeLanguage() {
+    const { setLocale } = useLocale()
+    return <button onClick={() => setLocale('zh-Hant')}>Change language</button>
+  }
+  render(<MemoryRouter><LocaleProvider><ToastProvider dismissLabel="Dismiss"><AuthProvider api={api}><ChangeLanguage /><NewsletterPreferenceRow /></AuthProvider></ToastProvider></LocaleProvider></MemoryRouter>)
+  expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load notification settings.')
+  await userEvent.click(screen.getByRole('button', { name: 'Change language' }))
+  expect(screen.getByRole('alert')).not.toHaveTextContent('Unable to load notification settings.')
+  expect(getNewsletterPreference).toHaveBeenCalledTimes(1)
 })

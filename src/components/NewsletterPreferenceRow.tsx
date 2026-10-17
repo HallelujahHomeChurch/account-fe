@@ -10,7 +10,7 @@ export function NewsletterPreferenceRow() {
   const { messages: t } = useLocale()
   const toast = useToast()
   const [preference, setPreference] = useState<NewsletterPreference | null>(null)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -21,20 +21,20 @@ export function NewsletterPreferenceRow() {
   useEffect(() => {
     let active = true
     setIsLoading(true)
-    setError('')
+    setError(false)
     const load = async () => {
       try {
         const value = await auth.api.getNewsletterPreference?.() ?? { status: 'not_subscribed' as const }
         if (active) setPreference(value)
       } catch {
-        if (active) { setPreference(null); setError(t.notificationSettings.loadFailed) }
+        if (active) { setPreference(null); setError(true) }
       } finally {
         if (active) setIsLoading(false)
       }
     }
     void load()
     return () => { active = false }
-  }, [auth.api, revision, t.notificationSettings.loadFailed])
+  }, [auth.api, revision])
 
   async function update(subscribed: boolean) {
     if (!auth.api.updateNewsletterPreference) return
@@ -57,7 +57,7 @@ export function NewsletterPreferenceRow() {
   return (
     <div id="email-notifications" tabIndex={-1} aria-label={t.notificationSettings.emailTitle} className="settings-row newsletter-preference-row">
       {isLoading ? <Skeleton className="settings-list-skeleton" label={t.notificationSettings.loading} /> : error ? (
-        <><p className="form-error" role="alert">{error}</p><Button variant="secondary" onPress={() => setRevision(value => value + 1)}>{t.notificationSettings.retry}</Button></>
+        <><p className="form-error" role="alert">{t.notificationSettings.loadFailed}</p><Button variant="secondary" onPress={() => setRevision(value => value + 1)}>{t.notificationSettings.retry}</Button></>
       ) : <div className="newsletter-preference-control">
         <Switch
           description={t.notificationSettings.newsletterDescription}
