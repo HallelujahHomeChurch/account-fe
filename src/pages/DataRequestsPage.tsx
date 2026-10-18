@@ -6,7 +6,7 @@ import { useRetryCooldown } from '../features/email-correction/useRetryCooldown'
 import { emailCorrectionMessages, type EmailCorrectionLocale } from '../features/email-correction/messages'
 import '../features/email-correction/styles.css'
 
-export type CorrectionView = 'loading' | 'form' | 'reauth' | 'mfa' | 'checking' | 'pending_verification' | 'link_expired' | 'pending_approval' | 'completed' | 'cancelled' | 'expired' | 'invalidated' | 'superseded' | 'unauthorized' | 'unverified' | 'no_reviewer' | 'load_error' | 'intent_expired'
+export type CorrectionView = 'loading' | 'form' | 'reauth' | 'mfa' | 'checking' | 'pending_verification' | 'link_expired' | 'pending_approval' | 'completed' | 'cancelled' | 'expired' | 'invalidated' | 'superseded' | 'unauthorized' | 'unverified' | 'no_reviewer' | 'ineligible' | 'load_error' | 'intent_expired'
 export type CorrectionAction = 'next' | 'back' | 'password' | 'mfa' | 'provider' | 'resend' | 'replace' | 'cancel' | 'new' | 'retry' | 'profile' | 'signin' | 'verify_current' | 'current'
 export type DataRequestsPageProps = {
   locale: EmailCorrectionLocale
@@ -42,8 +42,9 @@ export function DataRequestsPage({ locale, view, currentEmail, newEmail, expires
     if (previousView.current !== view && ['form', 'reauth', 'mfa'].includes(view)) heading.current?.focus()
     previousView.current = view
   }, [view])
-  const definitions = catalog ? catalog.items.map(item => ({ ...item, labelKey: 'emailChange' as const })) : correctionCatalog
+  const definitions = catalog ? catalog.items.map(item => ({ ...correctionCatalog.find(definition => definition.kind === item.kind)!, ...item })) : correctionCatalog
   const item = definitions[0]
+  const requestItem = item ?? correctionCatalog[0]
   const allowed = (action: EmailCorrectionRequest['allowedActions'][number]) => !allowedActions || allowedActions.includes(action)
   const fields = { currentEmail, newEmail }
   const editing = view === 'form' || view === 'intent_expired'
@@ -74,7 +75,7 @@ export function DataRequestsPage({ locale, view, currentEmail, newEmail, expires
   }
 
   return <section className="account-document email-correction" aria-labelledby="correction-title">
-    <div className="page-heading"><h1 id="correction-title" ref={heading} tabIndex={-1}>{identity ? t.identity : t.title}</h1><p>{identity ? t.identityHint : t.intro}</p></div>
+    <div className="page-heading"><h1 id="correction-title" ref={heading} tabIndex={-1}>{t.title}</h1><p>{t.intro}</p></div>
     {coolingDown && retryAt ? <p className="form-notice">{t.retryAvailableAt.replace('{time}', new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeStyle: 'long' }).format(new Date(retryAt)))}</p> : null}
     {!enabled ? <p className="form-notice" role="status">{t.paused}</p> : null}
     {errorText ? <div role="alert"><p className="form-error">{errorText}</p>{error === 'unavailable' || error === 'conflict' ? <Button variant="secondary" isDisabled={coolingDown || busy} onPress={() => onAction('retry')}>{t.retry}</Button> : null}</div> : null}
@@ -82,19 +83,22 @@ export function DataRequestsPage({ locale, view, currentEmail, newEmail, expires
     {view === 'loading' ? <Skeleton className="account-page-skeleton" label={t.loading} /> : null}
     {view === 'load_error' ? <div role="alert"><p className="form-error">{t.loadError}</p><Button isDisabled={coolingDown || busy} onPress={() => onAction('retry')}>{t.retry}</Button></div> : null}
     {view === 'unauthorized' ? <Card className="panel-card settings-card"><Card.Content><p role="status">{t.unauthorized}</p><Button onPress={() => onAction('signin')}>{t.signIn}</Button></Card.Content></Card> : null}
-    {view === 'unverified' || view === 'no_reviewer' ? <Card className="panel-card settings-card"><Card.Content><p role="status">{view === 'unverified' ? t.unverified : t.noReviewer}</p>{view === 'unverified' ? <Button onPress={() => onAction('verify_current')}>{t.verifyStep}</Button> : null}</Card.Content></Card> : null}
-    {(editing && item) || identity ? <Card className="panel-card settings-card"><Card.Content>
+    {view === 'unverified' || view === 'no_reviewer' || view === 'ineligible' ? <Card className="panel-card settings-card"><Card.Content><p role="status">{view === 'unverified' ? t.unverified : view === 'no_reviewer' ? t.noReviewer : t.ineligible}</p>{view === 'unverified' ? <Button onPress={() => onAction('verify_current')}>{t.verifyStep}</Button> : null}</Card.Content></Card> : null}
+    {(editing && item) || identity ? <Card className="panel-card settings-card">{identity ? <Card.Header><div className="correction-item-heading"><Card.Title>{t.identity}</Card.Title><p>{t.identityHint}</p></div></Card.Header> : null}<Card.Content>
       {view === 'intent_expired' ? <p className="form-error" role="alert">{t.intentExpired}</p> : null}
       {replacing ? <p className="form-notice">{t.replacementHint}</p> : null}
       <Form className="form-stack" onSubmit={submitForm}>
         {editing && item ? <>
           <Select label={t.item} selectedKey={item.kind} items={definitions.map(definition => ({ id: definition.kind, label: t[definition.labelKey] }))} />
-          {item.fields.map(field => <TextField key={field.key} name={field.key} type={field.type} isReadOnly={field.readOnly} isRequired={field.required} value={fields[field.key]} onChange={field.readOnly ? undefined : value => { onEmailChange(value); if (emailError) setEmailError(false) }} isInvalid={!field.readOnly && (emailError || error === 'email')}>
-            <Label>{t[field.key]}</Label><Input dir="ltr" autoComplete={field.readOnly ? 'off' : 'email'} autoCapitalize="none" spellCheck={false} aria-describedby={field.readOnly ? undefined : 'correction-consequence'} />
-            <FieldError>{emailError ? t.sameEmail : error === 'email' ? t.unavailableEmail : t.invalidEmail}</FieldError>
-          </TextField>)}
-          <p id="correction-consequence" className="muted">{t.signOutHint}</p>
-          <Button type="submit" isDisabled={!enabled || !eligible || coolingDown} isPending={busy}>{t.next}</Button>
+          <section className="correction-stack" aria-labelledby="request-item-title">
+            <div className="correction-item-heading"><Card.Title id="request-item-title">{t[item.labelKey]}</Card.Title><p>{t[item.descriptionKey]}</p></div>
+            {item.fields.map(field => <TextField key={field.key} name={field.key} type={field.type} isReadOnly={field.readOnly} isRequired={field.required} value={fields[field.key]} onChange={field.readOnly ? undefined : value => { onEmailChange(value); if (emailError) setEmailError(false) }} isInvalid={!field.readOnly && (emailError || error === 'email')}>
+              <Label>{t[field.key]}</Label><Input dir="ltr" autoComplete={field.readOnly ? 'off' : 'email'} autoCapitalize="none" spellCheck={false} aria-describedby={field.readOnly ? undefined : 'correction-consequence'} />
+              <FieldError>{emailError ? t.sameEmail : error === 'email' ? t.unavailableEmail : t.invalidEmail}</FieldError>
+            </TextField>)}
+            <p id="correction-consequence" className="muted">{t.signOutHint}</p>
+            <Button type="submit" isDisabled={!enabled || !eligible || coolingDown} isPending={busy}>{t.next}</Button>
+          </section>
         </> : <>
           <dl className="correction-summary"><div><dt>{t.currentEmail}</dt><dd dir="ltr">{currentEmail}</dd></div><div><dt>{t.newEmail}</dt><dd dir="ltr">{newEmail}</dd></div></dl>
           <p>{t.signOutHint}</p>
@@ -107,8 +111,8 @@ export function DataRequestsPage({ locale, view, currentEmail, newEmail, expires
     </Card.Content></Card> : null}
     {view === 'checking' ? <Card className="panel-card settings-card"><Card.Content><p role="status">{t.checking}</p><Skeleton label={t.checking} /></Card.Content></Card> : null}
     {pending || terminal || view === 'completed' ? <Card className="panel-card settings-card">
-      <Card.Header><Card.Title>{title}</Card.Title></Card.Header><Card.Content className="correction-stack">
-        {pending || view === 'completed' ? <ol className="correction-progress" aria-label={t.title}><li aria-current={view !== 'pending_approval' && view !== 'completed' ? 'step' : undefined}>{t.verifyStep}</li><li aria-current={view === 'pending_approval' ? 'step' : undefined}>{t.approvalStep}</li><li aria-current={view === 'completed' ? 'step' : undefined}>{t.completeStep}</li></ol> : null}
+      <Card.Header><div className="correction-item-heading"><Card.Title>{t[requestItem.labelKey]}</Card.Title><p>{title}</p></div></Card.Header><Card.Content className="correction-stack">
+        {pending || view === 'completed' ? <ol className="correction-progress" aria-label={t[requestItem.labelKey]}>{requestItem.progressSteps.map(step => <li key={step.labelKey} aria-current={step.views.some(current => current === view) ? 'step' : undefined}>{t[step.labelKey]}</li>)}</ol> : null}
         {pending || view === 'completed' ? <dl className="correction-summary"><div><dt>{view === 'completed' ? t.currentEmail : t.newEmail}</dt><dd dir="ltr">{view === 'completed' ? currentEmail : newEmail}</dd></div>{pending && expiresAt ? <div><dt>{t.expires}</dt><dd><time dateTime={expiresAt}>{new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeStyle: 'long' }).format(new Date(expiresAt))}</time></dd></div> : null}</dl> : null}
         <p role="status">{view === 'pending_verification' ? t.verifyHint : view === 'link_expired' ? t.linkExpired : view === 'pending_approval' ? t.approvalHint : view === 'completed' ? t.completedHint : view === 'superseded' ? t.superseded : t.unchanged}</p>
         <div className="correction-actions">

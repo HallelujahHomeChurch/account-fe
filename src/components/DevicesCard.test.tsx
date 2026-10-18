@@ -1,10 +1,10 @@
 import { MemoryRouter } from 'react-router-dom'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
-import { DevicesPage } from './DevicesPage'
+import { DevicesCard } from '../components/DevicesCard'
 import { LocaleProvider } from '../i18n/locale-context'
 
 function deviceApi(overrides: Partial<AuthApi> = {}): AuthApi {
@@ -17,13 +17,13 @@ function deviceApi(overrides: Partial<AuthApi> = {}): AuthApi {
   }
 }
 
-describe('DevicesPage', () => {
+describe('DevicesCard', () => {
   it.each([
     ['ja', 'デバイス', '認識済みのデバイスはまだありません。'],
     ['ko', '기기', '아직 확인된 기기가 없어요.'],
   ])('renders device state in %s', async (locale, heading, empty) => {
     document.cookie = `hhc_locale=${locale}; Path=/`
-    render(<MemoryRouter><LocaleProvider><AuthProvider api={deviceApi({ listDevices: async () => [] })}><DevicesPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+    render(<MemoryRouter><LocaleProvider><AuthProvider api={deviceApi({ listDevices: async () => [] })}><DevicesCard /></AuthProvider></LocaleProvider></MemoryRouter>)
 
     expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument()
     expect(await screen.findByText(empty)).toBeInTheDocument()
@@ -33,7 +33,7 @@ describe('DevicesPage', () => {
     render(
       <MemoryRouter>
         <AuthProvider api={deviceApi({ listDevices: async () => { throw new Error('offline') } })}>
-          <DevicesPage />
+          <DevicesCard />
         </AuthProvider>
       </MemoryRouter>,
     )
@@ -90,7 +90,7 @@ describe('DevicesPage', () => {
             ],
           })}
         >
-          <DevicesPage />
+          <DevicesCard />
         </AuthProvider>
       </MemoryRouter>,
     )
@@ -129,7 +129,7 @@ describe('DevicesPage', () => {
             }],
           })}
         >
-          <DevicesPage />
+          <DevicesCard />
         </AuthProvider>
       </MemoryRouter>,
     )
@@ -159,7 +159,7 @@ describe('DevicesPage', () => {
             }],
           })}
         >
-          <DevicesPage />
+          <DevicesCard />
         </AuthProvider>
       </MemoryRouter>,
     )
@@ -191,7 +191,7 @@ describe('DevicesPage', () => {
             logoutDevice: async (id) => { calls.push(id) },
           })}
         >
-          <DevicesPage />
+          <DevicesCard />
         </AuthProvider>
       </MemoryRouter>,
     )
@@ -227,7 +227,7 @@ describe('DevicesPage', () => {
             logoutDevice: async () => { throw new Error('current device must use account menu logout') },
           })}
         >
-          <DevicesPage />
+          <DevicesCard />
         </AuthProvider>
       </MemoryRouter>,
     )
@@ -236,3 +236,13 @@ describe('DevicesPage', () => {
     expect(screen.queryByRole('button', { name: /sign out this mac/i })).not.toBeInTheDocument()
   })
 })
+
+it('exposes logout failures after closing confirmation and preserves the signed-in device for retry', async () => {
+ render(<MemoryRouter><AuthProvider api={deviceApi({listDevices: async () => [{id:'remote',display_name:'Remote Mac',device_type:'desktop',browser:'Chrome',os:'macOS',ip_address:'203.0.113.10',first_seen_at:'2026-07-01T00:00:00Z',last_login_at:'2026-07-11T00:00:00Z',last_active_at:'2026-07-12T00:00:00Z',is_current:false,is_signed_in:true}],logoutDevice: async () => {throw new Error('offline')}})}><DevicesCard/></AuthProvider></MemoryRouter>);
+ await userEvent.click(await screen.findByRole('button',{name:/sign out remote mac/i}));
+ await userEvent.click(screen.getByRole('button',{name:/^sign out$/i}));
+ await waitFor(()=>expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
+ expect(screen.getByRole('alert')).toHaveTextContent('Unable to sign out this device');
+ expect(screen.getByRole('button',{name:/sign out remote mac/i})).toBeEnabled();
+ expect(screen.queryByText('Signed out')).not.toBeInTheDocument();
+});

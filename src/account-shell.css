@@ -1,0 +1,91 @@
+.account-app { display: flex; flex-direction: column; height: 100dvh; min-height: 0; overflow: hidden; }
+.account-topbar { flex: none; z-index: 30; }
+.account-header { position: relative; display: flex; min-height: 76px; align-items: center; gap: 16px; padding: 12px 24px; background: var(--color-paper); border-bottom: 1px solid var(--color-line); }
+.mobile-shell-brand { display: inline-flex; align-items: center; gap: 10px; min-width: 0; color: var(--hhc-brand-ui, var(--color-ink)); font-size: 19px; font-weight: 600; }
+.mobile-shell-brand > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brand-mark { width: 40px; height: 40px; flex: none; }
+.account-layout { flex: 1; display: grid; grid-template-columns: 244px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; min-height: 0; overflow: hidden; }
+.account-sidebar { grid-column: 1; grid-row: 1; min-height: 0; overflow: auto; padding: 24px; }
+.account-content { grid-column: 2; grid-row: 1; min-height: 0; min-width: 0; overflow: auto; display: flex; flex-direction: column; }
+/* Ordinary settings retain their intrinsic height, so trailing space is scrollable. */
+.account-app .main-panel { width: min(100% - 48px, 960px); flex: none; padding: 32px 0; }
+.account-sidebar-footer { grid-column: 1; grid-row: 2; padding: 12px 24px 16px; }
+.account-footer { grid-column: 2; grid-row: 2; min-width: 0; padding: 12px 0 16px; }
+.account-footer-copy { width: min(100% - 48px, 960px); margin: 0 auto; }
+.account-footer, .account-sidebar-footer { color: var(--color-muted); font-size: 12px; line-height: 18px; }
+.account-legal-links { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.account-legal-links a:hover { color: var(--color-primary); text-decoration: underline; }
+.account-search { margin-left: auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.account-search-results { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.account-search-results a { display: grid; gap: 4px; padding: 12px; border-radius: 12px; }
+.account-search-results a:hover { background: var(--color-primary-soft); }
+.account-search-results span { color: var(--color-muted); font-size: 14px; }
+.account-mobile-tabs { display: none; }
+.newsletter-preference-control, .newsletter-preference-control > .hhc-switch { width: 100%; }
+/* Keep the accessible hidden input inside the content scroll container. */
+.newsletter-preference-control > .hhc-switch { position: relative; }
+.newsletter-preference-control > [role="status"] { display: block; margin-top: 8px; }
+.device-group { min-width: 0; }
+.device-group + .device-group { border-top: 1px solid var(--color-line); margin-top: 16px; padding-top: 16px; }
+.device-group h3 { display: flex; gap: 8px; align-items: center; margin: 0 0 12px; font-size: 14px; color: var(--color-muted); }
+.main-panel [tabindex="-1"] { scroll-margin-block: 96px 24px; }
+.main-panel [tabindex="-1"]:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 4px; }
+
+@media (max-width: 767px) {
+  body:has(.account-app) { min-height: 100dvh; padding-bottom: calc(62px + env(safe-area-inset-bottom)); }
+  body:has(.account-app[data-iphone-standalone]) { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+  .account-app { height: auto; min-height: 100dvh; overflow: visible; }
+  .account-topbar { position: sticky; top: 0; transition: transform 220ms cubic-bezier(.22, 1, .36, 1); }
+  .account-topbar[data-mobile-hidden="true"] { transform: translateY(-100%); }
+  .account-header { min-height: 68px; gap: 12px; padding: 12px 16px; }
+  .mobile-shell-brand { flex: 1; font-size: 17px; }
+  .brand-mark { width: 36px; height: 36px; }
+  .account-header[data-search-open="true"] .mobile-shell-brand { visibility: hidden; }
+  .account-search[data-expanded="true"] { position: absolute; inset: 0; padding: 12px 16px; background: var(--color-paper); }
+  /* Overlay changes must not animate or flex-shrink the search back to zero. */
+  .account-search .hhc-expandable-search { flex: none; width: 44px; height: 44px; transition: none; }
+  .account-search .hhc-expandable-search__trigger,
+  .account-search .hhc-expandable-search__clear,
+  .account-search .hhc-expandable-search__close { width: 44px; height: 44px; }
+  .account-search .hhc-expandable-search__clear { right: 44px; }
+  .account-search .hhc-expandable-search__field input { font-size: 16px; padding-inline-end: 88px; }
+  .account-search[data-expanded="true"] .hhc-expandable-search { width: 100%; max-width: none; }
+  .account-layout { display: flex; flex-direction: column; min-height: 0; height: auto; overflow: visible; }
+  .account-content { display: block; flex: none; height: auto; min-height: 0; overflow: visible; }
+  .account-footer { padding: 12px 0 20px; }
+  .account-footer-copy { width: calc(100% - 28px); display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+  .account-mobile-tabs { position: fixed; inset: auto 0 0; z-index: 40; display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; min-height: calc(62px + env(safe-area-inset-bottom)); padding: 5px 12px env(safe-area-inset-bottom); border-top: 1px solid var(--color-line); background: color-mix(in srgb, var(--color-paper) 94%, transparent); backdrop-filter: blur(16px); box-shadow: 0 -8px 24px rgb(55 45 43 / 8%); transition: transform 220ms cubic-bezier(.22, 1, .36, 1); }
+  .account-mobile-tab { display: grid; grid-template-rows: 26px 11px; align-content: center; justify-items: center; min-width: 0; min-height: 52px; padding: 4px; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: 999px; color: var(--color-muted); font-size: 11px; font-weight: 600; line-height: 1; }
+  .account-mobile-tab > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .account-mobile-tab svg { width: 22px; height: 22px; stroke-width: 1.8; }
+  .account-mobile-tab[data-active="true"] { background: var(--color-primary-soft); color: var(--color-primary); }
+  .account-mobile-tab[data-active="true"] svg { stroke-width: 2.4; }
+  .account-mobile-avatar { position: relative; display: grid; grid-template-rows: 26px 11px; gap: 3px; align-content: center; justify-items: center; min-height: 52px; font-size: 11px; font-weight: 600; line-height: 1; color: var(--color-muted); }
+  .account-mobile-avatar > span { grid-row: 2; z-index: 1; pointer-events: none; }
+  .account-mobile-avatar .hhc-account-menu__trigger { position: absolute; inset: 0; display: grid; grid-template-rows: 26px 11px; gap: 3px; align-content: center; justify-items: center; width: 100%; height: 100%; padding: 0; }
+  .account-mobile-avatar .hhc-avatar { width: 26px; height: 26px; min-width: 26px; min-height: 26px; }
+  .account-mobile-tabs[data-mobile-hidden="true"] { transform: translateY(100%); }
+  .account-app[data-iphone-standalone] .account-mobile-tabs { inset: auto max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); width: min(calc(100vw - 24px), 420px); min-height: 64px; margin-inline: auto; padding: 6px; border: 1px solid var(--color-line); border-radius: 999px; }
+  .account-app[data-iphone-standalone] .account-mobile-tabs[data-mobile-hidden="true"] { transform: translateY(calc(100% + max(10px, env(safe-area-inset-bottom)) + 12px)); }
+  .account-topbar:focus-within, .account-mobile-tabs:focus-within,
+  body:has(.account-mobile-tabs [aria-expanded="true"]) .account-topbar,
+  body:has(.account-mobile-tabs [aria-expanded="true"]) .account-mobile-tabs { transform: none; }
+  body:has(.account-mobile-tabs [aria-expanded="true"]) .hhc-menu__popover { position: fixed !important; inset: auto 12px calc(72px + env(safe-area-inset-bottom)) !important; width: calc(100vw - 24px); max-width: none; max-height: min(70dvh, 480px); overflow-y: auto; transform: none !important; padding: 8px; border-radius: 16px; }
+  body:has(.account-mobile-tabs [aria-expanded="true"]) .hhc-menu__item { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .account-topbar, .account-mobile-tabs { transition: none; }
+}
+
+.newsletter-preference-control .hhc-switch__copy { min-width: 0; }
+.newsletter-preference-control .hhc-switch__label { color: var(--color-muted); font-size: 14px; font-weight: 600; }
+.account-app[data-iphone-standalone] .account-header,
+.account-app[data-iphone-standalone] .account-search[data-expanded="true"] { background: var(--color-canvas); }
+@media (display-mode: standalone) {
+  .account-header, .account-search[data-expanded="true"] { background: var(--color-canvas); }
+}
+body:has(.account-app)::after { content: ""; position: fixed; inset: 0; z-index: 50; background: rgb(0 0 0 / 12%); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 150ms ease; }
+body:has(.account-app .hhc-account-menu__trigger[aria-expanded="true"], .account-mobile-tabs .account-mobile-tab[aria-expanded="true"])::after { opacity: 1; pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) {
+  body:has(.account-app)::after { transition: none; }
+}

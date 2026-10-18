@@ -1,6 +1,7 @@
 .email-correction { min-width: 0; }
 .email-correction .form-stack, .correction-stack { display: grid; gap: 1.25rem; min-width: 0; }
 .email-correction p { margin: 0; }
+.correction-item-heading { display: grid; gap: .4rem; }
 .correction-summary { display: grid; gap: 1.25rem; margin: 0; min-width: 0; }
 .correction-summary > div { display: grid; gap: .4rem; min-width: 0; }
 .correction-summary dt { color: var(--color-muted); font-size: .875rem; }

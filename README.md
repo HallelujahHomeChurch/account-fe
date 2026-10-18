@@ -67,13 +67,18 @@ Sensitive routes reload before mounting when GA has started. Only successful
 interactive login and ordinary profile saves emit fixed events; hydration and
 session refresh do not. No account identity or form data is sent to analytics.
 
-## Church statement preferences
+## Account settings
 
-The profile statement shares the signed-in Website API dismissal with WWW and
-all account devices. Anonymous dismissal uses the shared preferences package in
-one browser. A newly published version prompts again, while the publication
-window still controls availability. Auth bootstrap, stale account/version
-responses and failed preference requests are handled before showing a popup.
+Devices are managed within Security; email newsletter preferences are part of
+Personalization. Legacy device and notification URLs redirect to those sections.
+Church statements are shown only on the public website; required legal review
+and analytics consent remain available in Account.
 
-Website client and browser preferences use the exact published
-frontend-platform v1.0.47 packages and registry lockfile.
+## Small-group management migration
+
+Management now lives at the public site's localized `/organizations` routes.
+Account removes its management UI, avatar/navigation/search entries and clients;
+no legacy management redirect is provided. Removed URLs follow the existing
+Account unknown-route behavior. Resources, reservations and member-details
+eligibility keep their existing Operations access.
+Release Gateway's WWW allowlist and WWW before this Account UI removal.
