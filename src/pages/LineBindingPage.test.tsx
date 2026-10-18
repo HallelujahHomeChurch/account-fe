@@ -51,6 +51,8 @@ function anonymousApi(overrides: Partial<AuthApi> = {}): AuthApi {
       view_nonce: viewNonce,
       expires_at: '2026-08-08T10:10:00Z',
     }),
+    restartLineLinkIntent: async () => ({ view_nonce: 'CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', expires_at: '2026-08-08T10:10:00Z', current: true, status: 'created' }),
+    cancelLineLinkIntent: async () => ({ intent_id: '018f0c1f-18d0-7e81-9f6f-69c456db7901', generation: '1', status: 'cancelled', expires_at: '2026-08-08T10:10:00Z' }),
     ...overrides,
   }
 }
@@ -473,3 +475,69 @@ function LocationPath() {
   const location = useLocation()
   return <span data-testid="location-path">{location.pathname}{location.search}</span>
 }
+
+
+it.each(['cancelled', 'completed'] as const)('shows the actual %s result when cancellation races completion', async (status) => {
+  const cancelLineLinkIntent = vi.fn(async () => ({ intent_id: '018f0c1f-18d0-7e81-9f6f-69c456db7901', generation: '1', status, expires_at: '2026-08-08T10:10:00Z' }))
+  const logout = vi.fn(async () => ({}))
+  renderPage(signedInApi({ cancelLineLinkIntent, logout }))
+  await userEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
+  expect(cancelLineLinkIntent).toHaveBeenCalledWith(viewNonce)
+  expect(await screen.findByRole('status')).toHaveTextContent(status === 'completed' ? 'LINE is connected.' : 'This connection request was cancelled.')
+  expect(screen.queryByRole('button', { name: 'Confirm link' })).not.toBeInTheDocument()
+  expect(logout).not.toHaveBeenCalled()
+})
+
+it('keeps a failed cancellation retryable without pretending it was cancelled', async () => {
+  const cancelLineLinkIntent = vi.fn().mockRejectedValueOnce(new ApiError(503, 'unavailable')).mockResolvedValueOnce({ intent_id: '018f0c1f-18d0-7e81-9f6f-69c456db7901', generation: '1', status: 'cancelled', expires_at: '2026-08-08T10:10:00Z' })
+  renderPage(anonymousApi({ cancelLineLinkIntent }))
+  await userEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Unable to connect this account right now.')
+  await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+  expect(await screen.findByRole('status')).toHaveTextContent('This connection request was cancelled.')
+  expect(cancelLineLinkIntent).toHaveBeenCalledTimes(2)
+})
+
+it('does not adopt another tab intent when checking completion', async () => {
+  vi.spyOn(lineLinkIntent, 'navigateToLineAccountLink').mockReturnValue(true)
+  const getLineLinkIntent = vi.fn().mockResolvedValueOnce({ line_account_name: 'HHC Official LINE', view_nonce: viewNonce, expires_at: '2026-08-08T10:10:00Z' }).mockResolvedValueOnce({ line_account_name: 'Other bot', view_nonce: 'CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', status: 'created', expires_at: '2026-08-08T10:10:00Z' })
+  renderPage(signedInApi({ getLineLinkIntent, prepareLineLinkIntent: async () => ({ return_url: lineReturnUrl }) }))
+  await userEvent.click(await screen.findByRole('button', { name: 'Confirm link' }))
+  await userEvent.click(await screen.findByRole('button', { name: 'Check connection' }))
+  expect(await screen.findByRole('status')).toHaveTextContent('A newer connection request exists.')
+  expect(screen.queryByText('Other bot')).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Confirm link' })).not.toBeInTheDocument()
+})
+
+
+it('replaces the old intent before logout and reuses that replacement when logout retries', async () => {
+  const order: string[] = []
+  const restartLineLinkIntent = vi.fn(async () => { order.push('restart'); return { view_nonce: 'CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', expires_at: '2026-08-08T10:10:00Z', current: true, status: 'created' as const } })
+  const logout = vi.fn().mockImplementationOnce(async () => { order.push('logout'); throw new Error('temporary') }).mockImplementationOnce(async () => { order.push('logout') })
+  const navigateAfterLogout = vi.fn()
+  renderPage(signedInApi({ restartLineLinkIntent, logout }), navigateAfterLogout)
+  await userEvent.click(await screen.findByRole('button', { name: 'Switch account' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Unable to connect this account right now.')
+  await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+  expect(order).toEqual(['restart', 'logout', 'logout'])
+  expect(restartLineLinkIntent).toHaveBeenCalledWith(viewNonce)
+  expect(navigateAfterLogout).toHaveBeenCalledTimes(1)
+})
+
+it('does not log out when replacement of the old intent fails', async () => {
+  const logout = vi.fn(async () => ({}))
+  renderPage(signedInApi({ restartLineLinkIntent: async () => { throw new ApiError(503, 'unavailable') }, logout }))
+  await userEvent.click(await screen.findByRole('button', { name: 'Switch account' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Unable to connect this account right now.')
+  expect(logout).not.toHaveBeenCalled()
+})
+
+
+it('reports completion instead of switching after finalize wins the race', async () => {
+  const getLineLinkIntent = vi.fn().mockResolvedValueOnce({ line_account_name: 'HHC Official LINE', view_nonce: viewNonce, expires_at: '2026-08-08T10:10:00Z' }).mockResolvedValueOnce({ line_account_name: 'HHC Official LINE', view_nonce: viewNonce, status: 'completed', current: true, expires_at: '2026-08-08T10:10:00Z' })
+  const logout = vi.fn(async () => ({}))
+  renderPage(signedInApi({ getLineLinkIntent, restartLineLinkIntent: async () => { throw new ApiError(410, 'terminal') }, logout }))
+  await userEvent.click(await screen.findByRole('button', { name: 'Switch account' }))
+  expect(await screen.findByRole('status')).toHaveTextContent('LINE is connected.')
+  expect(logout).not.toHaveBeenCalled()
+})

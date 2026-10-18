@@ -141,7 +141,17 @@ export type MfaSetup = {
   backup_codes?: string[]
 }
 
-export type LineBindingSummary = {
+export type LineBindingStatus = 'created' | 'consented' | 'awaiting_line' | 'completed' | 'failed' | 'conflict' | 'expired' | 'cancelled' | 'superseded'
+
+export type LineBindingResult = {
+  intent_id: string
+  generation: string
+  expires_at: string
+  status: LineBindingStatus
+}
+
+export type LineBindingSummary = Partial<LineBindingResult> & {
+  current?: boolean
   line_account_name?: string
   view_nonce?: string
   profile_name?: string
@@ -452,7 +462,19 @@ export class AccountApi {
   }
 
   getLineLinkIntent() {
-    return this.request<LineBindingSummary>('/line/link-intent', { auth: false })
+    return this.request<LineBindingSummary>('/line/link-intent', { auth: false, cache: 'no-store' })
+  }
+
+  restartLineLinkIntent(viewNonce: string) {
+    return this.request<LineBindingSummary>('/line/link-intent/restart', {
+      method: 'POST', auth: false, cache: 'no-store', body: { view_nonce: viewNonce },
+    })
+  }
+
+  cancelLineLinkIntent(viewNonce: string) {
+    return this.request<LineBindingResult>('/line/link-intent/cancel', {
+      method: 'POST', auth: false, cache: 'no-store', body: { view_nonce: viewNonce },
+    })
   }
 
   prepareLineLinkIntent(viewNonce: string | undefined) {
