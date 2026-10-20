@@ -163,11 +163,11 @@ it('allows a delayed onboarding email to be resent after the delivery cooldown',
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Send code' })) })
     expect(screen.getByLabelText('Verification code')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Resend code' })).not.toBeInTheDocument()
-    await act(async () => { vi.advanceTimersByTime(15 * 60 * 1000) })
+    await act(async () => { vi.advanceTimersByTime(3 * 60 * 1000) })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Resend code' })) })
   } finally {
     vi.useRealTimers()
   }
-  await userEvent.click(screen.getByRole('button', { name: 'Resend code' }))
   expect(send).toHaveBeenCalledTimes(2)
   expect(send).toHaveBeenLastCalledWith('pending-token', 'user@example.com')
 })
@@ -198,7 +198,7 @@ it('keeps resend available when only the verification code expires', async () =>
   const api: AuthApi = {
     login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }),
     refreshAccessToken: async () => null, logout: async () => ({}),
-    sendOAuthOnboardingCode: async () => ({}),
+    sendOAuthOnboardingCode: async () => ({ resend_available_at: new Date(Date.now() - 1000).toISOString() }),
     verifyOAuthOnboardingCode: async () => { throw new ApiError(410, 'expired', 'ACC_OAUTH_ONBOARDING_CODE_EXPIRED') },
   }
   render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><OAuthOnboardingPage /></AuthProvider></LocaleProvider></MemoryRouter>)
@@ -210,6 +210,7 @@ it('keeps resend available when only the verification code expires', async () =>
 
   expect(await screen.findByRole('alert')).toHaveTextContent('This code has expired. Request a new code.')
   expect(screen.getByLabelText('Verification code')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Resend code' })).toBeEnabled()
 })
 
 it('stops onboarding when its authorization request has expired', async () => {
@@ -228,4 +229,61 @@ it('stops onboarding when its authorization request has expired', async () => {
 
   expect(await screen.findByRole('alert')).toHaveTextContent('This social sign-in request is invalid or expired. Sign in again.')
   expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument()
+})
+
+
+it.each([120, 600])('uses the server resend deadline of %i seconds and preserves code on failed resend', async (seconds) => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  window.history.replaceState(null, '', '/oauth/onboarding#token=pending-token')
+  const send = vi.fn().mockImplementationOnce(async () => ({ expires_at: new Date(Date.now() + 900_000).toISOString(), resend_available_at: new Date(Date.now() + seconds * 1000).toISOString() })).mockRejectedValueOnce(new ApiError(503, 'unavailable', undefined, undefined, '240'))
+  const api: AuthApi = { login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }), refreshAccessToken: async () => null, logout: async () => ({}), sendOAuthOnboardingCode: send }
+  render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><OAuthOnboardingPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+  await userEvent.type(screen.getByLabelText('Email'), 'user@example.com')
+  vi.useFakeTimers()
+  try {
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Send code' })) })
+    fireEvent.change(screen.getByLabelText('Verification code'), { target: { value: '123456' } })
+    expect(screen.getByText(/Code expires at/)).toBeInTheDocument()
+    await act(async () => { vi.advanceTimersByTime(seconds * 1000 - 1000) })
+    expect(screen.queryByRole('button', { name: 'Resend code' })).not.toBeInTheDocument()
+    await act(async () => { vi.advanceTimersByTime(1000) })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Resend code' })) })
+    expect(screen.getByLabelText('Verification code')).toHaveValue('123456')
+    expect(screen.queryByText('Your code was accepted for delivery. Check your inbox and spam folder.')).not.toBeInTheDocument()
+    await act(async () => { vi.advanceTimersByTime(239_000) })
+    expect(screen.queryByRole('button', { name: 'Resend code' })).not.toBeInTheDocument()
+    await act(async () => { vi.advanceTimersByTime(1000) })
+    expect(screen.getByRole('button', { name: 'Resend code' })).toBeInTheDocument()
+  } finally { vi.useRealTimers() }
+})
+
+it('honors a longer initial rate limit before retrying the email request', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  window.history.replaceState(null, '', '/oauth/onboarding#token=pending-token')
+  const api: AuthApi = { login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }), refreshAccessToken: async () => null, logout: async () => ({}), sendOAuthOnboardingCode: async () => { throw new ApiError(429, 'limited', 'ACC_AUTH_RATE_LIMITED', undefined, '600') } }
+  render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><OAuthOnboardingPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+  await userEvent.type(screen.getByLabelText('Email'), 'user@example.com')
+  vi.useFakeTimers()
+  try {
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Send code' })) })
+    expect(screen.getByRole('button', { name: 'Send code' })).toBeDisabled()
+    expect(screen.getByRole('alert')).toHaveTextContent('Please wait before requesting another code.')
+    await act(async () => { vi.advanceTimersByTime(180_000) })
+    expect(screen.getByRole('button', { name: 'Send code' })).toBeDisabled()
+    await act(async () => { vi.advanceTimersByTime(420_000) })
+    expect(screen.getByRole('button', { name: 'Send code' })).toBeEnabled()
+  } finally { vi.useRealTimers() }
+})
+
+
+it('allows a code retained after an uncertain initial delivery failure to be verified', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  window.history.replaceState(null, '', '/oauth/onboarding#token=pending-token')
+  const api: AuthApi = { login: async () => ({}), me: async () => ({ id: 'u1', email: 'user@example.com' }), refreshAccessToken: async () => null, logout: async () => ({}), sendOAuthOnboardingCode: async () => { throw new ApiError(503, 'unavailable', undefined, { expires_at: new Date(Date.now() + 900_000).toISOString(), resend_available_at: new Date(Date.now() + 180_000).toISOString() }, '180') } }
+  render(<MemoryRouter><LocaleProvider><AuthProvider api={api} restoreSession={false}><OAuthOnboardingPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+  await userEvent.type(screen.getByLabelText('Email'), 'user@example.com')
+  await userEvent.click(screen.getByRole('button', { name: 'Send code' }))
+  expect(screen.getByLabelText('Verification code')).toBeInTheDocument()
+  expect(screen.getByRole('alert')).toHaveTextContent('Unable to confirm email delivery. If a code arrives, you can still enter it. Otherwise, try again when the wait ends.')
+  expect(screen.queryByText('Your code was accepted for delivery. Check your inbox and spam folder.')).not.toBeInTheDocument()
 })

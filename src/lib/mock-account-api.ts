@@ -228,7 +228,7 @@ export class MockAccountApi {
   }
 
   async sendOAuthOnboardingCode() {
-    return { message: 'Mock verification code accepted.' }
+    return { message: 'Mock verification code accepted.', expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(), resend_available_at: new Date(Date.now() + 3 * 60 * 1000).toISOString() }
   }
 
   async verifyOAuthOnboardingCode() {

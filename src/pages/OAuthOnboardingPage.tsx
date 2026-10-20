@@ -25,7 +25,12 @@ export function OAuthOnboardingPage() {
   const [notice, setNotice] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [sentEmail, setSentEmail] = useState('')
-  const [canResend, setCanResend] = useState(false)
+  const [resendAt, setResendAt] = useState(0)
+  const [expiresAt, setExpiresAt] = useState<number | null>(null)
+  const [now, setNow] = useState(Date.now)
+  const remaining = Math.max(0, Math.ceil((resendAt - now) / 1000))
+  const canResend = remaining === 0
+  const countdown = `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}`
   const [policyAccepted, setPolicyAccepted] = useState(false)
   const { capabilities, error: capabilitiesError, retry: retryCapabilities } = useAuthCapabilitiesState()
   const policy = capabilities?.policy
@@ -51,23 +56,47 @@ export function OAuthOnboardingPage() {
   }, [auth.api, t.oauthOnboarding.failed, t.oauthOnboarding.invalid, token])
 
   useEffect(() => {
-    if (step !== 'code' || canResend) return
-    const timeout = window.setTimeout(() => setCanResend(true), 15 * 60 * 1000)
-    return () => window.clearTimeout(timeout)
-  }, [step, canResend])
+    if (!resendAt) return
+    const tick = () => setNow(Date.now())
+    tick()
+    const interval = window.setInterval(tick, 1000)
+    return () => window.clearInterval(interval)
+  }, [resendAt])
 
   async function requestCode(email: string) {
     if (!token || !auth.api.sendOAuthOnboardingCode) return setError(t.oauthOnboarding.invalid)
+    if (isSubmitting || Date.now() < resendAt) return
     setError('')
+    setNotice('')
     setIsSubmitting(true)
     try {
-      await auth.api.sendOAuthOnboardingCode(token, email)
+      const response = await auth.api.sendOAuthOnboardingCode(token, email)
       setSentEmail(email)
-      setCanResend(false)
+      setNow(Date.now())
+      setResendAt(deadline(response.resend_available_at) ?? Date.now() + 3 * 60 * 1000)
+      setExpiresAt(deadline(response.expires_at))
       setNotice(t.oauthOnboarding.codeSent)
       setStep('code')
     } catch (caught) {
-      if (caught instanceof ApiError && caught.code === 'ACC_OAUTH_ONBOARDING_INVALID') setStep('invalid')
+      if (caught instanceof ApiError) {
+        const retrySeconds = Number(caught.retryAfter)
+        const data = caught.data && typeof caught.data === 'object' ? caught.data : {}
+        const retainedExpiry = 'expires_at' in data ? deadline(data.expires_at) : null
+        const retryAt = 'resend_available_at' in data ? deadline(data.resend_available_at) : null
+        const retryDeadline = Number.isFinite(retrySeconds) && retrySeconds > 0 ? Date.now() + retrySeconds * 1000 : null
+        setNow(Date.now())
+        if (retryAt !== null || retryDeadline !== null || caught.status === 429) {
+          setResendAt(Math.max(retryAt ?? 0, retryDeadline ?? 0) || Date.now() + 3 * 60 * 1000)
+        }
+        if (retainedExpiry !== null) {
+          setSentEmail(email)
+          setExpiresAt(retainedExpiry)
+          setStep('code')
+        }
+        if (caught.code === 'ACC_OAUTH_ONBOARDING_INVALID') setStep('invalid')
+        if (caught.status === 429) { setError(t.oauthOnboarding.rateLimited); return }
+        if (caught.status === 503 && retainedExpiry !== null) { setError(t.oauthOnboarding.deliveryUncertain); return }
+      }
       setError(onboardingError(caught, t.oauthOnboarding.invalid, t.oauthOnboarding.failed))
     } finally {
       setIsSubmitting(false)
@@ -165,14 +194,16 @@ export function OAuthOnboardingPage() {
                 <Input autoComplete="email" autoFocus />
                 <FieldError />
               </TextField>
-              <div className="login-actions"><Button isPending={isSubmitting} type="submit">{t.oauthOnboarding.sendCode}</Button></div>
+              {!canResend ? <p className="form-notice">{t.oauthOnboarding.resendWait.replace('{time}', countdown)}</p> : null}
+              <div className="login-actions"><Button isDisabled={!canResend} isPending={isSubmitting} type="submit">{t.oauthOnboarding.sendCode}</Button></div>
             </Form>
           ) : null}
           {step === 'code' ? (
             <Form className="form-stack" onSubmit={verifyCode}>
+              {expiresAt !== null ? <p className="form-notice">{t.oauthOnboarding.codeExpiresAt.replace('{time}', new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'long' }).format(new Date(expiresAt)))}</p> : null}
               <OTP autoComplete="one-time-code" autoFocus inputMode="numeric" label={t.oauthOnboarding.code} maxLength={6} name="code" pattern={REGEXP_ONLY_DIGITS} required />
               <div className="login-actions"><Button isPending={isSubmitting} type="submit">{t.oauthOnboarding.verify}</Button></div>
-              {canResend ? <Button isDisabled={isSubmitting} onPress={() => void requestCode(sentEmail)} variant="secondary">{t.oauthOnboarding.resendCode}</Button> : <p className="form-notice">{t.oauthOnboarding.resendWait}</p>}
+              {canResend ? <Button isDisabled={isSubmitting} onPress={() => void requestCode(sentEmail)} variant="secondary">{t.oauthOnboarding.resendCode}</Button> : <p className="form-notice">{t.oauthOnboarding.resendWait.replace('{time}', countdown)}</p>}
             </Form>
           ) : null}
           {step === 'confirm' ? (
@@ -194,4 +225,9 @@ export function OAuthOnboardingPage() {
 function onboardingError(caught: unknown, invalid: string, fallback: string) {
   if (caught instanceof ApiError && ['ACC_OAUTH_ONBOARDING_INVALID', 'ACC_AUTH_REQUEST_INVALID'].includes(caught.code ?? '')) return invalid
   return fallback
+}
+
+function deadline(value: unknown): number | null {
+  const parsed = typeof value === 'string' ? Date.parse(value) : NaN
+  return Number.isFinite(parsed) ? parsed : null
 }

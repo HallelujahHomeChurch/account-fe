@@ -86,6 +86,8 @@ export type OAuthOnboardingStatus = {
   link_confirmation_required?: boolean
   existing_account?: boolean
   requires_link_confirmation?: boolean
+  expires_at?: string
+  resend_available_at?: string
 }
 
 export type AccountNameUpdate = { nickname: string; first_name?: never; last_name?: never } | { first_name: string; last_name: string; nickname?: never }
@@ -418,7 +420,7 @@ export class AccountApi {
   }
 
   sendOAuthOnboardingCode(token: string, email: string) {
-    return this.request<{ message?: string }>('/oauth/onboarding/email', {
+    return this.request<{ message?: string; expires_at?: string; resend_available_at?: string }>('/oauth/onboarding/email', {
       method: 'POST',
       auth: false,
       body: { token, email },
