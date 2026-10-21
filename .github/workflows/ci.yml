@@ -56,6 +56,11 @@ jobs:
             --skip-dirs /workspace/.git --skip-dirs /workspace/node_modules /workspace
       - run: corepack pnpm test:run
       - run: corepack pnpm lint
-      - run: corepack pnpm build
+      - run: |
+          SENTRY_BUILD_SOURCEMAPS=true corepack pnpm build
+          corepack pnpm exec sentry-cli sourcemaps inject dist
+          test -n "$(find dist -type f -name '*.map' -print -quit)"
+          find dist -type f -name '*.map' -delete
+          test -z "$(find dist -type f -name '*.map' -print -quit)"
       - run: ./scripts/test-release-policy.sh
       - run: az bicep build --file infra/main.bicep --stdout >/dev/null

@@ -1,12 +1,9 @@
 /// <reference types="vitest/config" />
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-import { sentryVitePlugin } from '@sentry/vite-plugin'
 import { defineConfig } from 'vite'
 
-const uploadSourceMaps = Boolean(
-  process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT,
-)
+const buildSourceMaps = process.env.SENTRY_BUILD_SOURCEMAPS === 'true'
 const accountGatewayProxy = process.env.VITE_ACCOUNT_GATEWAY_PROXY_TARGET
 
 // https://vite.dev/config/
@@ -14,16 +11,8 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    uploadSourceMaps && sentryVitePlugin({
-      authToken: process.env.SENTRY_AUTH_TOKEN,
-      org: process.env.SENTRY_ORG,
-      project: process.env.SENTRY_PROJECT,
-      release: { name: process.env.VITE_SENTRY_RELEASE },
-      sourcemaps: { filesToDeleteAfterUpload: ['./dist/**/*.map'] },
-      errorHandler: (error) => { throw error },
-    }),
   ],
-  build: { sourcemap: uploadSourceMaps ? 'hidden' : false },
+  build: { sourcemap: buildSourceMaps ? 'hidden' : false },
   server: {
     proxy: {
       '/api/account': 'http://127.0.0.1:8080',

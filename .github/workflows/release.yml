@@ -74,6 +74,8 @@ jobs:
 
   deploy:
     needs: verify
+    outputs:
+      sourcemaps: ${{ steps.build.outputs.sourcemaps }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -130,16 +132,31 @@ jobs:
             --parameters provisionPermissions=false \
             --only-show-errors --output none
       - name: Build production site
+        id: build
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_BUILD_SOURCEMAPS: ${{ secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && vars.SENTRY_PROJECT != '' && 'true' || 'false' }}
           VITE_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
           VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
           VITE_SENTRY_ENVIRONMENT: production
           VITE_SENTRY_RELEASE: ${{ github.sha }}
-          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
-        run: corepack pnpm build
+        run: |
+          corepack pnpm build
+          if [[ "$SENTRY_BUILD_SOURCEMAPS" == true ]]; then
+            corepack pnpm exec sentry-cli sourcemaps inject dist
+            [[ "$(az acr show -n alive --query anonymousPullEnabled -o tsv --only-show-errors)" == false ]] || exit 1
+            az acr login --name alive
+            maps_repository="alive/account-fe-sourcemaps"
+            maps_tag="${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            maps_ref="alive.azurecr.io/${maps_repository}:${maps_tag}"
+            docker build -f Dockerfile.sourcemaps --build-arg BUILD_COMMIT="$GITHUB_SHA" -t "$maps_ref" dist
+            docker push "$maps_ref"
+            digest="$(az acr repository show -n alive --image "${maps_repository}:${maps_tag}" --query digest -o tsv --only-show-errors)"
+            [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 1
+            echo "sourcemaps=alive.azurecr.io/${maps_repository}@${digest}" >> "$GITHUB_OUTPUT"
+          fi
+          find dist -type f -name '*.map' -delete
+          test -z "$(find dist -type f -name '*.map' -print -quit)"
       - name: Capture current index
         run: |
           if az storage blob exists \
@@ -222,3 +239,55 @@ jobs:
               --auth-mode login \
               --only-show-errors --output none
           fi
+
+  upload_sourcemaps:
+    needs: deploy
+    if: ${{ needs.deploy.outputs.sourcemaps != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+    env:
+      SOURCE_MAPS_IMAGE: ${{ needs.deploy.outputs.sourcemaps }}
+      SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          registry-url: https://npm.pkg.github.com
+          package-manager-cache: false
+      - name: Validate source-map artifact
+        run: |
+          [[ "$GITHUB_REF" == refs/heads/main ]] || exit 1
+          [[ "$SOURCE_MAPS_IMAGE" =~ ^alive\.azurecr\.io/alive/account-fe-sourcemaps@sha256:[0-9a-f]{64}$ ]] || exit 1
+      - uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload exact private source maps
+        id: upload
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: |
+          [[ "$(az acr show -n alive --query anonymousPullEnabled -o tsv --only-show-errors)" == false ]] || exit 1
+          az acr login --name alive
+          docker pull "$SOURCE_MAPS_IMAGE"
+          [[ "$(docker inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$SOURCE_MAPS_IMAGE")" == "$GITHUB_SHA" ]] || exit 1
+          maps_dir="$(mktemp -d "$RUNNER_TEMP/account-fe-sourcemaps.XXXXXX")"
+          container="$(docker create "$SOURCE_MAPS_IMAGE" /unused)"
+          trap 'docker rm "$container" >/dev/null; rm -rf "$maps_dir"' EXIT
+          docker cp "$container:/." "$maps_dir"
+          corepack pnpm exec sentry-cli sourcemaps upload --org "$SENTRY_ORG" --project "$SENTRY_PROJECT" --release "$GITHUB_SHA" "$maps_dir"
+      - name: Report source-map publication
+        if: always()
+        run: |
+          echo 'Source-map upload outcome: ${{ steps.upload.outcome }}. Retry this failed job only; the published site does not depend on it.' >> "$GITHUB_STEP_SUMMARY"
