@@ -82,3 +82,14 @@ no legacy management redirect is provided. Removed URLs follow the existing
 Account unknown-route behavior. Resources, reservations and member-details
 eligibility keep their existing Operations access.
 Release Gateway's WWW allowlist and WWW before this Account UI removal.
+
+## Source-map publication
+
+Production compilation only generates hidden maps and injects debug IDs locally.
+It preserves the exact client assets in the existing private ACR, removes all maps
+from `dist`, then publishes the normal immutable assets and index. An independent
+`upload_sourcemaps` job uploads that digest to Sentry with the merged commit as
+release. Provider failure stays visible as a failed job after website deployment;
+retry that job alone without rebuilding or publishing the site. No public GitHub
+artifact, new Azure resource or RBAC change is used. Private retry artifacts are
+retained; no retention or cost-saving claim is made by this change.

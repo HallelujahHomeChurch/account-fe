@@ -29,5 +29,5 @@ grep -q 'az bicep build --file infra/main.bicep' .github/workflows/ci.yml
 ! grep -q 'docker build' .github/workflows/ci.yml
 [ ! -e Dockerfile ]
 [ ! -e nginx.conf ]
-grep -q 'errorHandler: (error) => { throw error }' vite.config.ts
+node --test scripts/test-sentry-release.mjs
 grep -q '^Disallow: /$' public/robots.txt

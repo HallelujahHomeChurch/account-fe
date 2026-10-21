@@ -1,0 +1,4 @@
+FROM scratch
+ARG BUILD_COMMIT
+LABEL org.opencontainers.image.revision=$BUILD_COMMIT
+COPY assets/ /assets/
