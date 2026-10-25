@@ -1,5 +1,5 @@
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AccountSession } from '@hallelujahhomechurch/account-client'
@@ -8,6 +8,7 @@ import { AuthProvider, type AuthApi } from '../auth/auth-context'
 import { LocaleProvider } from '../i18n/locale-context'
 import { LoginPage } from './LoginPage'
 import { ApiError } from '../lib/api'
+import { readNativeAuthContinuation } from '../lib/native-auth-continuation'
 import { consumePostLoginReturnTo, hasPostLoginReturnTo, savePostLoginReturnTo } from '../auth/auth-routes'
 
 afterEach(() => {
@@ -16,6 +17,39 @@ afterEach(() => {
 })
 
 describe('LoginPage', () => {
+  it('does not restore a login form when an older status response arrives after terminal recovery', async () => {
+    const pending: Array<(value: {status: 'active'; client_id: string; client_name: string; expires_at: string}) => void> = []
+    let calls = 0
+    const api: AuthApi = {
+      login: async () => ({}), me: async () => ({id: 'u1', email: 'user@example.com'}),
+      refreshAccessToken: async () => null, logout: async () => ({}),
+      getAuthRequestStatus: () => ++calls === 1
+        ? new Promise(resolve => pending.push(resolve))
+        : Promise.reject(new ApiError(410, 'consumed', 'ACC_AUTH_REQUEST_INVALID')),
+    }
+    render(<MemoryRouter initialEntries={['/login?auth_request_id=req-stale']}><LocaleProvider><AuthProvider api={api} restoreSession={false}><LoginPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+    await act(async () => window.dispatchEvent(new Event('pageshow')))
+    expect(await screen.findByRole('alert')).toHaveTextContent('expired or was already used')
+    await act(async () => pending[0]({status: 'active', client_id: 'presenter', client_name: 'Presenter', expires_at: new Date(Date.now() + 60_000).toISOString()}))
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument()
+    expect(readNativeAuthContinuation()).toBeNull()
+  })
+
+  it('disposes the status request before an unmounted login can persist a continuation', async () => {
+    let resolveStatus!: (value: {status: 'active'; client_id: string; client_name: string; expires_at: string}) => void
+    const status = vi.fn(() => new Promise<{status: 'active'; client_id: string; client_name: string; expires_at: string}>(resolve => { resolveStatus = resolve }))
+    const api: AuthApi = {
+      login: async () => ({}), me: async () => ({id: 'u1', email: 'user@example.com'}),
+      refreshAccessToken: async () => null, logout: async () => ({}), getAuthRequestStatus: status,
+    }
+    const {unmount} = render(<MemoryRouter initialEntries={['/login?auth_request_id=req-unmount']}><LocaleProvider><AuthProvider api={api} restoreSession={false}><LoginPage /></AuthProvider></LocaleProvider></MemoryRouter>)
+    unmount()
+    await act(async () => resolveStatus({status: 'active', client_id: 'presenter', client_name: 'Presenter', expires_at: new Date(Date.now() + 60_000).toISOString()}))
+    window.dispatchEvent(new Event('pageshow'))
+    expect(status).toHaveBeenCalledTimes(1)
+    expect(readNativeAuthContinuation()).toBeNull()
+  })
+
   it('turns an expired authorization request into terminal recovery instead of a password error', async () => {
     document.cookie = 'hhc_locale=en; Path=/'
     const api: AuthApi = {

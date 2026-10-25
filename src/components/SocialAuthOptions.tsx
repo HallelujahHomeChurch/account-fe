@@ -1,17 +1,15 @@
 /* oxlint-disable react/only-export-components */
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
+import { supportedSocialProviderIds } from '../auth/use-auth-capabilities'
+export { useAuthCapabilities, useAuthCapabilitiesState } from '../auth/use-auth-capabilities'
 
 import { useAuth } from '../auth/auth-context'
 import { savePostLoginReturnTo } from '../auth/auth-routes'
 import { useLocale } from '../i18n/locale-context'
-import type { AuthCapabilities } from '../lib/api'
 import { SocialIcon } from './SocialIcon'
 
-const socialProviders = [
-  { id: 'google', label: 'Google' },
-  { id: 'line', label: 'LINE' },
-  { id: 'microsoft', label: 'Microsoft' },
-]
+const providerLabels = {google: 'Google', line: 'LINE', microsoft: 'Microsoft'}
+const socialProviders = supportedSocialProviderIds.map(id => ({id, label: providerLabels[id]}))
 
 type SocialAuthOptionsProps = {
   providerIds: string[] | null
@@ -19,50 +17,6 @@ type SocialAuthOptionsProps = {
   dividerLabel: string
   dividerPosition?: 'before' | 'after'
   returnTo?: string
-}
-
-export function useAuthCapabilities() {
-  return useAuthCapabilitiesState().capabilities
-}
-
-export function useAuthCapabilitiesState(enabled = true) {
-  const auth = useAuth()
-  const [capabilities, setCapabilities] = useState<AuthCapabilities | null>(null)
-  const [error, setError] = useState(false)
-  const [attempt, setAttempt] = useState(0)
-
-  useEffect(() => {
-    if (!enabled) return
-    let active = true
-    const request = auth.api.getAuthCapabilities
-      ? auth.api.getAuthCapabilities()
-      : auth.api.getOAuthProviders
-        ? auth.api.getOAuthProviders().then((providers) => ({ providers, registrationEnabled: false, policy: { enforced: false, terms_version: '', privacy_notice_version: '' } }))
-        : Promise.resolve({ providers: socialProviders.map(({ id }) => id), registrationEnabled: false, policy: { enforced: false, terms_version: '', privacy_notice_version: '' } })
-
-    request
-      .then((nextCapabilities) => {
-        if (nextCapabilities.policy?.enforced && (!nextCapabilities.policy.terms_version || !nextCapabilities.policy.privacy_notice_version)) {
-          throw new Error('Policy versions missing')
-        }
-        if (active) {
-          setCapabilities(nextCapabilities)
-          setError(false)
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setCapabilities(null)
-          setError(true)
-        }
-      })
-
-    return () => {
-      active = false
-    }
-  }, [attempt, auth.api, enabled])
-
-  return { capabilities, error, retry: () => setAttempt((value) => value + 1) }
 }
 
 export function SocialAuthOptions({
