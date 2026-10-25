@@ -7,6 +7,10 @@ permissions:
   contents: read
   packages: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   agent_docs:
     runs-on: ubuntu-latest
