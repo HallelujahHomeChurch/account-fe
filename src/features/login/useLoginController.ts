@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../auth/auth-context'
 import { clearPostLoginReturnTo, readPostLoginReturnTo, safeReturnTo, savePostLoginReturnTo } from '../../auth/auth-routes'
 import { authErrorMessage } from '../../auth/auth-form'
-import { useAuthCapabilities } from '../../auth/use-auth-capabilities'
+import { useAuthCapabilitiesState } from '../../auth/use-auth-capabilities'
 import { useLocale } from '../../i18n/locale-context'
 import { ApiError } from '../../lib/api'
 import { clearNativeAuthContinuation, saveNativeAuthContinuation } from '../../lib/native-auth-continuation'
@@ -35,7 +35,7 @@ export function useLoginController() {
   const [isSuccessNotice, setIsSuccessNotice] = useState(Boolean(registrationState?.registrationComplete))
   const [initialEmail] = useState(registrationState?.registrationEmail ?? '')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const capabilities = useAuthCapabilities()
+  const { capabilities } = useAuthCapabilitiesState()
   const registrationEnabled = capabilities?.registrationEnabled === true
   const [turnstileToken, setTurnstileToken] = useState('')
   const [turnstileAttempt, setTurnstileAttempt] = useState(0)

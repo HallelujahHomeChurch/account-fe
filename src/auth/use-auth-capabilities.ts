@@ -4,10 +4,6 @@ import type { AuthCapabilities } from '../lib/api'
 
 export const supportedSocialProviderIds = ['google', 'line', 'microsoft'] as const
 
-export function useAuthCapabilities() {
-  return useAuthCapabilitiesState().capabilities
-}
-
 export function useAuthCapabilitiesState(enabled = true) {
   const auth = useAuth()
   const [capabilities, setCapabilities] = useState<AuthCapabilities | null>(null)

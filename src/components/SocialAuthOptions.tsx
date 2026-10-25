@@ -1,7 +1,5 @@
-/* oxlint-disable react/only-export-components */
 import { useMemo } from 'react'
 import { supportedSocialProviderIds } from '../auth/use-auth-capabilities'
-export { useAuthCapabilities, useAuthCapabilitiesState } from '../auth/use-auth-capabilities'
 
 import { useAuth } from '../auth/auth-context'
 import { savePostLoginReturnTo } from '../auth/auth-routes'
