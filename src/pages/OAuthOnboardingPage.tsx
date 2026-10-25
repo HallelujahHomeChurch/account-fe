@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import { LanguageSelector } from '../components/LanguageSelector'
 import { LegalAcceptance } from '../components/LegalAcceptance'
-import { useAuthCapabilitiesState } from '../components/SocialAuthOptions'
+import { useAuthCapabilitiesState } from '../auth/use-auth-capabilities'
 import { useAuth } from '../auth/auth-context'
 import { useLocale } from '../i18n/locale-context'
 import { ApiError, type OAuthOnboardingStatus } from '../lib/api'

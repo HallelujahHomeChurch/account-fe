@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { expect, it } from 'vitest'
 
 import { AuthProvider, type AuthApi } from '../auth/auth-context'
-import { useAuthCapabilitiesState } from './SocialAuthOptions'
+import { useAuthCapabilitiesState } from '../auth/use-auth-capabilities'
 
 it('reports enforced capabilities with missing versions as unavailable', async () => {
   const api: AuthApi = {
