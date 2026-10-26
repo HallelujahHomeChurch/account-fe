@@ -230,3 +230,193 @@ it.each([false, true])('does not install or navigate an abandoned OAuth callback
   expect(api.exchangeCode).toHaveBeenCalledTimes(1)
   expect(api.me).not.toHaveBeenCalled()
 })
+
+it.each(['access-token', 'profile'] as const)('does not let an obsolete %s bootstrap clear a newer staged login token', async phase => {
+  document.cookie = 'hhc_sso_hint=; Max-Age=0; Path=/'
+  const bootstrapToken = deferred<Response>()
+  const bootstrapProfile = deferred<Response>()
+  const newerProfile = deferred<Response>()
+  const authorizations: Array<string | null> = []
+  let tokenRequested = false
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, options?: RequestInit) => {
+    const path = String(input)
+    if (path.endsWith('/session')) return Response.json({ authenticated: true, user: { id: 'u1', email: 'fixture@example.invalid', display_name: 'Fixture', avatar_url: null }, permissions: [], permission_availability: { status: 'available' } })
+    if (path.endsWith('/csrf-token')) return Response.json({ csrf_token: 'fixture-csrf' })
+    if (path.endsWith('/session/access-token')) {
+      tokenRequested = true
+      return phase === 'access-token' ? bootstrapToken.promise : Response.json({ access_token: 'bootstrap-token', expires_in: 900 })
+    }
+    if (path.endsWith('/login')) return Response.json({ access_token: 'newer-token' })
+    if (path.endsWith('/me')) {
+      const token = new Headers(options?.headers).get('authorization')
+      authorizations.push(token)
+      if (token === 'Bearer bootstrap-token') return bootstrapProfile.promise
+      if (authorizations.length === (phase === 'profile' ? 2 : 1)) return newerProfile.promise
+      return Response.json({ id: 'u2', email: 'new@example.invalid' })
+    }
+    throw new Error(`Unexpected fixture request: ${path}`)
+  }))
+  let auth!: ReturnType<typeof useAuth>
+  function Probe() { auth = useAuth(); return null }
+  render(<AuthProvider><Probe /></AuthProvider>)
+  await waitFor(() => expect(phase === 'profile' ? authorizations.length === 1 : tokenRequested).toBe(true))
+  let login!: Promise<LoginResponse>
+  act(() => { login = auth.login({ email: 'new@example.invalid', password: 'fixture' }) })
+  await waitFor(() => expect(authorizations.at(-1)).toBe('Bearer newer-token'))
+  await act(async () => {
+    if (phase === 'profile') bootstrapProfile.resolve(Response.json({ id: 'u1', email: 'fixture@example.invalid' }))
+    else bootstrapToken.resolve(Response.json({ access_token: 'bootstrap-token', expires_in: 900 }))
+  })
+  await auth.api.me()
+  await act(async () => { newerProfile.resolve(Response.json({ id: 'u2', email: 'new@example.invalid' })); await login })
+  expect(authorizations).toEqual(phase === 'profile'
+    ? ['Bearer bootstrap-token', 'Bearer newer-token', 'Bearer newer-token']
+    : ['Bearer newer-token', 'Bearer newer-token'])
+  expect(auth.accessToken).toBe('newer-token')
+  expect(auth.profile?.id).toBe('u2')
+})
+
+it('does not let an obsolete revalidation profile clear a newer staged credential', async () => {
+  document.cookie = 'hhc_sso_hint=; Max-Age=0; Path=/'
+  const revalidationProfile = deferred<{ id: string; email: string }>()
+  const newerProfile = deferred<{ id: string; email: string }>()
+  const authorizations: Array<string | null> = []
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, options?: RequestInit) => {
+    const request = new Request(input, options)
+    expect(new URL(request.url).pathname).toBe('/api/operations/me/resources')
+    authorizations.push(request.headers.get('authorization'))
+    return Response.json([])
+  }))
+  let profileRequests = 0
+  const api = apiWith(async () => ({ access_token: 'newer-token' }))
+  api.getSession = async () => ({ authenticated: true, user: { id: 'u1', email: 'fixture@example.invalid', display_name: 'Fixture', avatar_url: null }, permissions: [], permission_availability: { status: 'available' } })
+  api.issueAccessToken = async () => 'bootstrap-token'
+  api.refreshAccessToken = async () => 'revalidated-token'
+  api.me = vi.fn(async () => {
+    switch (++profileRequests) {
+      case 1: return { id: 'u1', email: 'fixture@example.invalid' }
+      case 2: throw new ApiError(401, 'expired access token')
+      case 3: return revalidationProfile.promise
+      case 4: return newerProfile.promise
+      default: throw new Error('Unexpected fixture profile request')
+    }
+  })
+  let auth!: ReturnType<typeof useAuth>
+  function Probe() { auth = useAuth(); return null }
+  render(<AuthProvider api={api}><Probe /></AuthProvider>)
+  await waitFor(() => expect(auth.status).toBe('authenticated'))
+  let revalidation!: Promise<void>
+  act(() => { revalidation = auth.retrySession() })
+  await waitFor(() => expect(profileRequests).toBe(3))
+  let login!: Promise<LoginResponse>
+  act(() => { login = auth.login({ email: 'new@example.invalid', password: 'fixture' }) })
+  await waitFor(() => expect(profileRequests).toBe(4))
+  await act(async () => { revalidationProfile.resolve({ id: 'u1', email: 'fixture@example.invalid' }); await revalidation })
+  await auth.operationsApi.listMyResources()
+  await act(async () => { newerProfile.resolve({ id: 'u2', email: 'new@example.invalid' }); await login })
+  expect(authorizations).toEqual(['Bearer newer-token'])
+  expect(auth.accessToken).toBe('newer-token')
+  expect(auth.profile?.id).toBe('u2')
+})
+
+it.each(['login', 'local-clear'] as const)('does not install or replay an Operations refresh after a newer %s intent', async intent => {
+  const refresh = deferred<string | null>()
+  const authorizations: Array<string | null> = []
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, options?: RequestInit) => {
+    const request = new Request(input, options)
+    authorizations.push(request.headers.get('authorization'))
+    return authorizations.length === 1 ? Response.json({ error_code: 'unauthorized' }, { status: 401 }) : Response.json([])
+  }))
+  let logins = 0
+  const api = apiWith(async () => ({ access_token: ++logins === 1 ? 'initial-token' : 'newer-token' }))
+  api.refreshAccessToken = vi.fn(() => refresh.promise)
+  const auth = setup(api)
+  await act(async () => { await auth().login({ email: 'initial', password: 'fixture' }) })
+  const request = auth().operationsApi.listMyResources()
+  const outcome = request.then(() => 'replayed', () => 'rejected')
+  await waitFor(() => expect(api.refreshAccessToken).toHaveBeenCalledOnce())
+  await act(async () => {
+    if (intent === 'login') await auth().login({ email: 'newer', password: 'fixture' })
+    else auth().clearLocalSession()
+  })
+  await act(async () => { refresh.resolve('obsolete-refresh-token'); await outcome })
+  await auth().operationsApi.listMyResources()
+  expect(authorizations).toEqual(['Bearer initial-token', intent === 'login' ? 'Bearer newer-token' : null])
+  expect(await outcome).toBe('rejected')
+  expect(auth().accessToken).toBe(intent === 'login' ? 'newer-token' : null)
+})
+
+it('retains the AccountApi current-token fence when an older refresh finishes after a newer login', async () => {
+  const refresh = deferred<Response>()
+  const authorizations: Array<string | null> = []
+  let logins = 0
+  let refreshRequested = false
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, options?: RequestInit) => {
+    const path = String(input)
+    if (path.endsWith('/csrf-token')) return Response.json({ csrf_token: 'fixture-csrf' })
+    if (path.endsWith('/login')) return Response.json({ access_token: ++logins === 1 ? 'initial-token' : 'newer-token' })
+    if (path.endsWith('/refresh')) { refreshRequested = true; return refresh.promise }
+    if (path.endsWith('/me')) {
+      authorizations.push(new Headers(options?.headers).get('authorization'))
+      return authorizations.length === 2 ? Response.json({ error_code: 'unauthorized' }, { status: 401 }) : Response.json({ id: 'u1', email: 'fixture@example.invalid' })
+    }
+    throw new Error(`Unexpected fixture request: ${path}`)
+  }))
+  let auth!: ReturnType<typeof useAuth>
+  function Probe() { auth = useAuth(); return null }
+  render(<AuthProvider restoreSession={false}><Probe /></AuthProvider>)
+  await act(async () => { await auth.login({ email: 'initial', password: 'fixture' }) })
+  const request = auth.api.me()
+  const outcome = request.then(() => 'replayed', () => 'rejected')
+  await waitFor(() => expect(refreshRequested).toBe(true))
+  await act(async () => { await auth.login({ email: 'newer', password: 'fixture' }) })
+  await act(async () => { refresh.resolve(Response.json({ access_token: 'obsolete-refresh-token', expires_in: 900 })); await outcome })
+  await auth.api.me()
+  expect(authorizations).toEqual(['Bearer initial-token', 'Bearer initial-token', 'Bearer newer-token', 'Bearer newer-token'])
+  expect(await outcome).toBe('rejected')
+  expect(auth.accessToken).toBe('newer-token')
+})
+
+it.each(['login', 'local-clear'] as const)('does not refresh or replay a late Operations 401 after a newer %s intent', async intent => {
+  const response = deferred<Response>()
+  const authorizations: Array<string | null> = []
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, options?: RequestInit) => {
+    const request = new Request(input, options)
+    authorizations.push(request.headers.get('authorization'))
+    return authorizations.length === 1 ? response.promise : Response.json([])
+  }))
+  let logins = 0
+  const api = apiWith(async () => ({ access_token: ++logins === 1 ? 'initial-token' : 'newer-token' }))
+  api.refreshAccessToken = vi.fn(async () => 'obsolete-refresh-token')
+  const auth = setup(api)
+  await act(async () => { await auth().login({ email: 'initial', password: 'fixture' }) })
+  const request = auth().operationsApi.listMyResources()
+  const outcome = request.then(() => 'replayed', () => 'rejected')
+  await waitFor(() => expect(authorizations).toHaveLength(1))
+  await act(async () => {
+    if (intent === 'login') await auth().login({ email: 'newer', password: 'fixture' })
+    else auth().clearLocalSession()
+  })
+  await act(async () => { response.resolve(Response.json({ error_code: 'unauthorized' }, { status: 401 })); await outcome })
+  await auth().operationsApi.listMyResources()
+  expect(authorizations).toEqual(['Bearer initial-token', intent === 'login' ? 'Bearer newer-token' : null])
+  expect(api.refreshAccessToken).not.toHaveBeenCalled()
+  expect(await outcome).toBe('rejected')
+})
+
+it('retains normal Operations 401 refresh and retry for the current credential', async () => {
+  const authorizations: Array<string | null> = []
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, options?: RequestInit) => {
+    const request = new Request(input, options)
+    authorizations.push(request.headers.get('authorization'))
+    return authorizations.length === 1 ? Response.json({ error_code: 'unauthorized' }, { status: 401 }) : Response.json([])
+  }))
+  const api = apiWith(async () => ({ access_token: 'initial-token' }))
+  api.refreshAccessToken = vi.fn(async () => 'refreshed-token')
+  const auth = setup(api)
+  await act(async () => { await auth().login({ email: 'initial', password: 'fixture' }) })
+  await expect(auth().operationsApi.listMyResources()).resolves.toEqual([])
+  await auth().operationsApi.listMyResources()
+  expect(authorizations).toEqual(['Bearer initial-token', 'Bearer refreshed-token', 'Bearer refreshed-token'])
+  expect(api.refreshAccessToken).toHaveBeenCalledOnce()
+})

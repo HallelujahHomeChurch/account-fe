@@ -225,9 +225,13 @@ export function AuthProvider({
   }, [authRuntime, config.accountApiBaseUrl, config.mockApi, injectedApi, setTokenRef])
 
   const refreshOperationsToken = useCallback(async (rejectedToken: string) => {
+    // An obsolete operation must not retry as a newer identity.
+    if (tokenRef.current !== rejectedToken) return null
+    const revision = authRevisionRef.current
     const token = authRuntime
       ? await authRuntime.refreshAfterUnauthorized(rejectedToken)
       : await api.refreshAccessToken()
+    if (revision !== authRevisionRef.current) return null
     if (token) setTokenRef(token)
     return token
   }, [api, authRuntime, setTokenRef])
@@ -473,16 +477,10 @@ export function AuthProvider({
           ? await api.issueAccessToken()
           : await api.refreshAccessToken()
       if (!token) return { ...emptyAuthState, status: 'anonymous' }
-      if (revision !== authRevisionRef.current) {
-        setTokenRef(stateRef.current.accessToken)
-        return stateRef.current
-      }
+      if (revision !== authRevisionRef.current) return stateRef.current
       setTokenRef(token)
       const nextProfile = await api.me()
-      if (revision !== authRevisionRef.current) {
-        setTokenRef(stateRef.current.accessToken)
-        return stateRef.current
-      }
+      if (revision !== authRevisionRef.current) return stateRef.current
       return {
         status: 'authenticated',
         accessToken: token,
@@ -538,10 +536,7 @@ export function AuthProvider({
           if (revision === authRevisionRef.current) setTokenRef(previousToken)
           throw error
         }
-        if (revision !== authRevisionRef.current) {
-          setTokenRef(stateRef.current.accessToken)
-          return stateRef.current
-        }
+        if (revision !== authRevisionRef.current) return stateRef.current
         return { ...stateRef.current, status: 'authenticated' as const, accessToken: token, profile, bootstrapError: null }
       } catch (error) {
         if (error instanceof ApiError && (error.status === 401 || error.status === 409)) {
