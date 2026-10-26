@@ -17,6 +17,11 @@ export function OAuthCallbackPage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const handled = useRef(false)
+  const active = useRef(true)
+  useEffect(() => {
+    active.current = true
+    return () => { active.current = false }
+  }, [])
   const [error, setError] = useState('')
   const returnTo = readAccountOAuthTransaction()?.returnTo ?? '/profile'
 
@@ -40,9 +45,10 @@ export function OAuthCallbackPage() {
       return
     }
 
-    auth.completeOAuthCallback(code, state)
-      .then((destination) => navigate(destination, { replace: true }))
-      .catch(() => {
+    auth.completeOAuthCallback(code, state, () => active.current)
+      .then((destination) => { if (active.current) navigate(destination, { replace: true }) })
+      .catch((caught) => {
+        if (!active.current || (caught instanceof DOMException && caught.name === 'AbortError')) return
         clearPostLoginReturnTo()
         setError(t.oauthCallback.failed)
       })

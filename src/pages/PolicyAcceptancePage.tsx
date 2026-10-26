@@ -1,7 +1,7 @@
 import { LegalDocuments } from '../components/LegalDocuments'
 import { useCommonLegalReview } from '../components/useCommonLegalReview'
 import { Button } from '@hallelujahhomechurch/ui'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../auth/auth-context'
@@ -14,6 +14,11 @@ import { clearPostLoginReturnTo, consumePostLoginReturnTo } from '../auth/auth-r
 
 export function PolicyAcceptancePage() {
   const auth = useAuth()
+  const completionController = useRef(new AbortController())
+  useEffect(() => {
+    completionController.current = new AbortController()
+    return () => completionController.current.abort()
+  }, [])
   const navigate = useNavigate()
   const { locale, messages: t } = useLocale()
   const [token, setToken] = useState(() => new URLSearchParams(window.location.hash.slice(1)).get('token') ?? '')
@@ -38,16 +43,16 @@ export function PolicyAcceptancePage() {
     setError('')
     setIsSubmitting(true)
     try {
-      const response = await auth.api.confirmPolicyAcceptance(token, {
+      const response = await auth.completeLogin(() => auth.api.confirmPolicyAcceptance!(token, {
         accepted: true,
         terms_version: policy.terms_version,
         privacy_notice_version: policy.privacy_notice_version,
         locale,
         ...(legalReview.snapshot ? {snapshot_id: legalReview.snapshot.snapshotId} : {}),
-      })
-      await auth.completeLogin(response)
+      }), completionController.current.signal)
       if (response.redirect_type !== 'oauth') navigate(consumePostLoginReturnTo(), { replace: true })
     } catch (caught) {
+      if (caught instanceof DOMException && caught.name === 'AbortError') return
       if (caught instanceof ApiError && caught.code === 'ACC_POLICY_VERSION_CHANGED') {
         const data = caught.data as Partial<PolicyCapabilities & { policy_token: string }>
         if (data.policy_token && data.terms_version && data.privacy_notice_version) {
@@ -69,7 +74,7 @@ export function PolicyAcceptancePage() {
         setError(t.policyAcceptance.failed)
       }
     } finally {
-      setIsSubmitting(false)
+      if (!completionController.current.signal.aborted) setIsSubmitting(false)
     }
   }
 
