@@ -1333,3 +1333,21 @@ textarea::selection {
 .member-mobile-country .hhc-select__trigger > span, .member-mobile-country .hhc-searchable-select__trigger > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 body:has(.member-mobile-country) .hhc-searchable-select__popover { min-width: min(280px, calc(100vw - 24px)); }
+
+
+.password-field-control {
+  position: relative;
+}
+
+.password-field-control .hhc-field__input {
+  padding-inline-end: 48px;
+}
+
+.password-field-control .hhc-icon-button {
+  position: absolute;
+  inset-inline-end: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+}
