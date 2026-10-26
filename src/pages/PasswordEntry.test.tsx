@@ -98,3 +98,15 @@ it('keeps strength feedback ahead of mismatch and prevents invalid registration'
   expect(screen.queryByText('Passwords do not match.')).not.toBeInTheDocument()
   expect(register).not.toHaveBeenCalled()
 })
+
+it('shows native required feedback when only confirmation is empty', async () => {
+  const { register } = renderEntry('register')
+  await fillRegistration()
+  const confirmation = screen.getByLabelText('Confirm password')
+  await userEvent.clear(confirmation)
+  await userEvent.click(screen.getByRole('button', { name: 'Create account' }))
+  expect(confirmation).toHaveAttribute('aria-invalid', 'true')
+  expect(confirmation).toHaveAccessibleDescription('Constraints not satisfied')
+  expect(screen.getByText('Constraints not satisfied')).toBeVisible()
+  expect(register).not.toHaveBeenCalled()
+})
