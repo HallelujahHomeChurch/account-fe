@@ -10,6 +10,7 @@ import {
   TextField,
 } from '@hallelujahhomechurch/ui'
 import { Link } from 'react-router-dom'
+import { PasswordField } from '../components/PasswordField'
 import { LanguageSelector } from '../components/LanguageSelector'
 import { SocialAuthOptions } from '../components/SocialAuthOptions'
 import { Turnstile } from '../components/Turnstile'
@@ -105,11 +106,7 @@ export function LoginPage() {
                 <Input autoComplete="username" inputMode="email" placeholder="you@example.com" type="text" />
                 <FieldError />
               </TextField>
-              <TextField isRequired name="password" type="password">
-                <Label>{t.login.passwordLabel}</Label>
-                <Input autoComplete="current-password" />
-                <FieldError />
-              </TextField>
+              <PasswordField name="password" label={t.login.passwordLabel} autoComplete="current-password" />
               <Link className="muted-link forgot-password-link" to={`/forgot-password${authRequestSearch}`}>
                 {t.login.forgotPassword}
               </Link>

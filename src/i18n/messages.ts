@@ -11,6 +11,7 @@ const nicknameMessages = {
 const messageCatalog = {
   'zh-Hant': {
     nickname: nicknameMessages['zh-Hant'],
+    passwordVisibility: { show: '顯示密碼', hide: '隱藏密碼' },
     site: {
       accountName: 'HHC 帳戶',
       pageTitle: '帳戶 | 哈利路亞家教會',
@@ -319,6 +320,7 @@ const messageCatalog = {
   },
   'zh-Hans': {
     nickname: nicknameMessages['zh-Hans'],
+    passwordVisibility: { show: '显示密码', hide: '隐藏密码' },
     site: {
       accountName: 'HHC 帐户',
       pageTitle: '帐户 | 哈利路亚家教会',
@@ -627,6 +629,7 @@ const messageCatalog = {
   },
   en: {
     nickname: nicknameMessages['en'],
+    passwordVisibility: { show: 'Show password', hide: 'Hide password' },
     site: {
       accountName: 'HHC Account',
       pageTitle: 'Account | Hallelujah Home Church',
@@ -935,6 +938,7 @@ const messageCatalog = {
   },
   ja: {
     nickname: nicknameMessages['ja'],
+    passwordVisibility: { show: 'パスワードを表示', hide: 'パスワードを隠す' },
     site: {
       accountName: 'HHCアカウント',
       pageTitle: 'アカウント | ハレルヤ家の教会',
@@ -1243,6 +1247,7 @@ const messageCatalog = {
   },
   ko: {
     nickname: nicknameMessages['ko'],
+    passwordVisibility: { show: '비밀번호 표시', hide: '비밀번호 숨기기' },
     site: {
       accountName: 'HHC 계정',
       pageTitle: '계정 | 할렐루야 가정교회',
