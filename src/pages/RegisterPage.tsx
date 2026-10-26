@@ -4,6 +4,7 @@ import { Button, FieldError, Form, Input, Label, TextField } from '@hallelujahho
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
+import { PasswordField } from '../components/PasswordField'
 import { LanguageSelector } from '../components/LanguageSelector'
 import { SocialAuthOptions } from '../components/SocialAuthOptions'
 import { useAuthCapabilitiesState } from '../auth/use-auth-capabilities'
@@ -29,6 +30,11 @@ export function RegisterPage() {
     : ''
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [password, setPassword] = useState('')
+  const [confirmation, setConfirmation] = useState('')
+  const [confirmationTouched, setConfirmationTouched] = useState(false)
+  const confirmationError = confirmationTouched && confirmation && isStrongPassword(password) && password !== confirmation
+    ? t.registration.passwordMismatch : ''
   const [turnstileToken, setTurnstileToken] = useState('')
   const [turnstileSiteKey] = useState(() => readRuntimeConfig().turnstileSiteKey ?? '')
   const { capabilities, error: capabilitiesError, retry: retryCapabilities } = useAuthCapabilitiesState()
@@ -50,12 +56,15 @@ export function RegisterPage() {
     if (!capabilities || !policyReady || (policy?.enforced && !policyAccepted)) return
     const form = new FormData(event.currentTarget)
     const password = String(form.get('password') ?? '')
+    setPassword(password)
+    setConfirmation(String(form.get('confirm_password') ?? ''))
+    setConfirmationTouched(true)
     if (!isStrongPassword(password)) {
       setError(t.registration.passwordPolicy)
       return
     }
     if (password !== String(form.get('confirm_password') ?? '')) {
-      setError(t.registration.passwordMismatch)
+      setError('')
       return
     }
     setError('')
@@ -138,16 +147,10 @@ export function RegisterPage() {
               <Input autoComplete="email" />
               <FieldError />
             </TextField>
-            <TextField isRequired name="password" type="password">
-              <Label>{t.registration.password}</Label>
-              <Input autoComplete="new-password" />
-              <FieldError />
-            </TextField>
-            <TextField isRequired name="confirm_password" type="password">
-              <Label>{t.registration.confirmPassword}</Label>
-              <Input autoComplete="new-password" />
-              <FieldError />
-            </TextField>
+            <PasswordField name="password" label={t.registration.password} autoComplete="new-password"
+              value={password} onChange={setPassword} />
+            <PasswordField name="confirm_password" label={t.registration.confirmPassword} autoComplete="new-password"
+              value={confirmation} onChange={setConfirmation} onBlur={() => setConfirmationTouched(true)} error={confirmationError} />
 			<label className="auth-consent">
 				<input name="newsletter_opt_in" type="checkbox" />
 				<span>
