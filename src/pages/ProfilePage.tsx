@@ -10,7 +10,7 @@ import { LanguageSelector } from '../components/LanguageSelector'
 import { NewsletterPreferenceRow } from '../components/NewsletterPreferenceRow'
 import { ThemeSelector } from '../components/ThemeSelector'
 import { useLocale } from '../i18n/locale-context'
-import { useAuthCapabilitiesState } from '../components/SocialAuthOptions'
+import { useAuthCapabilitiesState } from '../auth/use-auth-capabilities'
 import { authErrorMessage } from '../auth/auth-form'
 import { displayAccountName } from '../lib/account-display'
 

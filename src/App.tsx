@@ -39,7 +39,7 @@ import { PolicyAcceptancePage } from './pages/PolicyAcceptancePage'
 import { MyResourceReservationsPage } from './pages/MyResourceReservationsPage'
 import { ResourceListPage } from './pages/ResourceListPage'
 import { ResourceReservationPage } from './pages/ResourceReservationPage'
-import { useAuthCapabilitiesState } from './components/SocialAuthOptions'
+import { useAuthCapabilitiesState } from './auth/use-auth-capabilities'
 import { LineBrowserNotice } from './components/LineBrowserNotice'
 
 function LayoutContent() {
