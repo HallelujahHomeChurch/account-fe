@@ -77,10 +77,10 @@ type AuthContextValue = {
   logoutError: string | null
   api: AuthApi
   operationsApi: OperationsApiClient
-  login: (request: LoginRequest) => Promise<LoginResponse>
-  completeLogin: (response: LoginResponse) => Promise<LoginResponse>
-  verifyMfa: (code: string) => Promise<LoginResponse>
-  completeOAuthCallback: (code: string, state: string) => Promise<string>
+  login: (request: LoginRequest, signal?: AbortSignal) => Promise<LoginResponse>
+  completeLogin: (request: () => Promise<LoginResponse>, signal?: AbortSignal) => Promise<LoginResponse>
+  verifyMfa: (code: string, signal?: AbortSignal) => Promise<LoginResponse>
+  completeOAuthCallback: (code: string, state: string, isActive?: () => boolean) => Promise<string>
   startAuthorization: (returnTo: string) => Promise<void>
   refreshProfile: () => Promise<Profile>
   logout: () => Promise<void>
@@ -225,9 +225,13 @@ export function AuthProvider({
   }, [authRuntime, config.accountApiBaseUrl, config.mockApi, injectedApi, setTokenRef])
 
   const refreshOperationsToken = useCallback(async (rejectedToken: string) => {
+    // An obsolete operation must not retry as a newer identity.
+    if (tokenRef.current !== rejectedToken) return null
+    const revision = authRevisionRef.current
     const token = authRuntime
       ? await authRuntime.refreshAfterUnauthorized(rejectedToken)
       : await api.refreshAccessToken()
+    if (revision !== authRevisionRef.current) return null
     if (token) setTokenRef(token)
     return token
   }, [api, authRuntime, setTokenRef])
@@ -264,29 +268,39 @@ export function AuthProvider({
     return request
   }, [config, navigateExternal])
 
-  const completeOAuthCallback = useCallback(async (code: string, state: string) => {
+  const completeOAuthCallback = useCallback(async (code: string, state: string, isActive?: () => boolean) => {
     const transaction = readAccountOAuthTransaction()
     if (!validateOAuthState(transaction, state)) {
       throw new Error('OAuth state did not match this browser session.')
     }
     if (!api.exchangeCode) throw new Error('OAuth code exchange is unavailable.')
+    if (isActive?.() === false) throw new DOMException('Authentication attempt superseded.', 'AbortError')
 
     authRevisionRef.current += 1
     const revision = authRevisionRef.current
-    const response = await api.exchangeCode(accountOAuthConfig(config), transaction, code)
-    const previousToken = tokenRef.current
+    const assertCurrent = () => {
+      if (revision !== authRevisionRef.current || isActive?.() === false) throw new DOMException('Authentication attempt superseded.', 'AbortError')
+    }
+    let response: OAuthTokenResponse
+    try {
+      response = await api.exchangeCode(accountOAuthConfig(config), transaction, code)
+    } catch (error) {
+      assertCurrent()
+      throw error
+    }
+    assertCurrent()
+    const previousToken = stateRef.current.accessToken
     setTokenRef(response.access_token)
     let nextProfile: Profile
     try {
       nextProfile = await api.me()
     } catch (error) {
       if (revision === authRevisionRef.current) setTokenRef(previousToken)
+      assertCurrent()
       throw error
     }
-    if (revision !== authRevisionRef.current) {
-      setTokenRef(stateRef.current.accessToken)
-      return transaction.returnTo
-    }
+    if (revision === authRevisionRef.current && isActive?.() === false) setTokenRef(previousToken)
+    assertCurrent()
     commitState({
       status: 'authenticated',
       accessToken: response.access_token,
@@ -301,7 +315,22 @@ export function AuthProvider({
   }, [api, commitState, config, setTokenRef])
 
   const completeLogin = useCallback(
-    async (response: LoginResponse) => {
+    async (request: () => Promise<LoginResponse>, signal?: AbortSignal) => {
+      signal?.throwIfAborted()
+      const revision = ++authRevisionRef.current
+      const assertCurrent = () => {
+        signal?.throwIfAborted()
+        if (revision !== authRevisionRef.current) throw new DOMException('Authentication attempt superseded.', 'AbortError')
+      }
+      assertCurrent()
+      let response: LoginResponse
+      try {
+        response = await request()
+      } catch (error) {
+        assertCurrent()
+        throw error
+      }
+      assertCurrent()
       if (response.policy_acceptance_required && response.policy_token) {
         commitState({ ...emptyAuthState, status: 'anonymous' })
         return response
@@ -333,29 +362,27 @@ export function AuthProvider({
       }
 
       if (response.access_token) {
-        const revision = authRevisionRef.current
-        const previousToken = tokenRef.current
+        const previousToken = stateRef.current.accessToken
         setTokenRef(response.access_token)
         let nextProfile: Profile
         try {
           nextProfile = await api.me()
         } catch (error) {
           if (revision === authRevisionRef.current) setTokenRef(previousToken)
+          assertCurrent()
           throw error
         }
-        if (revision === authRevisionRef.current) {
-          commitState({
-            status: 'authenticated',
-            accessToken: response.access_token,
-            profile: nextProfile,
-            mfaChallenge: null,
-            bootstrapError: null,
-            logoutError: null,
-          })
-          markLoginCompleted()
-        } else {
-          setTokenRef(stateRef.current.accessToken)
-        }
+        if (revision === authRevisionRef.current && signal?.aborted) setTokenRef(previousToken)
+        assertCurrent()
+        commitState({
+          status: 'authenticated',
+          accessToken: response.access_token,
+          profile: nextProfile,
+          mfaChallenge: null,
+          bootstrapError: null,
+          logoutError: null,
+        })
+        markLoginCompleted()
       }
 
       return response
@@ -364,21 +391,15 @@ export function AuthProvider({
   )
 
   const login = useCallback(
-    async (request: LoginRequest) => {
-      authRevisionRef.current += 1
-      const response = await api.login(request)
-      return completeLogin(response)
-    },
+    (request: LoginRequest, signal?: AbortSignal) => completeLogin(() => api.login(request), signal),
     [api, completeLogin],
   )
 
-  const verifyMfa = useCallback(async (code: string) => {
+  const verifyMfa = useCallback(async (code: string, signal?: AbortSignal) => {
     const challenge = stateRef.current.mfaChallenge
     if (!challenge || !api.verifyMfa) throw new Error('MFA verification is unavailable.')
-    authRevisionRef.current += 1
     try {
-      const response = await api.verifyMfa(challenge.token, code)
-      return completeLogin(response)
+      return await completeLogin(() => api.verifyMfa!(challenge.token, code), signal)
     } catch (error) {
       if (error instanceof ApiError && ['ACC_MFA_TOKEN_INVALID', 'ACC_MFA_CODE_EXPIRED'].includes(error.code ?? '')) {
         commitState({ ...emptyAuthState, status: 'anonymous' })
@@ -456,16 +477,10 @@ export function AuthProvider({
           ? await api.issueAccessToken()
           : await api.refreshAccessToken()
       if (!token) return { ...emptyAuthState, status: 'anonymous' }
-      if (revision !== authRevisionRef.current) {
-        setTokenRef(stateRef.current.accessToken)
-        return stateRef.current
-      }
+      if (revision !== authRevisionRef.current) return stateRef.current
       setTokenRef(token)
       const nextProfile = await api.me()
-      if (revision !== authRevisionRef.current) {
-        setTokenRef(stateRef.current.accessToken)
-        return stateRef.current
-      }
+      if (revision !== authRevisionRef.current) return stateRef.current
       return {
         status: 'authenticated',
         accessToken: token,
@@ -521,10 +536,7 @@ export function AuthProvider({
           if (revision === authRevisionRef.current) setTokenRef(previousToken)
           throw error
         }
-        if (revision !== authRevisionRef.current) {
-          setTokenRef(stateRef.current.accessToken)
-          return stateRef.current
-        }
+        if (revision !== authRevisionRef.current) return stateRef.current
         return { ...stateRef.current, status: 'authenticated' as const, accessToken: token, profile, bootstrapError: null }
       } catch (error) {
         if (error instanceof ApiError && (error.status === 401 || error.status === 409)) {

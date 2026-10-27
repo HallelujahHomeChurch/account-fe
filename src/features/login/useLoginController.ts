@@ -12,6 +12,11 @@ import { emailCorrectionMessages } from '../email-correction/messages'
 
 export function useLoginController() {
   const auth = useAuth()
+  const completionController = useRef(new AbortController())
+  useEffect(() => {
+    completionController.current = new AbortController()
+    return () => completionController.current.abort()
+  }, [])
   const { locale, messages: t } = useLocale()
   const navigate = useNavigate()
   const location = useLocation()
@@ -184,7 +189,7 @@ export function useLoginController() {
         password: credentials.password,
         authRequestId,
         turnstileToken: turnstileToken || undefined,
-      })
+      }, completionController.current.signal)
       if (response.policy_acceptance_required && response.policy_token) {
         if (!authRequestId) savePostLoginReturnTo(returnTo)
         navigate(`/policy/acceptance#token=${encodeURIComponent(response.policy_token)}`, { replace: true })
@@ -196,6 +201,7 @@ export function useLoginController() {
         setIsSuccessNotice(true)
       }
     } catch (caught) {
+      if (caught instanceof DOMException && caught.name === 'AbortError') return
       if (caught instanceof ApiError && caught.code === 'ACC_AUTH_REQUEST_INVALID') {
         clearNativeAuthContinuation()
         setTransactionState('invalid')
@@ -210,7 +216,7 @@ export function useLoginController() {
         setTurnstileAttempt((attempt) => attempt + 1)
       }
     } finally {
-      setIsSubmitting(false)
+      if (!completionController.current.signal.aborted) setIsSubmitting(false)
     }
   }
 
@@ -221,7 +227,7 @@ export function useLoginController() {
     setIsSubmitting(true)
 
     try {
-      const response = await auth.verifyMfa(code)
+      const response = await auth.verifyMfa(code, completionController.current.signal)
       if (response.policy_acceptance_required && response.policy_token) {
         if (!authRequestId) savePostLoginReturnTo(returnTo)
         navigate(`/policy/acceptance#token=${encodeURIComponent(response.policy_token)}`, { replace: true })
@@ -230,6 +236,7 @@ export function useLoginController() {
         navigate(returnTo, { replace: true })
       }
     } catch (caught) {
+      if (caught instanceof DOMException && caught.name === 'AbortError') return
       if (caught instanceof ApiError && caught.code === 'ACC_AUTH_REQUEST_INVALID') {
         clearNativeAuthContinuation()
         setTransactionState('invalid')
@@ -237,7 +244,7 @@ export function useLoginController() {
       }
       setError(authErrorMessage(caught, t.login.mfaFailed))
     } finally {
-      setIsSubmitting(false)
+      if (!completionController.current.signal.aborted) setIsSubmitting(false)
     }
   }
 

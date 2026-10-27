@@ -1,7 +1,7 @@
 import { LegalDocuments } from '../components/LegalDocuments'
 import { useCommonLegalReview } from '../components/useCommonLegalReview'
 import { Button, FieldError, Form, Input, Label, OTP, REGEXP_ONLY_DIGITS, TextField } from '@hallelujahhomechurch/ui'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { LanguageSelector } from '../components/LanguageSelector'
@@ -16,6 +16,11 @@ type Step = 'loading' | 'email' | 'code' | 'confirm' | 'invalid'
 
 export function OAuthOnboardingPage() {
   const auth = useAuth()
+  const completionController = useRef(new AbortController())
+  useEffect(() => {
+    completionController.current = new AbortController()
+    return () => completionController.current.abort()
+  }, [])
   const { locale, messages: t } = useLocale()
   const navigate = useNavigate()
   const [token] = useState(() => new URLSearchParams(window.location.hash.slice(1)).get('token') ?? '')
@@ -119,6 +124,7 @@ export function OAuthOnboardingPage() {
       if (next.link_confirmation_required || next.requires_link_confirmation || policy?.enforced) setStep('confirm')
       else await complete(false)
     } catch (caught) {
+      if (caught instanceof DOMException && caught.name === 'AbortError') return
       if (caught instanceof ApiError && caught.code === 'ACC_OAUTH_ONBOARDING_CODE_EXPIRED') {
         setError(t.oauthOnboarding.codeExpired)
         return
@@ -126,24 +132,24 @@ export function OAuthOnboardingPage() {
       if (caught instanceof ApiError && caught.code === 'ACC_OAUTH_ONBOARDING_INVALID') setStep('invalid')
       setError(onboardingError(caught, t.oauthOnboarding.invalid, t.oauthOnboarding.failed))
     } finally {
-      setIsSubmitting(false)
+      if (!completionController.current.signal.aborted) setIsSubmitting(false)
     }
   }
 
   async function complete(linkExisting: boolean) {
     if (!auth.api.completeOAuthOnboarding || !capabilities || !policyReady || (policy?.enforced && !policyAccepted)) return
-    const response = policy?.enforced
-      ? await auth.api.completeOAuthOnboarding(token, linkExisting, {
+    const response = await auth.completeLogin(() => policy?.enforced
+      ? auth.api.completeOAuthOnboarding!(token, linkExisting, {
           accepted: true,
           terms_version: policy.terms_version,
           privacy_notice_version: policy.privacy_notice_version,
           locale,
           ...(legalReview.snapshot ? {snapshot_id: legalReview.snapshot.snapshotId} : {}),
         })
-      : await auth.api.completeOAuthOnboarding(token, linkExisting)
-    await auth.completeLogin(response)
+      : auth.api.completeOAuthOnboarding!(token, linkExisting), completionController.current.signal)
     if (response.redirect_type !== 'oauth') {
       await auth.retrySession()
+      completionController.current.signal.throwIfAborted()
       navigate('/profile', { replace: true })
     }
   }
@@ -154,6 +160,7 @@ export function OAuthOnboardingPage() {
     try {
       await complete(Boolean(status?.link_confirmation_required || status?.requires_link_confirmation))
     } catch (caught) {
+      if (caught instanceof DOMException && caught.name === 'AbortError') return
       if (caught instanceof ApiError && caught.code === 'ACC_POLICY_VERSION_CHANGED') {
         setPolicyAccepted(false)
         retryCapabilities()
@@ -162,7 +169,7 @@ export function OAuthOnboardingPage() {
       if (caught instanceof ApiError && caught.code === 'ACC_AUTH_REQUEST_INVALID') setStep('invalid')
       setError(onboardingError(caught, t.oauthOnboarding.invalid, t.oauthOnboarding.failed))
     } finally {
-      setIsSubmitting(false)
+      if (!completionController.current.signal.aborted) setIsSubmitting(false)
     }
   }
 
