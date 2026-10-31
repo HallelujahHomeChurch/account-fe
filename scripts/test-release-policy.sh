@@ -30,6 +30,7 @@ grep -q 'az bicep build --file infra/main.bicep' .github/workflows/ci.yml
 [ ! -e Dockerfile ]
 [ ! -e nginx.conf ]
 node --test scripts/test-sentry-release.mjs
+node --test scripts/test-static-publish.mjs
 grep -q '^Disallow: /$' public/robots.txt
 
 # Platform storage must remain centrally owned; publisher RBAC is explicit opt-in.

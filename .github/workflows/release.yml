@@ -169,6 +169,9 @@ jobs:
         id: publish
         run: |
           mv dist/index.html "$RUNNER_TEMP/index.html"
+          if [[ -d dist/assets ]]; then
+            mv dist/assets "$RUNNER_TEMP/site-assets"
+          fi
           az storage blob upload-batch \
             --account-name "$STORAGE_ACCOUNT" \
             --destination "$STORAGE_CONTAINER" \
@@ -178,12 +181,12 @@ jobs:
             --auth-mode login \
             --no-progress \
             --only-show-errors --output none
-          if [[ -d dist/assets ]]; then
+          if [[ -d "$RUNNER_TEMP/site-assets" ]]; then
             az storage blob upload-batch \
               --account-name "$STORAGE_ACCOUNT" \
               --destination "$STORAGE_CONTAINER" \
               --destination-path assets \
-              --source dist/assets \
+              --source "$RUNNER_TEMP/site-assets" \
               --overwrite true \
               --content-cache-control "public, max-age=31536000, immutable" \
               --auth-mode login \
