@@ -39,6 +39,15 @@ governed by the Account API configuration.
 
 ## Production delivery
 
+`azure-infra` owns the storage account, default Blob service (including retention
+and versioning), and public `site` container. This repository references those
+existing resources and verifies the container before publishing; it no longer
+provisions or updates their platform settings, or runs an empty ARM deployment.
+Provision them centrally before
+an initial release. The explicit `provisionPermissions` bootstrap option and
+existing publisher RBAC remain unchanged. Content upload, verification and index
+rollback remain owned by this release workflow.
+
 GitHub Actions builds the Vite application and publishes it to the public
 `site` container in the `hhcaccountfeprod` storage account. Hashed assets are
 uploaded before `index.html`; a failed verification restores the previous

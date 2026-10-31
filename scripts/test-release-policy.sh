@@ -31,3 +31,13 @@ grep -q 'az bicep build --file infra/main.bicep' .github/workflows/ci.yml
 [ ! -e nginx.conf ]
 node --test scripts/test-sentry-release.mjs
 grep -q '^Disallow: /$' public/robots.txt
+
+# Platform storage must remain centrally owned; publisher RBAC is explicit opt-in.
+for resource in storage blobService site; do
+  grep -Eq "^resource $resource '[^']+' existing = \{" infra/main.bicep
+done
+! grep -Eq 'allowSharedKeyAccess|deleteRetentionPolicy|isVersioningEnabled|publicAccess:' infra/main.bicep
+grep -Fq '= if (provisionPermissions)' infra/main.bicep
+grep -Fq 'az storage container-rm show' "$workflow"
+grep -Fq '[[ "$access" == Blob ]]' "$workflow"
+! grep -Eq 'az deployment group (what-if|create)' "$workflow"
