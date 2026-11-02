@@ -28,6 +28,7 @@ describe('standalone LINE handoff', () => {
     else await userEvent.click(within(dialog).getByRole('button', { name: action === 'cancel' ? 'Cancel' : 'Close browser prompt' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     const retry = screen.getByRole('button', { name: 'Show prompt again' })
+    await waitFor(() => expect(retry).toHaveFocus())
     await userEvent.click(retry)
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
