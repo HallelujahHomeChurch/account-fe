@@ -177,6 +177,7 @@ textarea::selection {
 .line-browser-handoff h1 { margin: 0; font-size: 24px; line-height: 1.4; font-weight: 650; }
 .line-browser-handoff p { margin: 24px 0 20px; color: var(--color-muted); font-size: 14px; line-height: 1.7; }
 .line-browser-handoff .line-browser-handoff__manual { font-size: 12px; }
+.line-browser-handoff-actions a { color: var(--hhc-on-primary); }
 .line-browser-handoff-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin-top: 24px; }
 
 .account-header .hhc-menu__popover {

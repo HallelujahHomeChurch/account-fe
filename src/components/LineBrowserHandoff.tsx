@@ -1,5 +1,5 @@
 import { Button, Dialog } from '@hallelujahhomechurch/ui'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowUpRight } from 'lucide-react'
 import { useLocale } from '../i18n/locale-context'
 import { externalBrowserHref } from '../lib/line-browser-handoff'
@@ -7,10 +7,9 @@ import { externalBrowserHref } from '../lib/line-browser-handoff'
 export function LineBrowserHandoff() {
   const { messages } = useLocale()
   const copy = messages.lineBrowser
-  const retry = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
   useEffect(() => {
-    retry.current?.focus()
+    document.getElementById('line-browser-retry')?.focus()
     setOpen(true)
   }, [])
   const restarting = new URLSearchParams(window.location.search).has('auth_request_id')
@@ -22,7 +21,7 @@ export function LineBrowserHandoff() {
       <img className="line-browser-handoff__logo" src="/assets/brand/logo.png" alt="" width={80} height={80} />
       <h1 id="line-browser-brand">{messages.site.pageTitle}</h1>
       <p>{description}</p>
-      <Dialog title={copy.title} isOpen={open} onOpenChange={setOpen} isDismissable={false} closeLabel={copy.close} trigger={<Button ref={retry} variant="secondary">{copy.retry}</Button>}>
+      <Dialog title={copy.title} isOpen={open} onOpenChange={setOpen} isDismissable={false} closeLabel={copy.close} trigger={<Button id="line-browser-retry" variant="secondary">{copy.retry}</Button>}>
         <p>{description}</p>
         <div className="line-browser-handoff-actions">
           <Button variant="secondary" onPress={() => setOpen(false)}>{copy.cancel}</Button>
