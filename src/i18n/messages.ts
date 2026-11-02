@@ -19,7 +19,7 @@ const messageCatalog = {
       notifications: '通知',
       dismissNotification: '關閉通知',
     },
-    lineBrowser: { region: '瀏覽器開啟提示', title: '改用預設瀏覽器瀏覽', description: '目前透過 LINE 開啟；建議使用預設瀏覽器。', open: '開啟預設瀏覽器', stay: '留在這裡', close: '關閉瀏覽器提示並留在此頁', manual: '若未自動開啟，請從 LINE 選單選擇「在瀏覽器中開啟」。', restartAuth: '這次登入已在 LINE 中開始。請在預設瀏覽器重新開啟最初的網站連結，以重新開始登入。' },
+    lineBrowser: { title: '使用預設瀏覽器開啟', description: '請使用預設瀏覽器繼續使用帳戶網站。取消後將留在此頁。', open: '開啟預設瀏覽器', cancel: '取消', retry: '重新開啟提示', close: '關閉瀏覽器提示', manual: '若未自動開啟，請從 LINE 選單選擇「在瀏覽器中開啟」。', restartAuth: '這次登入已在 LINE 中開始。請在預設瀏覽器重新開啟最初的網站連結，以重新開始登入。' },
     authErrors: {
       sessionCheckFailed: '目前無法確認登入狀態，請再試一次。',
       signOutFailed: '目前無法登出，請再試一次。',
@@ -328,7 +328,7 @@ const messageCatalog = {
       notifications: '通知',
       dismissNotification: '关闭通知',
     },
-    lineBrowser: { region: '浏览器打开提示', title: '改用默认浏览器浏览', description: '当前通过 LINE 打开；建议使用默认浏览器。', open: '使用默认浏览器打开', stay: '留在这里', close: '关闭浏览器提示并留在此页', manual: '如果没有自动打开，请从 LINE 菜单选择「在浏览器中打开」。', restartAuth: '本次登录已在 LINE 中开始。请在默认浏览器重新打开最初的网站链接，以重新开始登录。' },
+    lineBrowser: { title: '使用默认浏览器打开', description: '请使用默认浏览器继续使用帐户网站。取消后将留在此页。', open: '使用默认浏览器打开', cancel: '取消', retry: '重新打开提示', close: '关闭浏览器提示', manual: '如果没有自动打开，请从 LINE 菜单选择「在浏览器中打开」。', restartAuth: '本次登录已在 LINE 中开始。请在默认浏览器重新打开最初的网站链接，以重新开始登录。' },
     authErrors: {
       sessionCheckFailed: '目前无法确认登录状态，请再试一次。',
       signOutFailed: '目前无法退出登录，请再试一次。',
@@ -637,7 +637,7 @@ const messageCatalog = {
       notifications: 'Notifications',
       dismissNotification: 'Dismiss notification',
     },
-    lineBrowser: { region: 'Browser opening notice', title: 'Browse in your default browser', description: "You're viewing this page in LINE. We recommend your default browser.", open: 'Open in default browser', stay: 'Stay here', close: 'Close browser notice and stay on this page', manual: "If it doesn't open, use LINE's menu to open this page in a browser.", restartAuth: 'This sign-in started in LINE. Reopen the original website link in your default browser to start a new sign-in.' },
+    lineBrowser: { title: 'Open in your default browser', description: 'Continue to your account in your default browser. Cancelling keeps you on this page.', open: 'Open in default browser', cancel: 'Cancel', retry: 'Show prompt again', close: 'Close browser prompt', manual: "If it doesn't open, use LINE's menu to open this page in a browser.", restartAuth: 'This sign-in started in LINE. Reopen the original website link in your default browser to start a new sign-in.' },
     authErrors: {
       sessionCheckFailed: 'Unable to check your sign-in status. Try again.',
       signOutFailed: 'Unable to sign out. Try again.',
@@ -946,7 +946,7 @@ const messageCatalog = {
       notifications: '通知',
       dismissNotification: '通知を閉じる',
     },
-    lineBrowser: { region: 'ブラウザで開くための案内', title: '既定のブラウザで閲覧する', description: 'LINE 内で表示しています。既定のブラウザで開くことをおすすめします。', open: '既定のブラウザで開く', stay: 'このまま利用する', close: '案内を閉じてこのページを利用する', manual: '開かない場合は、LINE のメニューからブラウザで開いてください。', restartAuth: 'このログインは LINE 内で開始されました。既定のブラウザで最初のサイトリンクを開き直し、ログインをやり直してください。' },
+    lineBrowser: { title: '既定のブラウザーで開く', description: 'アカウントを利用するには既定のブラウザーで開いてください。キャンセルするとこのページに留まります。', open: '既定のブラウザで開く', cancel: 'キャンセル', retry: '案内をもう一度表示', close: 'ブラウザーの案内を閉じる', manual: '開かない場合は、LINE のメニューからブラウザで開いてください。', restartAuth: 'このログインは LINE 内で開始されました。既定のブラウザで最初のサイトリンクを開き直し、ログインをやり直してください。' },
     authErrors: {
       sessionCheckFailed: 'ログイン状態を確認できませんでした。もう一度お試しください。',
       signOutFailed: 'ログアウトできませんでした。もう一度お試しください。',
@@ -1255,7 +1255,7 @@ const messageCatalog = {
       notifications: '알림',
       dismissNotification: '알림 닫기',
     },
-    lineBrowser: { region: '브라우저 열기 안내', title: '기본 브라우저에서 보기', description: '현재 LINE에서 보고 있습니다. 기본 브라우저 사용을 권장합니다.', open: '기본 브라우저에서 열기', stay: '여기에서 계속', close: '안내를 닫고 이 페이지에 머무르기', manual: '열리지 않으면 LINE 메뉴에서 브라우저로 열기를 선택해 주세요.', restartAuth: '이 로그인은 LINE에서 시작되었습니다. 기본 브라우저에서 원래 사이트 링크를 다시 열어 로그인을 새로 시작해 주세요.' },
+    lineBrowser: { title: '기본 브라우저에서 열기', description: '계정을 계속 사용하려면 기본 브라우저에서 열어 주세요. 취소하면 이 페이지에 머무릅니다.', open: '기본 브라우저에서 열기', cancel: '취소', retry: '안내 다시 보기', close: '브라우저 안내 닫기', manual: '열리지 않으면 LINE 메뉴에서 브라우저로 열기를 선택해 주세요.', restartAuth: '이 로그인은 LINE에서 시작되었습니다. 기본 브라우저에서 원래 사이트 링크를 다시 열어 로그인을 새로 시작해 주세요.' },
     authErrors: {
       sessionCheckFailed: '로그인 상태를 확인할 수 없어요. 다시 시도해 주세요.',
       signOutFailed: '로그아웃할 수 없어요. 다시 시도해 주세요.',

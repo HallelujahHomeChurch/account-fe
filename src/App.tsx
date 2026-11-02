@@ -40,7 +40,6 @@ import { MyResourceReservationsPage } from './pages/MyResourceReservationsPage'
 import { ResourceListPage } from './pages/ResourceListPage'
 import { ResourceReservationPage } from './pages/ResourceReservationPage'
 import { useAuthCapabilitiesState } from './auth/use-auth-capabilities'
-import { LineBrowserNotice } from './components/LineBrowserNotice'
 
 function LayoutContent() {
   const auth = useAuth()
@@ -136,7 +135,6 @@ function LayoutContent() {
   if (isAuthRoute) {
     return (
       <div className="app-shell">
-        <LineBrowserNotice />
         <main className="auth-main-panel">
           <Routes>
             <Route element={<LoginPage />} path="/login" />
@@ -236,7 +234,6 @@ function LayoutContent() {
           </nav>
         </aside> : null}
         <div className="account-content">
-          <LineBrowserNotice />
           <main className="main-panel">
             <AccountSectionFocus />
             {resourceLookupFailed && !isResourceRoute ? <p className="form-error" role="alert">
