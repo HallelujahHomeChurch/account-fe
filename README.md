@@ -102,3 +102,11 @@ release. Provider failure stays visible as a failed job after website deployment
 retry that job alone without rebuilding or publishing the site. No public GitHub
 artifact, new Azure resource or RBAC change is used. Private retry artifacts are
 retained; no retention or cost-saving claim is made by this change.
+
+## LINE browser handoff
+
+Ordinary LINE entries load only the branded browser handoff before the normal
+application, router, session or telemetry bootstrap. Cancel/Escape leave that page
+with retry/manual guidance; external links preserve the original URL. Existing
+OAuth callback and one-time-token entry safeguards remain separate.
+Active auth_request_id entries show original-site restart guidance, never a cross-browser transaction link. Email-correction token capture remains the first entry operation.
