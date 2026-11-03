@@ -14,6 +14,10 @@ export function legalContinuation(value: string | null): string | null {
       url.hash
     )
       return null
+    if (/^\/video\/[A-Za-z0-9_-]{11}$/.test(url.pathname)) {
+      if (url.search && (!/^\?t=(0|[1-9]\d{0,5})$/.test(url.search) || Number(url.searchParams.get('t')) > 604800)) return null
+      return url.href
+    }
     const route = url.pathname.match(/^\/(zh-Hant|zh-Hans|en|ja|ko)\/(literature-ministry|member-videos|privacy-policy|terms-of-use)(.*)$/)
     if (!route) return null
     if (route[2] !== 'literature-ministry') return !route[3] && !url.search ? url.href : null
