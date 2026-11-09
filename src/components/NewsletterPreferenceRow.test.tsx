@@ -151,3 +151,64 @@ it('translates an existing load failure without retrying it on language changes'
   expect(screen.getByRole('alert')).not.toHaveTextContent('Unable to load notification settings.')
   expect(getNewsletterPreference).toHaveBeenCalledTimes(1)
 })
+
+it('shows durable pending without success and refreshes without another consent command', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  const getNewsletterPreference = vi.fn().mockResolvedValueOnce({ status: 'not_subscribed' }).mockResolvedValueOnce({ status: 'subscribed', handoffState: 'completed' })
+  const updateNewsletterPreference = vi.fn().mockResolvedValue({ status: 'pending', handoffState: 'pending' })
+  const api: AuthApi = { login: async () => ({ access_token: 'token' }), refreshAccessToken: async () => 'token', me: async () => ({ id: 'u1', email: 'user@example.test' }), logout: async () => ({}), getNewsletterPreference, updateNewsletterPreference }
+  render(<MemoryRouter><LocaleProvider><ToastProvider dismissLabel="Dismiss"><AuthProvider api={api}><NewsletterPreferenceRow /></AuthProvider></ToastProvider></LocaleProvider></MemoryRouter>)
+  await userEvent.click(await screen.findByRole('switch'))
+  expect(await screen.findByText('Your request is saved and still processing.')).toBeInTheDocument()
+  expect(screen.queryByText('Notification preference updated.')).not.toBeInTheDocument()
+  await userEvent.click(screen.getByRole('button', { name: 'Check status' }))
+  expect(await screen.findByRole('switch')).toBeChecked()
+  expect(updateNewsletterPreference).toHaveBeenCalledTimes(1)
+})
+
+it('requires a fresh explicit choice after renewal and keeps completed history separate from current status', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  const updateNewsletterPreference = vi.fn().mockResolvedValue({ status: 'unsubscribed', handoffState: 'completed' })
+  const api: AuthApi = { login: async () => ({ access_token: 'token' }), refreshAccessToken: async () => 'token', me: async () => ({ id: 'u1', email: 'user@example.test' }), logout: async () => ({}), getNewsletterPreference: async () => ({ status: 'unsubscribed', handoffState: 'needs-renewal' }), updateNewsletterPreference }
+  render(<MemoryRouter><LocaleProvider><ToastProvider dismissLabel="Dismiss"><AuthProvider api={api}><NewsletterPreferenceRow /></AuthProvider></ToastProvider></LocaleProvider></MemoryRouter>)
+  expect(await screen.findByText('Please confirm a new choice to subscribe.')).toBeInTheDocument()
+  expect(updateNewsletterPreference).not.toHaveBeenCalled()
+  await userEvent.click(screen.getByRole('button', { name: 'Subscribe again' }))
+  expect(updateNewsletterPreference).toHaveBeenCalledWith(true)
+  expect(screen.getByRole('switch')).not.toBeChecked()
+})
+
+it('keeps unsubscribe pending and reads status after an uncertain reply', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  const getNewsletterPreference = vi.fn().mockResolvedValue({ status: 'subscribed', handoffState: 'pending' })
+  const updateNewsletterPreference = vi.fn().mockRejectedValue(new Error('lost reply'))
+  const api: AuthApi = { login: async () => ({ access_token: 'token' }), refreshAccessToken: async () => 'token', me: async () => ({ id: 'u1', email: 'user@example.test' }), logout: async () => ({}), getNewsletterPreference, updateNewsletterPreference }
+  render(<MemoryRouter><LocaleProvider><ToastProvider dismissLabel="Dismiss"><AuthProvider api={api}><NewsletterPreferenceRow /></AuthProvider></ToastProvider></LocaleProvider></MemoryRouter>)
+  const toggle = await screen.findByRole('switch')
+  expect(toggle).toBeChecked()
+  await userEvent.click(toggle)
+  expect(await screen.findByText('The result is uncertain. Check status before trying again.')).toBeInTheDocument()
+  expect(toggle).toBeDisabled()
+  await userEvent.click(screen.getByRole('button', { name: 'Check status' }))
+  expect(await screen.findByRole('switch')).toBeChecked()
+  expect(updateNewsletterPreference).toHaveBeenCalledTimes(1)
+  expect(getNewsletterPreference).toHaveBeenCalledTimes(2)
+})
+
+it('requires status readback after a lost renewal reply before another explicit choice', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  const getNewsletterPreference = vi.fn().mockResolvedValue({ status: 'unsubscribed', handoffState: 'needs-renewal' })
+  const updateNewsletterPreference = vi.fn().mockRejectedValue(new Error('lost renewal reply'))
+  const api: AuthApi = { login: async () => ({ access_token: 'token' }), refreshAccessToken: async () => 'token', me: async () => ({ id: 'u1', email: 'user@example.test' }), logout: async () => ({}), getNewsletterPreference, updateNewsletterPreference }
+  render(<MemoryRouter><LocaleProvider><ToastProvider dismissLabel="Dismiss"><AuthProvider api={api}><NewsletterPreferenceRow /></AuthProvider></ToastProvider></LocaleProvider></MemoryRouter>)
+  await userEvent.click(await screen.findByRole('button', { name: 'Subscribe again' }))
+  expect(await screen.findByText('The result is uncertain. Check status before trying again.')).toBeInTheDocument()
+  const renewal = screen.getByRole('button', { name: 'Subscribe again' })
+  expect(renewal).toBeDisabled()
+  await userEvent.click(renewal)
+  expect(updateNewsletterPreference).toHaveBeenCalledTimes(1)
+  await userEvent.click(screen.getByRole('button', { name: 'Check status' }))
+  expect(await screen.findByRole('button', { name: 'Subscribe again' })).toBeEnabled()
+  expect(getNewsletterPreference).toHaveBeenCalledTimes(2)
+  expect(updateNewsletterPreference).toHaveBeenCalledTimes(1)
+})

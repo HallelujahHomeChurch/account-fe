@@ -110,3 +110,10 @@ application, router, session or telemetry bootstrap. Cancel/Escape leave that pa
 with retry/manual guidance; external links preserve the original URL. Existing
 OAuth callback and one-time-token entry safeguards remain separate.
 Active auth_request_id entries show original-site restart guidance, never a cross-browser transaction link. Email-correction token capture remains the first entry operation.
+
+Newsletter preferences accept the optional ordered handoff state from Account AC2.
+A saved request may remain pending; checking status never resubmits consent, and a
+renewal requires a new explicit choice. Completed handoff history does not override
+current subscription status. These readers may deploy before backend activation;
+responses without the optional state retain legacy behavior. No shared Account SDK
+upgrade is required for this locally owned preference DTO.

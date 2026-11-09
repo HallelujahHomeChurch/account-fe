@@ -156,6 +156,7 @@ export function RegisterPage() {
 				<span>
 					<strong>{t.registration.newsletterOptIn}</strong>
 					<small>{t.registration.newsletterOptOut}</small>
+          <small>{t.notificationSettings.verificationSeparate}</small>
 				</span>
 			</label>
             {policy?.enforced ? <>{legalReview.snapshot ? <LegalDocuments snapshot={legalReview.snapshot} /> : null}

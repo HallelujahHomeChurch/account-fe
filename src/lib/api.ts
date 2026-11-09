@@ -134,6 +134,17 @@ export type LinkedAccount = {
 
 export type NewsletterPreference = {
   status: 'not_subscribed' | 'pending' | 'subscribed' | 'unsubscribed'
+  handoffState?: 'pending' | 'completed' | 'superseded' | 'needs-renewal'
+}
+
+function newsletterPreference(value: unknown): NewsletterPreference {
+  if (!value || typeof value !== 'object') throw new Error('Invalid newsletter preference')
+  const record = value as Record<string, unknown>
+  if (typeof record.status !== 'string' || !['not_subscribed', 'pending', 'subscribed', 'unsubscribed'].includes(record.status) ||
+      (record.handoffState !== undefined && (typeof record.handoffState !== 'string' || !['pending', 'completed', 'superseded', 'needs-renewal'].includes(record.handoffState)))) {
+    throw new Error('Invalid newsletter preference')
+  }
+  return { status: record.status as NewsletterPreference['status'], ...(record.handoffState === undefined ? {} : { handoffState: record.handoffState as NewsletterPreference['handoffState'] }) }
 }
 
 export type MfaSetup = {
@@ -385,15 +396,15 @@ export class AccountApi {
     return this.request<void>(`/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE' })
   }
 
-  getNewsletterPreference() {
-    return this.request<NewsletterPreference>('/notification-preferences/newsletter')
+  async getNewsletterPreference() {
+    return newsletterPreference(await this.request<unknown>('/notification-preferences/newsletter', { cache: 'no-store' }))
   }
 
-  updateNewsletterPreference(subscribed: boolean) {
-    return this.request<NewsletterPreference>('/notification-preferences/newsletter', {
-      method: 'PUT',
-      body: { subscribed },
-    })
+  async updateNewsletterPreference(subscribed: boolean) {
+    return newsletterPreference(await this.request<unknown>('/notification-preferences/newsletter', {
+      method: 'PUT', body: { subscribed },
+      retry: false, csrfRetry: false, recoverWithoutReplay: true,
+    }))
   }
 
   listLinkedAccounts() {

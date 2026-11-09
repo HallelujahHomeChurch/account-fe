@@ -84,7 +84,10 @@ export function VerifyEmailPage() {
         <div className="login-form-panel auth-result-state">
           {!verified && !error ? <p className="inline-status" role="status">{t.emailVerification.verifying}</p> : null}
           {verified ? (
-            <AuthResultState>{t.emailVerification.successDescription}</AuthResultState>
+            <>
+              <AuthResultState>{t.emailVerification.successDescription}</AuthResultState>
+              <p className="muted-copy">{t.notificationSettings.verificationSeparate}</p>
+            </>
           ) : null}
           {verified && continuationState === 'checking' ? <p className="inline-status" role="status">{t.login.authRequestChecking}</p> : null}
           {verified && continuationState === 'invalid' ? <p className="form-error" role="alert">{t.login.authRequestInvalid}</p> : null}
