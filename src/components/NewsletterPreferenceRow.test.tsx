@@ -212,3 +212,50 @@ it('requires status readback after a lost renewal reply before another explicit 
   expect(getNewsletterPreference).toHaveBeenCalledTimes(2)
   expect(updateNewsletterPreference).toHaveBeenCalledTimes(1)
 })
+
+it('allows withdrawal after a saved opt-in before Engagement has applied it', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  const updateNewsletterPreference = vi.fn()
+    .mockResolvedValueOnce({ status: 'not_subscribed', handoffState: 'pending' })
+    .mockResolvedValueOnce({ status: 'not_subscribed', handoffState: 'pending' })
+  const api: AuthApi = { login: async () => ({ access_token: 'token' }), refreshAccessToken: async () => 'token', me: async () => ({ id: 'u1', email: 'user@example.test' }), logout: async () => ({}), getNewsletterPreference: async () => ({ status: 'not_subscribed' }), updateNewsletterPreference }
+  render(<MemoryRouter><LocaleProvider><ToastProvider dismissLabel="Dismiss"><AuthProvider api={api}><NewsletterPreferenceRow /></AuthProvider></ToastProvider></LocaleProvider></MemoryRouter>)
+  await userEvent.click(await screen.findByRole('switch'))
+  expect(await screen.findByRole('switch')).not.toBeChecked()
+  await userEvent.click(await screen.findByRole('button', { name: 'Unsubscribe' }))
+  expect(updateNewsletterPreference.mock.calls).toEqual([[true], [false]])
+  expect(screen.getByRole('switch')).not.toBeChecked()
+  expect(screen.queryByText('Notification preference updated.')).not.toBeInTheDocument()
+})
+
+it.each(['not_subscribed', 'unsubscribed'] as const)('can withdraw a restored pending choice with authority status %s after status refresh', async status => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  const getNewsletterPreference = vi.fn().mockResolvedValue({ status, handoffState: 'pending' })
+  const updateNewsletterPreference = vi.fn().mockResolvedValue({ status, handoffState: 'pending' })
+  const api: AuthApi = { login: async () => ({ access_token: 'token' }), refreshAccessToken: async () => 'token', me: async () => ({ id: 'u1', email: 'user@example.test' }), logout: async () => ({}), getNewsletterPreference, updateNewsletterPreference }
+  render(<MemoryRouter><LocaleProvider><ToastProvider dismissLabel="Dismiss"><AuthProvider api={api}><NewsletterPreferenceRow /></AuthProvider></ToastProvider></LocaleProvider></MemoryRouter>)
+  expect(await screen.findByRole('button', { name: 'Unsubscribe' })).toBeEnabled()
+  await userEvent.click(screen.getByRole('button', { name: 'Check status' }))
+  await userEvent.click(await screen.findByRole('button', { name: 'Unsubscribe' }))
+  expect(getNewsletterPreference).toHaveBeenCalledTimes(2)
+  expect(updateNewsletterPreference).toHaveBeenCalledExactlyOnceWith(false)
+  expect(screen.getByRole('switch')).not.toBeChecked()
+})
+
+it('blocks another withdrawal after a lost reply until status readback succeeds', async () => {
+  document.cookie = 'hhc_locale=en; Path=/'
+  const getNewsletterPreference = vi.fn().mockResolvedValue({ status: 'not_subscribed', handoffState: 'pending' })
+  const updateNewsletterPreference = vi.fn().mockRejectedValue(new Error('lost withdrawal reply'))
+  const api: AuthApi = { login: async () => ({ access_token: 'token' }), refreshAccessToken: async () => 'token', me: async () => ({ id: 'u1', email: 'user@example.test' }), logout: async () => ({}), getNewsletterPreference, updateNewsletterPreference }
+  render(<MemoryRouter><LocaleProvider><ToastProvider dismissLabel="Dismiss"><AuthProvider api={api}><NewsletterPreferenceRow /></AuthProvider></ToastProvider></LocaleProvider></MemoryRouter>)
+  await userEvent.click(await screen.findByRole('button', { name: 'Unsubscribe' }))
+  expect(await screen.findByText('The result is uncertain. Check status before trying again.')).toBeInTheDocument()
+  const withdrawal = screen.getByRole('button', { name: 'Unsubscribe' })
+  expect(withdrawal).toBeDisabled()
+  await userEvent.click(withdrawal)
+  expect(updateNewsletterPreference).toHaveBeenCalledExactlyOnceWith(false)
+  await userEvent.click(screen.getByRole('button', { name: 'Check status' }))
+  expect(await screen.findByRole('button', { name: 'Unsubscribe' })).toBeEnabled()
+  expect(getNewsletterPreference).toHaveBeenCalledTimes(2)
+  expect(updateNewsletterPreference).toHaveBeenCalledTimes(1)
+})

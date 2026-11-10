@@ -75,6 +75,7 @@ export function NewsletterPreferenceRow() {
           onChange={(selected) => void update(selected)}
         />
         {handoffMessage ? <p role="status" className="muted-copy">{handoffMessage}</p> : preference?.status === 'pending' ? <span role="status" className="muted-copy">{t.notificationSettings.pending}</span> : null}
+        {handoff === 'pending' && !subscribed ? <Button variant="secondary" isDisabled={isSaving || uncertain || !auth.api.updateNewsletterPreference} onPress={() => void update(false)}>{t.notificationSettings.unsubscribe}</Button> : null}
         {(handoff === 'pending' || uncertain) ? <Button variant="secondary" isDisabled={isSaving} onPress={() => setRevision(value => value + 1)}>{t.notificationSettings.checkStatus}</Button> : null}
         {renewal && preference?.status !== 'subscribed' ? <Button variant="secondary" isDisabled={isSaving || uncertain || !auth.api.updateNewsletterPreference} onPress={() => void update(true)}>{t.notificationSettings.renewConsent}</Button> : null}
       </div>}

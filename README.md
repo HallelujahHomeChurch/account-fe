@@ -117,3 +117,7 @@ renewal requires a new explicit choice. Completed handoff history does not overr
 current subscription status. These readers may deploy before backend activation;
 responses without the optional state retain legacy behavior. No shared Account SDK
 upgrade is required for this locally owned preference DTO.
+
+A saved opt-in can be withdrawn while Engagement still reports not subscribed.
+The explicit Unsubscribe action retains current subscription status and requires
+status readback after an uncertain response before another write.
