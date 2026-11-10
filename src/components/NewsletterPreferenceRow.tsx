@@ -13,6 +13,7 @@ export function NewsletterPreferenceRow() {
   const [error, setError] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [uncertain, setUncertain] = useState(false)
 
   const [revision, setRevision] = useState(0)
   const alive = useRef(true)
@@ -25,7 +26,7 @@ export function NewsletterPreferenceRow() {
     const load = async () => {
       try {
         const value = await auth.api.getNewsletterPreference?.() ?? { status: 'not_subscribed' as const }
-        if (active) setPreference(value)
+        if (active) { setPreference(value); setUncertain(false) }
       } catch {
         if (active) { setPreference(null); setError(true) }
       } finally {
@@ -37,15 +38,18 @@ export function NewsletterPreferenceRow() {
   }, [auth.api, revision])
 
   async function update(subscribed: boolean) {
-    if (!auth.api.updateNewsletterPreference) return
+    if (isSaving || uncertain || !auth.api.updateNewsletterPreference) return
     setIsSaving(true)
     try {
       const next = await auth.api.updateNewsletterPreference(subscribed)
       if (!alive.current) return
       setPreference(next)
-      toast.add({ message: t.notificationSettings.updated, tone: 'success' })
+      if (!next.handoffState || next.handoffState === 'completed') {
+        toast.add({ message: t.notificationSettings.updated, tone: 'success' })
+      }
     } catch {
       if (!alive.current) return
+      setUncertain(true)
       toast.add({ message: t.notificationSettings.updateFailed, tone: 'danger' })
     } finally {
       if (alive.current) setIsSaving(false)
@@ -53,6 +57,9 @@ export function NewsletterPreferenceRow() {
   }
 
   const subscribed = preference?.status === 'subscribed' || preference?.status === 'pending'
+  const handoff = preference?.handoffState
+  const renewal = handoff === 'needs-renewal' || handoff === 'superseded'
+  const handoffMessage = uncertain ? t.notificationSettings.updateUnknown : handoff === 'pending' ? t.notificationSettings.handoffPending : handoff === 'needs-renewal' ? t.notificationSettings.needsRenewal : handoff === 'superseded' ? t.notificationSettings.superseded : undefined
 
   return (
     <div id="email-notifications" tabIndex={-1} aria-label={t.notificationSettings.emailTitle} className="settings-row newsletter-preference-row">
@@ -62,12 +69,15 @@ export function NewsletterPreferenceRow() {
         <Switch
           className="settings-row-switch"
           description={t.notificationSettings.newsletterDescription}
-          isDisabled={isSaving || !auth.api.updateNewsletterPreference}
+          isDisabled={isSaving || uncertain || !auth.api.updateNewsletterPreference}
           isSelected={subscribed}
           label={t.notificationSettings.emailTitle}
           onChange={(selected) => void update(selected)}
         />
-        {preference?.status === 'pending' ? <span role="status" className="muted-copy">{t.notificationSettings.pending}</span> : null}
+        {handoffMessage ? <p role="status" className="muted-copy">{handoffMessage}</p> : preference?.status === 'pending' ? <span role="status" className="muted-copy">{t.notificationSettings.pending}</span> : null}
+        {handoff === 'pending' && !subscribed ? <Button variant="secondary" isDisabled={isSaving || uncertain || !auth.api.updateNewsletterPreference} onPress={() => void update(false)}>{t.notificationSettings.unsubscribe}</Button> : null}
+        {(handoff === 'pending' || uncertain) ? <Button variant="secondary" isDisabled={isSaving} onPress={() => setRevision(value => value + 1)}>{t.notificationSettings.checkStatus}</Button> : null}
+        {renewal && preference?.status !== 'subscribed' ? <Button variant="secondary" isDisabled={isSaving || uncertain || !auth.api.updateNewsletterPreference} onPress={() => void update(true)}>{t.notificationSettings.renewConsent}</Button> : null}
       </div>}
     </div>
   )

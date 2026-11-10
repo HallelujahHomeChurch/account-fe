@@ -718,3 +718,27 @@ it('fetches a fresh CSRF token on the next user action without replaying the rej
  await api.memberTransportFetch('/member-details', { method: 'PUT', body: 'fresh-envelope' })
  expect(wires).toEqual(['first-envelope', 'fresh-envelope']); expect(tokens).toEqual(['csrf-1', 'csrf-2'])
 })
+
+it.each([
+  { status: 'subscribed' },
+  { status: 'pending', handoffState: 'pending' },
+  { status: 'unsubscribed', handoffState: 'completed' },
+  { status: 'not_subscribed', handoffState: 'needs-renewal' },
+  { status: 'unsubscribed', handoffState: 'superseded' },
+])('decodes legacy and ordered newsletter preferences %j', async preference => {
+  const api = new AccountApi({ baseUrl: '/api/account/v1', fetcher: async () => jsonResponse(preference) })
+  await expect(api.getNewsletterPreference()).resolves.toEqual(preference)
+})
+
+it.each([{ status: 'unknown' }, { status: 'subscribed', handoffState: 'unknown' }, { status: ['subscribed'] }])('rejects unknown newsletter state %j', async preference => {
+  const api = new AccountApi({ baseUrl: '/api/account/v1', fetcher: async () => jsonResponse(preference) })
+  await expect(api.getNewsletterPreference()).rejects.toThrow('Invalid newsletter preference')
+})
+
+it('accepts202 durable pending without replaying an uncertain consent write', async () => {
+  const puts = vi.fn().mockResolvedValueOnce(jsonResponse({ status: 'pending', handoffState: 'pending' }, 202)).mockRejectedValueOnce(new TypeError('network interrupted'))
+  const api = new AccountApi({ baseUrl: '/api/account/v1', fetcher: async input => String(input).endsWith('/csrf-token') ? jsonResponse({ csrf_token: 'fixture' }) : puts() })
+  await expect(api.updateNewsletterPreference(true)).resolves.toEqual({ status: 'pending', handoffState: 'pending' })
+  await expect(api.updateNewsletterPreference(false)).rejects.toThrow('network interrupted')
+  expect(puts).toHaveBeenCalledTimes(2)
+})
