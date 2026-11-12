@@ -285,6 +285,7 @@ export function LineBindingPage() {
           {terminalMessage && !error ? (
             <div className="line-binding-state" role="status">
               <p>{terminalMessage}</p>
+              {summary?.status === 'completed' && summary.current !== false ? <p>{t.lineBinding.groupContinuation}</p> : null}
               <Button variant="ghost" onPress={close}>{t.lineBinding.close}</Button>
             </div>
           ) : null}
