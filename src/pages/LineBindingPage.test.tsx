@@ -541,3 +541,8 @@ it('reports completion instead of switching after finalize wins the race', async
   expect(await screen.findByRole('status')).toHaveTextContent('LINE is connected.')
   expect(logout).not.toHaveBeenCalled()
 })
+
+it('completed binding explicitly leaves group activation pending', async () => {
+  renderPage(signedInApi({getLineLinkIntent:async()=>({view_nonce:viewNonce,status:'completed',current:true,expires_at:'2099-01-01T00:00:00Z'})}))
+  expect(await screen.findByRole('status')).toHaveTextContent('Linking does not activate a group')
+})
