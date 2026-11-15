@@ -129,6 +129,7 @@ const messageCatalog = {
       failed: '目前無法完成社群登入，請稍後再試。',
     },
     lineBinding: {
+      groupContinuation: '帳號綁定不會啟用群組。若正在設定群組助理，請返回原設定頁，再回原群組預覽並確認公告。',
       completed: '已完成 LINE 連結，既有連結保持有效。',
       cancelled: '這次連結要求已取消。請回到 LINE 重新發起登入。',
       superseded: '已有較新的連結要求，請使用 LINE 中最新的連結。',
@@ -446,6 +447,7 @@ const messageCatalog = {
       failed: '目前无法完成社群登录，请稍后重试。',
     },
     lineBinding: {
+      groupContinuation: '账号绑定不会启用群组。若正在设置群组助理，请返回原设置页，再回原群组预览并确认公告。',
       completed: '已完成 LINE 连接，已有连接保持有效。',
       cancelled: '这次连接请求已取消。请回到 LINE 重新发起登录。',
       superseded: '已有更新的连接请求，请使用 LINE 中最新的连接。',
@@ -763,6 +765,7 @@ const messageCatalog = {
       failed: 'Unable to complete social sign-in. Try again later.',
     },
     lineBinding: {
+      groupContinuation: 'Linking does not activate a group. If you are setting up the group assistant, return to the original setup page, then preview and confirm the notice in the original LINE group.',
       completed: 'LINE is connected. The existing connection remains active.',
       cancelled: 'This connection request was cancelled. Start a new sign-in from LINE.',
       superseded: 'A newer connection request exists. Use the latest link in LINE.',
@@ -1080,6 +1083,7 @@ const messageCatalog = {
       failed: '外部アカウントでのログインを完了できませんでした。しばらくしてからもう一度お試しください。',
     },
     lineBinding: {
+      groupContinuation: 'アカウント連携だけではグループは有効になりません。グループアシスタントの設定中は元の設定ページに戻り、元のLINEグループで案内を確認して承認してください。',
       completed: 'LINEの連携は完了しています。既存の連携は有効なままです。',
       cancelled: 'この連携要求はキャンセルされました。LINEからもう一度ログインを開始してください。',
       superseded: '新しい連携要求があります。LINEの最新のリンクを使用してください。',
@@ -1397,6 +1401,7 @@ const messageCatalog = {
       failed: '소셜 로그인을 완료할 수 없어요. 잠시 후 다시 시도해 주세요.',
     },
     lineBinding: {
+      groupContinuation: '계정 연결만으로 그룹이 활성화되지 않아요. 그룹 도우미를 설정 중이라면 원래 설정 페이지로 돌아간 뒤, 원래 LINE 그룹에서 안내를 확인하고 승인해 주세요.',
       completed: 'LINE 연결이 완료되었어요. 기존 연결은 유지돼요.',
       cancelled: '이 연결 요청이 취소되었어요. LINE에서 로그인을 다시 시작해 주세요.',
       superseded: '새 연결 요청이 있어요. LINE의 최신 링크를 사용해 주세요.',
